@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+/* Users protofile */
+
+package users;
+option go_package = "./users";
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+/* OpenAPI Spec */
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "gRPC Gateway Implementation :)";
+    version: "1.0";
+    contact: {
+      email: "ferra.main@gmail.com";
+    };
+  };
+  consumes: "application/json";
+  produces: "application/json";
+  responses: {
+    key: "403";
+  }
+  responses: {
+    key: "404";
+  }
+  responses: {
+    key: "500";
+  }
+};
+
+/* API Objects */
+
+enum Success {
+  FALSE = 0;
+  TRUE = 1;
+}
+
+message SuccessMsg {
+  Success success = 1;
+  string data = 3;
+  string error = 5;
+}
+
+service UsersService {
+  rpc Signup (SignupRequest) returns (SignupResponse) {
+    option (google.api.http) = {
+      get: "/v1/signup"
+    };
+  }
+  rpc Login (LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      get: "/v1/login"
+    };
+  }
+}
+
+message SignupRequest {
+  string username = 1 [
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { min_length: 4, max_length: 12 }
+  ];
+  string password = 3;
+}
+
+message SignupResponse {
+  string message = 1;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 3;
+}
+
+message LoginResponse {
+  string message = 1;
+}
