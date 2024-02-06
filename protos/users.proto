@@ -8,6 +8,7 @@ option go_package = "./users";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "validate/validate.proto";
 
 /* OpenAPI Spec */
 
@@ -59,10 +60,7 @@ service UsersService {
 }
 
 message SignupRequest {
-  string username = 1 [
-    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { min_length: 4, max_length: 12 }, 
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string username = 1 [(validate.rules).string = {min_len: 4, max_len: 10}];
   string password = 3;
 }
 
