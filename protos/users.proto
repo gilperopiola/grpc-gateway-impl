@@ -60,7 +60,8 @@ service UsersService {
 
 message SignupRequest {
   string username = 1 [
-    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { min_length: 4, max_length: 12 }
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { min_length: 4, max_length: 12 }, 
+    (google.api.field_behavior) = REQUIRED
   ];
   string password = 3;
 }
