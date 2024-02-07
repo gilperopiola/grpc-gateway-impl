@@ -6,9 +6,8 @@ package users;
 option go_package = "./users";
 
 import "google/api/annotations.proto";
-import "google/api/field_behavior.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
-import "validate/validate.proto";
+import "buf/validate/validate.proto";
 
 /* OpenAPI Spec */
 
@@ -60,8 +59,9 @@ service UsersService {
 }
 
 message SignupRequest {
-  string username = 1 [(validate.rules).string = {min_len: 4, max_len: 10}];
+  string username = 1 [(buf.validate.field).string.len = 3];
   string password = 3;
+  string asd = 5;
 }
 
 message SignupResponse {
