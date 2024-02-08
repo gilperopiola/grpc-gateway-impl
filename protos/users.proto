@@ -13,7 +13,7 @@ import "buf/validate/validate.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "gRPC Gateway Implementation :)";
+    title: "gRPC-HTTP Gateway Implementation :)";
     version: "1.0";
     contact: {
       email: "ferra.main@gmail.com";
@@ -39,7 +39,7 @@ enum Success {
   TRUE = 1;
 }
 
-message SuccessMsg {
+message ResponseMessage {
   Success success = 1;
   string data = 3;
   string error = 5;
@@ -48,31 +48,30 @@ message SuccessMsg {
 service UsersService {
   rpc Signup (SignupRequest) returns (SignupResponse) {
     option (google.api.http) = {
-      get: "/v1/signup"
+      post: "/v1/signup"
     };
   }
   rpc Login (LoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
-      get: "/v1/login"
+      post: "/v1/login"
     };
   }
 }
 
 message SignupRequest {
-  string username = 1 [(buf.validate.field).string.len = 3];
-  string password = 3;
-  string asd = 5;
+  string username = 1 [(buf.validate.field).string.min_len = 4, (buf.validate.field).string.max_len = 20];
+  string password = 3 [(buf.validate.field).string.pattern = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$"];
 }
 
 message SignupResponse {
-  string message = 1;
+  ResponseMessage message = 1;
 }
 
 message LoginRequest {
-  string username = 1;
+  string username = 1 [(buf.validate.field).string.min_len = 4, (buf.validate.field).string.max_len = 20];
   string password = 3;
 }
 
 message LoginResponse {
-  string message = 1;
+  ResponseMessage message = 1;
 }
