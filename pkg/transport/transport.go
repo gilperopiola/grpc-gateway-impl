@@ -10,11 +10,13 @@ import (
 	"github.com/bufbuild/protovalidate-go"
 )
 
+// TransportLayer is the interface that wraps the transport methods.
 type TransportLayer interface {
 	Signup(ctx context.Context, pbRequest *usersPB.SignupRequest) (*usersPB.SignupResponse, error)
 	Login(ctx context.Context, pbRequest *usersPB.LoginRequest) (*usersPB.LoginResponse, error)
 }
 
+// transport is our concrete implementation of the TransportLayer interface.
 type transport struct {
 	protoValidator *protovalidate.Validator
 	service        service.ServiceLayer
@@ -22,6 +24,7 @@ type transport struct {
 	toTransport    adapters.Service2TransportAdapter
 }
 
+// NewTransport returns a new instance of the transport.
 func NewTransport(protoValidator *protovalidate.Validator, serviceLayer service.ServiceLayer) *transport {
 	return &transport{
 		protoValidator: protoValidator,
