@@ -34,17 +34,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 
 /* API Objects */
 
-enum Success {
-  FALSE = 0;
-  TRUE = 1;
-}
-
-message ResponseMessage {
-  Success success = 1;
-  string data = 3;
-  string error = 5;
-}
-
 service UsersService {
   rpc Signup (SignupRequest) returns (SignupResponse) {
     option (google.api.http) = {
@@ -64,7 +53,7 @@ message SignupRequest {
 }
 
 message SignupResponse {
-  ResponseMessage message = 1;
+  int32 id = 1;
 }
 
 message LoginRequest {
@@ -73,5 +62,5 @@ message LoginRequest {
 }
 
 message LoginResponse {
-  ResponseMessage message = 1;
+  string token = 1;
 }
