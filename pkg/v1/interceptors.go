@@ -10,6 +10,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+/* ----------------------------------- */
+/*          - Interceptors -           */
+/* ----------------------------------- */
+
 // NewValidationInterceptor creates a new *protovalidate.Validator and returns a gRPC interceptor (also executed through HTTP calls)
 // that enforces the validation rules written in the .proto files.
 func NewValidationInterceptor() grpc.ServerOption {
@@ -21,7 +25,7 @@ func NewValidationInterceptor() grpc.ServerOption {
 	// This function is the interceptor that will be executed for every gRPC / HTTP call.
 	fn := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
-			return nil, fmt.Errorf("invalid request: %w", err)
+			return nil, fmt.Errorf("invalid %s request: %w", info.FullMethod, err)
 		}
 		return handler(ctx, req)
 	}

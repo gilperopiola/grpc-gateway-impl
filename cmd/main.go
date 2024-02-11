@@ -9,6 +9,7 @@ import (
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
+	v1Service "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -16,7 +17,6 @@ import (
 )
 
 /* TODO
- * - README.md v1
  * - Buf file?
  * - Dockerfile
  * - Docker-compose
@@ -28,7 +28,6 @@ import (
  * - Tracing
  * - Security
  * - Error handling
- * - Versioning
  * - Caching
  * - Rate limiting
  * - Postman collection
@@ -38,7 +37,7 @@ import (
 
 func main() {
 	var (
-		grpcServer  = initGRPCServer(service.NewService())
+		grpcServer  = initGRPCServer(v1Service.NewService())
 		httpGateway = initHTTPGateway()
 	)
 
@@ -71,10 +70,12 @@ const (
 
 // initGRPCServer initializes the gRPC server and registers the API methods.
 // The HTTP Gateway will point towards this server.
-func initGRPCServer(serviceLayer service.ServiceLayer) *grpc.Server {
-	interceptors := []grpc.ServerOption{v1.NewValidationInterceptor()}
-	grpcServer := grpc.NewServer(interceptors...)
-	usersPB.RegisterUsersServiceServer(grpcServer, &v1.API{Service: serviceLayer})
+func initGRPCServer(service service.ServiceLayer) *grpc.Server {
+	var (
+		interceptors = []grpc.ServerOption{v1.NewValidationInterceptor()}
+		grpcServer   = grpc.NewServer(interceptors...)
+	)
+	usersPB.RegisterUsersServiceServer(grpcServer, &v1.API{Service: service})
 	return grpcServer
 }
 
