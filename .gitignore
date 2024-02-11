@@ -1,2 +1,16 @@
-out/*
-.vscode
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Env
+.env
+.env_local
+.env_docker
+
+# Etc
+*.test
+.DS_Store
+.vscode/

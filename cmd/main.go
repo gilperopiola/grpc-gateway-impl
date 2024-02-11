@@ -1,5 +1,7 @@
 package main
 
+/* T0D0: Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD / Tests / Logging / Metrics / Tracing / Security / Error handling / Caching / Rate limiting / Postman collection */
+
 import (
 	"context"
 	"log"
@@ -8,30 +10,12 @@ import (
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 	v1Service "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
-/* TODO
- * - Buf file?
- * - Dockerfile
- * - Docker-compose
- * - Kubernetes
- * - CI/CD
- * - Tests
- * - Logging
- * - Metrics
- * - Tracing
- * - Security
- * - Error handling
- * - Caching
- * - Rate limiting
- * - Postman collection
- */
 
 /* - Welcome~! - Here begins this simple implementation of the grpc-gateway framework. With gRPC, we design our service in a .proto file and then the server and client code is automatically generated. */
 
@@ -70,7 +54,7 @@ const (
 
 // initGRPCServer initializes the gRPC server and registers the API methods.
 // The HTTP Gateway will point towards this server.
-func initGRPCServer(service service.ServiceLayer) *grpc.Server {
+func initGRPCServer(service v1Service.ServiceLayer) *grpc.Server {
 	var (
 		interceptors = []grpc.ServerOption{v1.NewValidationInterceptor()}
 		grpcServer   = grpc.NewServer(interceptors...)
