@@ -16,7 +16,6 @@ import (
 )
 
 /* TODO
- * - Define the responses on the .proto file -> Change Service layer
  * - README.md v1
  * - Buf file?
  * - Dockerfile

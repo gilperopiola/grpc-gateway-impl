@@ -1,4 +1,4 @@
-# Makefile :)
+# gRPC Gateway Implementation :)
 
 # Variables
 # ...
@@ -7,6 +7,19 @@
 run:
 	go run cmd/main.go
 
+gen:
+	make -s protoc-gen
+	make -s swagger-gen
+
 protoc-gen: 
 	protoc -I=./protos --go_out=./out --go-grpc_out=./out --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative protos/users.proto
 	protoc -I=./protos --grpc-gateway_out=./out --grpc-gateway_opt=logtostderr=true --grpc-gateway_opt=paths=source_relative protos/users.proto
+
+	mv "./out/users.pb.go"      "./pkg/users"
+	mv "./out/users_grpc.pb.go" "./pkg/users"
+	mv "./out/users.pb.gw.go"   "./pkg/users"
+
+swagger-gen:
+	protoc -I=./protos --openapiv2_out=./out protos/users.proto
+	mv "./out/users.swagger.json" "./docs"
+

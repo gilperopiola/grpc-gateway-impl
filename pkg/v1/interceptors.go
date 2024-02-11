@@ -18,6 +18,7 @@ func NewValidationInterceptor() grpc.ServerOption {
 		log.Fatalf("Failed to create proto validator: %v", err)
 	}
 
+	// This function is the interceptor that will be executed for every gRPC / HTTP call.
 	fn := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
 			return nil, fmt.Errorf("invalid request: %w", err)

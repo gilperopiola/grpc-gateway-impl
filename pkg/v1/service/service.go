@@ -18,6 +18,7 @@ type ServiceLayer interface {
 }
 
 // service is our concrete implementation of the ServiceLayer interface.
+// This struct should usually contain a RepositoryLayer interface.
 type service struct{}
 
 // NewService returns a new instance of the service.
