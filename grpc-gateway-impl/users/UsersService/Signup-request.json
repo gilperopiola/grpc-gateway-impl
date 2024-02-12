@@ -1,4 +1,0 @@
-{
-  "username": "Handmade Soft Shirt brand Yemeni Rial",
-  "password": "{{ faker.internet.password }}"
-}
