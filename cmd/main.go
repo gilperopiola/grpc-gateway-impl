@@ -15,58 +15,13 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-/*
-	Temp, discovery:
-
-users.pb.gw.go
-1. RegisterUsersServiceHandlerClient
-2. request_UsersService_Signup_0
-
-users_grpc.pb.go
-3. func (c *usersServiceClient) Signup
-
-grpc/server.go
-3.2 (s *Server) handleStream
-3.5 (s *Server) processUnaryRPC
-
-users_grpc.pb.go
-4. _UsersService_Signup_Handler
-
-interceptors.go
-5. NewValidationInterceptor (inside func)
-
-IF ERROR UP TO THIS POINT:
-
-	error_handler.go
-	6. handleHTTPError (if there is an error before going into the Service layer)
-
-IF NO ERROR UP TO THIS POINT:
-
-	api.go
-	6. func (api *API) Signup
-
-	service_users.go
-	7. func (s *service) Signup
-
-	users_grpc.pb.go
-	8. _UsersService_Signup_Handler (backtracking)
-
-	handler.go
-	9. handleForwardResponseOptions
-
-	runtime/mux.go
-	10. func (s *ServeMux) ServeHTTP
-*/
 const (
 	gRPCPort = ":50051"
 	httpPort = ":8080"
 )
 
-/* Welcome~!
- *
- * This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it.
- *
- */
+// Welcome~!
+// This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it.
 
 func main() {
 	var (
@@ -76,15 +31,6 @@ func main() {
 	go runGRPCServer(grpcServer)
 	runHTTPGateway(httpGateway)
 }
-
-/* So here we simulate a simple gRPC & HTTP backend API with 2 mock endpoints: Signup and Login.
-
- * With grpc-gateway we expose our gRPC service as a RESTful HTTP API, defining routes and verbs with annotations on the .proto files.
- * Then we just generate the gateway code and run it alongside the gRPC server. The gateway will translate HTTP requests to gRPC calls, handling input automatically.
- * We also use protovalidate to define input rules on the .proto files themselves for each request, which we enforce using an interceptor.
-
- * After the validation interceptor runs, requests go through one of the methods on pkg/v1/api.go. From there the Service layer is called, the business logic is executed and the request returns.
- */
 
 /* ----------------------------------- */
 /*             - gRPC -                */

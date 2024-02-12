@@ -10,14 +10,14 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-/* ----------------------------------- */
-/*         - HTTP Middleware -         */
-/* ----------------------------------- */
-
 // httpErrorResponse is the struct that gets marshalled onto the HTTP Response when an error occurs.
 type httpErrorResponse struct {
 	Error string `json:"error"`
 }
+
+/* ----------------------------------- */
+/*         - HTTP Middleware -         */
+/* ----------------------------------- */
 
 // GetHTTPMiddleware returns our middleware ready to be passed to the mux.
 func GetHTTPMiddleware() []runtime.ServeMuxOption {
@@ -48,6 +48,7 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 	w.Write(buffer)
 }
 
+// httpResponseModifier executes before the response is written to the client.
 func httpResponseModifier(ctx context.Context, rw http.ResponseWriter, resp protoreflect.ProtoMessage) error {
 	rw.Header().Del("Grpc-Metadata-Content-Type")
 	return nil
