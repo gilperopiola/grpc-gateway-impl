@@ -1,7 +1,5 @@
 package main
 
-/* T0D0: Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD / Tests / Logging / Metrics / Tracing / Security / Caching / Rate limiting / Postman collection */
-
 import (
 	"context"
 	"log"
@@ -17,7 +15,58 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-/* - Welcome~! - Here begins this simple implementation of the grpc-gateway framework. With gRPC, we design our service in a .proto file and then the server and client code is automatically generated. */
+/*
+	Temp, discovery:
+
+users.pb.gw.go
+1. RegisterUsersServiceHandlerClient
+2. request_UsersService_Signup_0
+
+users_grpc.pb.go
+3. func (c *usersServiceClient) Signup
+
+grpc/server.go
+3.2 (s *Server) handleStream
+3.5 (s *Server) processUnaryRPC
+
+users_grpc.pb.go
+4. _UsersService_Signup_Handler
+
+interceptors.go
+5. NewValidationInterceptor (inside func)
+
+IF ERROR UP TO THIS POINT:
+
+	error_handler.go
+	6. handleHTTPError (if there is an error before going into the Service layer)
+
+IF NO ERROR UP TO THIS POINT:
+
+	api.go
+	6. func (api *API) Signup
+
+	service_users.go
+	7. func (s *service) Signup
+
+	users_grpc.pb.go
+	8. _UsersService_Signup_Handler (backtracking)
+
+	handler.go
+	9. handleForwardResponseOptions
+
+	runtime/mux.go
+	10. func (s *ServeMux) ServeHTTP
+*/
+const (
+	gRPCPort = ":50051"
+	httpPort = ":8080"
+)
+
+/* Welcome~!
+ *
+ * This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it.
+ *
+ */
 
 func main() {
 	var (
@@ -37,19 +86,14 @@ func main() {
  * After the validation interceptor runs, requests go through one of the methods on pkg/v1/api.go. From there the Service layer is called, the business logic is executed and the request returns.
  */
 
-const (
-	gRPCPort = ":50051"
-	httpPort = ":8080"
-
-	errMsgListenGRPC = "Failed to listen gRPC: %v"
-	errMsgServeGRPC  = "Failed to serve gRPC: %v"
-	errMsgServeHTTP  = "Failed to serve HTTP: %v"
-	errMsgGateway    = "Failed to start HTTP gateway: %v"
-)
-
 /* ----------------------------------- */
 /*             - gRPC -                */
 /* ----------------------------------- */
+
+const (
+	errMsgListenGRPC = "Failed to listen gRPC: %v"
+	errMsgServeGRPC  = "Failed to serve gRPC: %v"
+)
 
 // initGRPCServer initializes the gRPC server and registers the API methods.
 // The HTTP Gateway will point towards this server.
@@ -81,10 +125,15 @@ func runGRPCServer(grpcServer *grpc.Server) {
 /*             - HTTP -                */
 /* ----------------------------------- */
 
+const (
+	errMsgServeHTTP = "Failed to serve HTTP: %v"
+	errMsgGateway   = "Failed to start HTTP gateway: %v"
+)
+
 // initHTTPGateway initializes the HTTP gateway and registers the API methods there as well.
 // The gateway will point towards the gRPC server's port.
 func initHTTPGateway() *runtime.ServeMux {
-	mux := runtime.NewServeMux(v1.GetServerOptions())
+	mux := runtime.NewServeMux(v1.GetHTTPMiddleware()...)
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
@@ -105,3 +154,7 @@ func runHTTPGateway(httpGateway *runtime.ServeMux) {
 		log.Fatalf(errMsgServeHTTP, err)
 	}
 }
+
+/* T0D0: Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD / Tests /
+ * Logging / Metrics / Tracing / Security / Caching / Rate limiting / Postman collection
+ */
