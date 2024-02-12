@@ -1,10 +1,9 @@
 package main
 
-/* T0D0: Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD / Tests / Logging / Metrics / Tracing / Security / Error handling / Caching / Rate limiting / Postman collection */
+/* T0D0: Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD / Tests / Logging / Metrics / Tracing / Security / Caching / Rate limiting / Postman collection */
 
 import (
 	"context"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -16,7 +15,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 )
 
 /* - Welcome~! - Here begins this simple implementation of the grpc-gateway framework. With gRPC, we design our service in a .proto file and then the server and client code is automatically generated. */
@@ -26,7 +24,6 @@ func main() {
 		grpcServer  = initGRPCServer(v1Service.NewService())
 		httpGateway = initHTTPGateway()
 	)
-
 	go runGRPCServer(grpcServer)
 	runHTTPGateway(httpGateway)
 }
@@ -87,8 +84,10 @@ func runGRPCServer(grpcServer *grpc.Server) {
 // initHTTPGateway initializes the HTTP gateway and registers the API methods there as well.
 // The gateway will point towards the gRPC server's port.
 func initHTTPGateway() *runtime.ServeMux {
-	mux := runtime.NewServeMux(runtime.WithErrorHandler(httpErrorHandler))
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	mux := runtime.NewServeMux(v1.GetServerOptions())
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
 
 	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, gRPCPort, opts); err != nil {
 		log.Fatalf(errMsgGateway, err)
@@ -105,29 +104,4 @@ func runHTTPGateway(httpGateway *runtime.ServeMux) {
 	if err := http.ListenAndServe(httpPort, httpGateway); err != nil {
 		log.Fatalf(errMsgServeHTTP, err)
 	}
-}
-
-// httpErrorHandler is a custom error handler for the HTTP gateway. It's pretty simple.
-func httpErrorHandler(ctx context.Context, mux *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
-	var (
-		grpcStatus        = status.Convert(err)
-		httpStatus        = runtime.HTTPStatusFromCode(grpcStatus.Code())
-		httpErrorResponse = httpErrorResponse{Error: grpcStatus.Message()}
-		contentType       = marshaler.ContentType(grpcStatus)
-		buffer            = []byte{}
-	)
-
-	if buffer, err = marshaler.Marshal(httpErrorResponse); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		io.WriteString(w, "")
-		return
-	}
-
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(httpStatus)
-	w.Write(buffer)
-}
-
-type httpErrorResponse struct {
-	Error string `json:"error"`
 }

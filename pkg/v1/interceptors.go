@@ -47,20 +47,18 @@ func NewValidationInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		// If it is, we go through each violation and format the error message accordingly.
-		return nil, status.Error(codes.InvalidArgument, getFormattedErrorMsg(validationErr.ToProto()))
+		return nil, status.Error(codes.InvalidArgument, formatValidationErr(validationErr.ToProto()))
 	}
 }
 
-// getFormattedErrorMsg returns a formatted error message based on the validate violations.
-func getFormattedErrorMsg(rulesBroken *validate.Violations) string {
+// formatValidationErr returns a formatted error message based on the validate violations.
+func formatValidationErr(rulesBroken *validate.Violations) string {
 	formattedErrorMsg := ""
-
 	for i, v := range rulesBroken.Violations {
 		formattedErrorMsg += fmt.Sprintf("%s %s", v.FieldPath, v.Message)
 		if i < len(rulesBroken.Violations)-1 {
 			formattedErrorMsg += ", "
 		}
 	}
-
 	return formattedErrorMsg
 }
