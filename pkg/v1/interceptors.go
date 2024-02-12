@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -16,7 +17,7 @@ import (
 
 // NewValidationInterceptor creates a new *protovalidate.Validator and returns a gRPC interceptor (also executed through HTTP calls)
 // that enforces the validation rules written in the .proto files.
-func NewValidationInterceptor() grpc.ServerOption {
+func NewValidationInterceptor() grpc.UnaryServerInterceptor {
 	protoValidator, err := protovalidate.New()
 	if err != nil {
 		log.Fatalf("Failed to create proto validator: %v", err)
@@ -30,5 +31,18 @@ func NewValidationInterceptor() grpc.ServerOption {
 		return handler(ctx, req)
 	}
 
-	return grpc.UnaryInterceptor(fn)
+	return fn
+}
+
+func NewHTTPErrorHandlerInterceptor() grpc.UnaryServerInterceptor {
+	fn := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		got, err := handler(ctx, req)
+
+		var validationErr *protovalidate.ValidationError
+		if errors.As(err, &validationErr) {
+			err = validationErr
+		}
+		return got, err
+	}
+	return fn
 }

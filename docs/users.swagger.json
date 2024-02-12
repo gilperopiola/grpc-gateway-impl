@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "gRPC-HTTP Gateway Implementation :)",
+    "title": "gRPC -\u003e HTTP Gateway Implementation ;)",
     "version": "1.0",
     "contact": {
       "email": "ferra.main@gmail.com"
@@ -31,15 +31,27 @@
           },
           "403": {
             "description": "",
-            "schema": {}
+            "schema": {
+              "example": {
+                "error": "forbidden error"
+              }
+            }
           },
           "404": {
             "description": "",
-            "schema": {}
+            "schema": {
+              "example": {
+                "error": "not found: email not found"
+              }
+            }
           },
           "500": {
             "description": "",
-            "schema": {}
+            "schema": {
+              "example": {
+                "error": "internal server error"
+              }
+            }
           },
           "default": {
             "description": "An unexpected error response.",
@@ -50,16 +62,13 @@
         },
         "parameters": [
           {
-            "name": "username",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "password",
-            "in": "query",
-            "required": false,
-            "type": "string"
+            "name": "body",
+            "description": "Logs in user.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/usersLoginRequest"
+            }
           }
         ],
         "tags": [
@@ -69,6 +78,8 @@
     },
     "/v1/signup": {
       "post": {
+        "summary": "Signup",
+        "description": "Creates a new user and returns its ID.",
         "operationId": "UsersService_Signup",
         "responses": {
           "200": {
@@ -79,15 +90,27 @@
           },
           "403": {
             "description": "",
-            "schema": {}
+            "schema": {
+              "example": {
+                "error": "forbidden error"
+              }
+            }
           },
           "404": {
             "description": "",
-            "schema": {}
+            "schema": {
+              "example": {
+                "error": "not found: email not found"
+              }
+            }
           },
           "500": {
             "description": "",
-            "schema": {}
+            "schema": {
+              "example": {
+                "error": "internal server error"
+              }
+            }
           },
           "default": {
             "description": "An unexpected error response.",
@@ -98,16 +121,13 @@
         },
         "parameters": [
           {
-            "name": "username",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "password",
-            "in": "query",
-            "required": false,
-            "type": "string"
+            "name": "body",
+            "description": "Creates a new user.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/usersSignupRequest"
+            }
           }
         ],
         "tags": [
@@ -145,6 +165,25 @@
         }
       }
     },
+    "usersLoginRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Username of the user."
+        },
+        "password": {
+          "type": "string",
+          "description": "Password of the user."
+        }
+      },
+      "description": "Logs in user.",
+      "title": "LoginRequest",
+      "required": [
+        "username",
+        "password"
+      ]
+    },
     "usersLoginResponse": {
       "type": "object",
       "properties": {
@@ -152,6 +191,25 @@
           "type": "string"
         }
       }
+    },
+    "usersSignupRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Username of the user."
+        },
+        "password": {
+          "type": "string",
+          "description": "Password of the user."
+        }
+      },
+      "description": "Creates a new user.",
+      "title": "SignupRequest",
+      "required": [
+        "username",
+        "password"
+      ]
     },
     "usersSignupResponse": {
       "type": "object",

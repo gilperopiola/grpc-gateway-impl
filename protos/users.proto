@@ -3,17 +3,18 @@ syntax = "proto3";
 /* Users protofile */
 
 package users;
-option go_package = "./users";
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/pkg/users";
 
-import "google/api/annotations.proto";
-import "protoc-gen-openapiv2/options/annotations.proto";
 import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 /* OpenAPI Spec */
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "gRPC-HTTP Gateway Implementation :)";
+    title: "gRPC -> HTTP Gateway Implementation ;)";
     version: "1.0";
     contact: {
       email: "ferra.main@gmail.com";
@@ -23,33 +24,78 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   produces: "application/json";
   responses: {
     key: "403";
+    value: {
+      schema: {
+        example: '{"error": "forbidden error"}';
+      };
+    };
   }
   responses: {
     key: "404";
+    value: {
+      schema: {
+        example: '{"error": "not found: email not found"}';
+      };
+    };
   }
   responses: {
     key: "500";
+    value: {
+      schema: {
+        example: '{"error": "internal server error"}';
+      };
+    };
   }
 };
 
 /* API Objects */
 
 service UsersService {
+  // Signup
+  //
+  // Creates a new user and returns its ID.
+  //
   rpc Signup (SignupRequest) returns (SignupResponse) {
     option (google.api.http) = {
-      post: "/v1/signup"
+      post: "/v1/signup";
+      body: "*";
     };
   }
+
   rpc Login (LoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
-      post: "/v1/login"
+      post: "/v1/login";
+      body: "*";
     };
   }
 }
 
 message SignupRequest {
-  string username = 1 [(buf.validate.field).string.min_len = 4, (buf.validate.field).string.max_len = 20];
-  string password = 3 [(buf.validate.field).string.pattern = "[A-Za-z0-9]{8,}"];
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+        title: "SignupRequest"
+        description: "Creates a new user."
+      }
+  };
+
+  string username = 1 [
+    json_name = "username",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.min_len = 4, 
+    (buf.validate.field).string.max_len = 20,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      description: "Username of the user."
+    }
+  ];
+
+  string password = 3 [
+    json_name = "password",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.pattern = "[A-Za-z0-9]{8,}",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      description: "Password of the user."
+    }
+  ];
 }
 
 message SignupResponse {
@@ -57,8 +103,31 @@ message SignupResponse {
 }
 
 message LoginRequest {
-  string username = 1 [(buf.validate.field).string.min_len = 4, (buf.validate.field).string.max_len = 20];
-  string password = 3;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+        title: "LoginRequest"
+        description: "Logs in user."
+      }
+  };
+
+  string username = 1 [
+    json_name = "username",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.min_len = 4,
+    (buf.validate.field).string.max_len = 20,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      description: "Username of the user."
+    }
+  ];
+
+  string password = 3 [
+    json_name = "password",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.pattern = "[A-Za-z0-9]{8,}",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      description: "Password of the user."
+    }
+  ];
 }
 
 message LoginResponse {
