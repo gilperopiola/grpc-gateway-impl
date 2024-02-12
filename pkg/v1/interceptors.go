@@ -3,11 +3,12 @@ package v1
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -26,7 +27,7 @@ func NewValidationInterceptor() grpc.UnaryServerInterceptor {
 	// This function is the interceptor that will be executed for every gRPC / HTTP call.
 	fn := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
-			return nil, fmt.Errorf("invalid %s request: %w", info.FullMethod, err)
+			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 		return handler(ctx, req)
 	}

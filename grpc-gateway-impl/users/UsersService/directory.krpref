@@ -1,0 +1,14 @@
+{
+  "settings": [
+    {
+      "options": {
+        "grpc": {
+          "endpoint": "http://127.0.0.1:50051"
+        },
+        "rest": {
+          "pathParams": []
+        }
+      }
+    }
+  ]
+}
