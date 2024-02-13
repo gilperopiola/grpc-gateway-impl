@@ -19,8 +19,8 @@ type httpErrorResponse struct {
 /*         - HTTP Middleware -         */
 /* ----------------------------------- */
 
-// GetHTTPMiddleware returns our middleware ready to be passed to the mux.
-func GetHTTPMiddleware() []runtime.ServeMuxOption {
+// GetHTTPMiddlewareAsMuxOptions returns our middleware ready to be passed to the mux.
+func GetHTTPMiddlewareAsMuxOptions() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
 		runtime.WithForwardResponseOption(httpResponseModifier),
@@ -50,6 +50,17 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 
 // httpResponseModifier executes before the response is written to the client.
 func httpResponseModifier(ctx context.Context, rw http.ResponseWriter, resp protoreflect.ProtoMessage) error {
+
+	// Delete gRPC-related headers:
 	rw.Header().Del("Grpc-Metadata-Content-Type")
+
+	// Add security-related headers:
+	rw.Header().Set("X-Content-Type-Options", "nosniff")
+	rw.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	rw.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+	rw.Header().Set("X-XSS-Protection", "1; mode=block")
+	rw.Header().Set("X-Content-Type-Options", "nosniff")
+	rw.Header().Set("Content-Security-Policy", "default-src 'self'")
+
 	return nil
 }

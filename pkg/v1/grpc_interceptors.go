@@ -18,20 +18,20 @@ import (
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
 
-// GetInterceptors returns a gRPC server option that chains all interceptors together.
+// GetInterceptorsAsServerOptions returns a gRPC server option that chains all interceptors together.
 // These may be gRPC interceptors, but they are also executed through HTTP calls.
-func GetInterceptors() grpc.ServerOption {
+func GetInterceptorsAsServerOptions() grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
 		NewValidationInterceptor(),
 	)
 }
 
-// NewValidationInterceptor creates a new *protovalidate.Validator and returns a gRPC interceptor
+// NewValidationInterceptor instantiates a new *protovalidate.Validator and returns a gRPC interceptor
 // that enforces the validation rules written in the .proto files.
 func NewValidationInterceptor() grpc.UnaryServerInterceptor {
 	protoValidator, err := protovalidate.New()
 	if err != nil {
-		log.Fatalf("Failed to create proto validator: %v", err)
+		log.Fatalf(errMsgProtoValidator, err)
 	}
 
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -62,3 +62,7 @@ func getErrorMsgFromViolations(violations *validate.Violations) string {
 	}
 	return out
 }
+
+var (
+	errMsgProtoValidator = "Failed to create proto validator: %v"
+)

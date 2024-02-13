@@ -4,14 +4,16 @@
 # ... (not needed for now)
 
 # Targets
+.PHONY: all run gen protoc-gen swagger-gen
+
 all: gen run
 
 run:
 	go run cmd/main.go
 
 gen:
-	make -s protoc-gen
-	make -s swagger-gen
+	make protoc-gen
+	make swagger-gen
 
 protoc-gen: 
 	mkdir -p ./out
