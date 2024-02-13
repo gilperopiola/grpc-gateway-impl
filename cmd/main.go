@@ -5,6 +5,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
@@ -24,12 +28,35 @@ const (
 // This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it.
 
 func main() {
+
 	var (
-		grpcServer  = initGRPCServer(v1Service.NewService())
+		service     = v1Service.NewService()
+		grpcServer  = initGRPCServer(service)
 		httpGateway = initHTTPGateway()
 	)
-	go runGRPCServer(grpcServer)
-	runHTTPGateway(httpGateway)
+
+	runGRPCServer(grpcServer)
+	runHTTPServer(httpGateway)
+
+	log.Println("... ¡OK! ...")
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM) // SIGINT and SIGTERM
+
+	<-c
+
+	log.Println("Shutting down gRPC server...")
+	grpcServer.GracefulStop()
+
+	log.Println("Shutting down HTTP server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := httpGateway.Shutdown(ctx); err != nil {
+		log.Fatalf("Failed to shutdown HTTP server: %v", err)
+	}
+
+	log.Println("Servers successfully stopped")
 }
 
 /* ----------------------------------- */
@@ -62,9 +89,13 @@ func runGRPCServer(grpcServer *grpc.Server) {
 		log.Fatalf(errMsgListenGRPC, err)
 	}
 
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf(errMsgServeGRPC, err)
-	}
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf(errMsgServeGRPC, err)
+		}
+	}()
+
+	return
 }
 
 /* ----------------------------------- */
@@ -78,7 +109,7 @@ const (
 
 // initHTTPGateway initializes the HTTP gateway and registers the API methods there as well.
 // The gateway will point towards the gRPC server's port.
-func initHTTPGateway() *runtime.ServeMux {
+func initHTTPGateway() *http.Server {
 	mux := runtime.NewServeMux(v1.GetHTTPMiddleware()...)
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -88,7 +119,16 @@ func initHTTPGateway() *runtime.ServeMux {
 		log.Fatalf(errMsgGateway, err)
 	}
 
-	return mux
+	return &http.Server{Addr: ":8080", Handler: mux}
+}
+
+func runHTTPServer(server *http.Server) {
+	log.Println("Running HTTP!")
+	go func() {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("Failed to serve HTTP: %v", err)
+		}
+	}()
 }
 
 // runHTTPGateway runs the HTTP gateway on a given port.
