@@ -1,4 +1,4 @@
-package v1
+package interceptors
 
 import (
 	"context"
@@ -14,23 +14,19 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-/* ----------------------------------- */
-/*        - gRPC Interceptors -        */
-/* ----------------------------------- */
-
-// GetInterceptorsAsServerOption returns a gRPC server option that chains all interceptors together.
-// These may be gRPC interceptors, but they are also executed through HTTP calls.
-func GetInterceptorsAsServerOption() grpc.ServerOption {
-	protoValidator := newProtoValidator()
-
-	return grpc.ChainUnaryInterceptor(
-		NewValidationInterceptor(protoValidator),
-	)
+// NewProtoValidator returns a new instance of *protovalidate.Validator.
+// It calls log.Fatalf if it fails to create the validator.
+func NewProtoValidator() *protovalidate.Validator {
+	protoValidator, err := protovalidate.New()
+	if err != nil {
+		log.Fatalf(errMsgProtoValidator, err)
+	}
+	return protoValidator
 }
 
-// NewValidationInterceptor instantiates a new *protovalidate.Validator and returns a gRPC interceptor
+// newValidationInterceptor takes a *protovalidate.Validator and returns a gRPC interceptor
 // that enforces the validation rules written in the .proto files.
-func NewValidationInterceptor(protoValidator *protovalidate.Validator) grpc.UnaryServerInterceptor {
+func newValidationInterceptor(protoValidator *protovalidate.Validator) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
 			return nil, getGRPCErrFromValidationErr(err)
@@ -47,16 +43,6 @@ func getGRPCErrFromValidationErr(err error) error {
 		return status.Error(codes.InvalidArgument, getErrorMsgFromViolations(validationErr.ToProto()))
 	}
 	return status.Error(codes.InvalidArgument, fmt.Sprintf(errMsgUnexpectedValidation, err))
-}
-
-// newProtoValidator returns a new instance of *protovalidate.Validator.
-// It calls log.Fatalf if it fails to create the validator.
-func newProtoValidator() *protovalidate.Validator {
-	protoValidator, err := protovalidate.New()
-	if err != nil {
-		log.Fatalf(errMsgProtoValidator, err)
-	}
-	return protoValidator
 }
 
 // getErrorMsgFromViolations returns a formatted error message based on the validate violations.

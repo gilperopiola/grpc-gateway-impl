@@ -8,6 +8,7 @@ import (
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 /* ----------------------------------- */
@@ -44,6 +45,12 @@ func RunGRPCServer(grpcServer *grpc.Server, grpcPort string) {
 func ShutdownGRPCServer(grpcServer *grpc.Server) {
 	log.Println("Shutting down gRPC server...")
 	grpcServer.GracefulStop()
+}
+
+// GetGRPCDialOptions returns the gRPC connection dial options.
+func GetGRPCDialOptions() []grpc.DialOption {
+	transportCredentialsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
+	return []grpc.DialOption{transportCredentialsOption}
 }
 
 const (

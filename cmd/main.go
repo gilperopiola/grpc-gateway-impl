@@ -8,9 +8,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gilperopiola/grpc-gateway-impl/cmd/server"
+	"github.com/gilperopiola/grpc-gateway-impl/config"
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/interceptors"
 	v1Service "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
+	"github.com/gilperopiola/grpc-gateway-impl/server"
 
 	"google.golang.org/grpc"
 )
@@ -19,41 +21,28 @@ import (
 // This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it.
 
 func main() {
-	// Get env vars.
-	grpcPort, httpPort := getEnvVars()
+	// Get configuration.
+	config := config.LoadConfig()
 
 	// Init API, Interceptors, Middleware.
 	api := v1.NewAPI(v1Service.NewService())
-	interceptors := v1.GetInterceptorsAsServerOption()
+	protoValidator := interceptors.NewProtoValidator()
+	interceptors := interceptors.GetInterceptorsAsServerOption(protoValidator)
 	middleware := v1.GetHTTPMiddlewareAsMuxOptions()
+	grpcDialOptions := server.GetGRPCDialOptions()
 
 	// Init servers.
 	grpcServer := server.InitGRPCServer(api, interceptors)
-	httpGateway := server.InitHTTPGateway(grpcPort, httpPort, middleware)
+	httpGateway := server.InitHTTPGateway(config.GRPCPort, config.HTTPPort, middleware, grpcDialOptions)
 
 	// Run servers.
-	server.RunGRPCServer(grpcServer, grpcPort)
+	server.RunGRPCServer(grpcServer, config.GRPCPort)
 	server.RunHTTPServer(httpGateway)
 	time.Sleep(1 * time.Second)
 	log.Println("... ¡gRPC and HTTP OK! ...")
 
 	// Wait for shutdown.
 	waitForGracefulShutdown(grpcServer, httpGateway)
-}
-
-// getEnvVars returns the values of all env vars.
-func getEnvVars() (grpcPort string, httpPort string) {
-	grpcPort = getEnvVar("GRPC_PORT", ":50053")
-	httpPort = getEnvVar("HTTP_PORT", ":8083")
-	return
-}
-
-// getEnvVar returns the value of an env var, or a fallback.
-func getEnvVar(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return fallback
 }
 
 // waitForGracefulShutdown waits for a SIGINT or SIGTERM to gracefully shutdown the servers.
