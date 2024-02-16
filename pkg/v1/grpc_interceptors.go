@@ -18,37 +18,45 @@ import (
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
 
-// GetInterceptorsAsServerOptions returns a gRPC server option that chains all interceptors together.
+// GetInterceptorsAsServerOption returns a gRPC server option that chains all interceptors together.
 // These may be gRPC interceptors, but they are also executed through HTTP calls.
-func GetInterceptorsAsServerOptions() grpc.ServerOption {
+func GetInterceptorsAsServerOption() grpc.ServerOption {
+	protoValidator := newProtoValidator()
+
 	return grpc.ChainUnaryInterceptor(
-		NewValidationInterceptor(),
+		NewValidationInterceptor(protoValidator),
 	)
 }
 
 // NewValidationInterceptor instantiates a new *protovalidate.Validator and returns a gRPC interceptor
 // that enforces the validation rules written in the .proto files.
-func NewValidationInterceptor() grpc.UnaryServerInterceptor {
+func NewValidationInterceptor(protoValidator *protovalidate.Validator) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
+			return nil, getGRPCErrFromValidationErr(err)
+		}
+		return handler(ctx, req) // Call next handler.
+	}
+}
+
+// getGRPCErrFromValidationErr returns an InvalidArgument gRPC error with its respective message.
+// It translates to a 400 Bad Request HTTP status code.
+func getGRPCErrFromValidationErr(err error) error {
+	var validationErr *protovalidate.ValidationError
+	if ok := errors.As(err, &validationErr); ok {
+		return status.Error(codes.InvalidArgument, getErrorMsgFromViolations(validationErr.ToProto()))
+	}
+	return status.Error(codes.InvalidArgument, fmt.Sprintf(errMsgUnexpectedValidation, err))
+}
+
+// newProtoValidator returns a new instance of *protovalidate.Validator.
+// It calls log.Fatalf if it fails to create the validator.
+func newProtoValidator() *protovalidate.Validator {
 	protoValidator, err := protovalidate.New()
 	if err != nil {
 		log.Fatalf(errMsgProtoValidator, err)
 	}
-
-	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		err := protoValidator.Validate(req.(protoreflect.ProtoMessage))
-		if err == nil {
-			return handler(ctx, req) // If there's no validation error, we call the next handler.
-		}
-
-		// If there was an error, we check if it's a ValidationError. If it's not, we return a generic error.
-		var validationErr *protovalidate.ValidationError
-		if ok := errors.As(err, &validationErr); !ok {
-			return nil, status.Error(codes.InvalidArgument, "validation error")
-		}
-
-		// If it is, we go through each violation and format the error message accordingly.
-		return nil, status.Error(codes.InvalidArgument, getErrorMsgFromViolations(validationErr.ToProto()))
-	}
+	return protoValidator
 }
 
 // getErrorMsgFromViolations returns a formatted error message based on the validate violations.
@@ -64,5 +72,6 @@ func getErrorMsgFromViolations(violations *validate.Violations) string {
 }
 
 var (
-	errMsgProtoValidator = "Failed to create proto validator: %v"
+	errMsgProtoValidator       = "Failed to create proto validator: %v"
+	errMsgUnexpectedValidation = "unexpected validation error: %v"
 )

@@ -4,8 +4,6 @@
 # ... (not needed for now)
 
 # Targets
-.PHONY: all run gen protoc-gen swagger-gen
-
 all: gen run
 
 run:

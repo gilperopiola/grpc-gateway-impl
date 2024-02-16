@@ -20,3 +20,8 @@ type API struct {
 func NewAPI(service v1Service.ServiceLayer) *API {
 	return &API{Service: service}
 }
+
+// httpErrorResponse is the struct that gets marshalled onto the HTTP Response when an error occurs.
+type httpErrorResponse struct {
+	Error string `json:"error"`
+}

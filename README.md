@@ -16,7 +16,7 @@ Hmmm...
 The best thing about using **`.proto`** files is that you clearly define your service's specs, requests and responses. Combining this with custom annotations on the protofiles and using **`gRPC-Gateway`** we can:
 
 * Automatically generate an **`HTTP handler`** for each **`gRPC method`**.
-* Automatically handle requests' input values (e.g. An HTTP request's body) and map them to our data structures. 
+* Automatically handle requests' input values *(e.g. An HTTP request's body)* and map them to our data structures. 
 * Assert validation rules for each request.
 * Automatically generate a **`swagger`** spec.
 

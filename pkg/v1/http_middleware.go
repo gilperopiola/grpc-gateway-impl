@@ -10,10 +10,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// httpErrorResponse is the struct that gets marshalled onto the HTTP Response when an error occurs.
-type httpErrorResponse struct {
-	Error string `json:"error"`
-}
+const (
+	contentTypeHeader = "Content-Type"
+	contentTypeJSON   = "application/json"
+)
 
 /* ----------------------------------- */
 /*         - HTTP Middleware -         */
@@ -30,27 +30,39 @@ func GetHTTPMiddlewareAsMuxOptions() []runtime.ServeMuxOption {
 // handleHTTPError is a custom error handler for the gateway. It's pretty simple.
 func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
 	var (
-		grpcStatus   = status.Convert(err)
-		httpStatus   = runtime.HTTPStatusFromCode(grpcStatus.Code())
-		httpResponse = httpErrorResponse{Error: grpcStatus.Message()}
-		contentType  = mar.ContentType(grpcStatus)
-		buffer       = []byte{}
+		grpcStatus                            = status.Convert(err)
+		httpStatus, httpResponse, contentType = getHTTPResponseDataFromGRPCStatus(grpcStatus)
+		buffer                                = []byte{}
 	)
 
+	// 404
+	if httpStatus == http.StatusNotFound || httpStatus == http.StatusMethodNotAllowed {
+		w.WriteHeader(http.StatusNotFound)
+		io.WriteString(w, "not found, check the docs for the correct path and method")
+		return
+	}
+
+	// 500
 	if buffer, err = mar.Marshal(httpResponse); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		io.WriteString(w, "")
 		return
 	}
 
-	w.Header().Set("Content-Type", contentType)
+	w.Header().Set(contentTypeHeader, contentType)
 	w.WriteHeader(httpStatus)
 	w.Write(buffer)
 }
 
+// getHTTPResponseDataFromGRPCStatus returns the HTTP status, the HTTP response and the content type.
+func getHTTPResponseDataFromGRPCStatus(grpcStatus *status.Status) (int, httpErrorResponse, string) {
+	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
+	httpResponse := httpErrorResponse{Error: grpcStatus.Message()}
+	return httpStatus, httpResponse, contentTypeJSON
+}
+
 // httpResponseModifier executes before the response is written to the client.
 func httpResponseModifier(ctx context.Context, rw http.ResponseWriter, resp protoreflect.ProtoMessage) error {
-
 	// Delete gRPC-related headers:
 	rw.Header().Del("Grpc-Metadata-Content-Type")
 
@@ -59,7 +71,6 @@ func httpResponseModifier(ctx context.Context, rw http.ResponseWriter, resp prot
 	rw.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	rw.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 	rw.Header().Set("X-XSS-Protection", "1; mode=block")
-	rw.Header().Set("X-Content-Type-Options", "nosniff")
 	rw.Header().Set("Content-Security-Policy", "default-src 'self'")
 
 	return nil
