@@ -6,8 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/cmd/server"
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 	v1Service "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 
 	"google.golang.org/grpc"
@@ -18,24 +20,36 @@ import (
 
 func main() {
 	// Get env vars.
-	grpcPort := getEnv("GRPC_PORT", ":50053")
-	httpPort := getEnv("HTTP_PORT", ":8083")
+	grpcPort, httpPort := getEnvVars()
+
+	// Init API, Interceptors, Middleware.
+	api := v1.NewAPI(v1Service.NewService())
+	interceptors := v1.GetInterceptorsAsServerOption()
+	middleware := v1.GetHTTPMiddlewareAsMuxOptions()
 
 	// Init servers.
-	grpcServer := server.InitGRPCServer(v1Service.NewService())
-	httpGateway := server.InitHTTPGateway(httpPort, grpcPort)
+	grpcServer := server.InitGRPCServer(api, interceptors)
+	httpGateway := server.InitHTTPGateway(grpcPort, httpPort, middleware)
 
 	// Run servers.
 	server.RunGRPCServer(grpcServer, grpcPort)
 	server.RunHTTPServer(httpGateway)
+	time.Sleep(1 * time.Second)
 	log.Println("... ¡gRPC and HTTP OK! ...")
 
 	// Wait for shutdown.
 	waitForGracefulShutdown(grpcServer, httpGateway)
 }
 
-// getEnv returns the value of an env var, or a fallback.
-func getEnv(key, fallback string) string {
+// getEnvVars returns the values of all env vars.
+func getEnvVars() (grpcPort string, httpPort string) {
+	grpcPort = getEnvVar("GRPC_PORT", ":50053")
+	httpPort = getEnvVar("HTTP_PORT", ":8083")
+	return
+}
+
+// getEnvVar returns the value of an env var, or a fallback.
+func getEnvVar(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}

@@ -6,21 +6,20 @@ import (
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-	v1Service "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 
 	"google.golang.org/grpc"
 )
 
 /* ----------------------------------- */
-/*             - gRPC -                */
+/*           - gRPC Server -           */
 /* ----------------------------------- */
 
 // InitGRPCServer initializes the gRPC server and registers the API methods.
 // The HTTP Gateway will point towards this server.
-// This function also adds the gRPC interceptors.
-func InitGRPCServer(service v1Service.ServiceLayer) *grpc.Server {
-	grpcServer := grpc.NewServer(v1.GetInterceptorsAsServerOption())
-	usersPB.RegisterUsersServiceServer(grpcServer, v1.NewAPI(service))
+// This function also adds the gRPC interceptors to the server.
+func InitGRPCServer(api *v1.API, interceptors grpc.ServerOption) *grpc.Server {
+	grpcServer := grpc.NewServer(interceptors)
+	usersPB.RegisterUsersServiceServer(grpcServer, api)
 	return grpcServer
 }
 

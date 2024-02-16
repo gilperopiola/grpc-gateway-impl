@@ -7,7 +7,6 @@ import (
 	"time"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -15,15 +14,15 @@ import (
 )
 
 /* ----------------------------------- */
-/*             - HTTP -                */
+/*           - HTTP Server -           */
 /* ----------------------------------- */
 
-// InitHTTPGateway initializes the HTTP gateway and registers the API methods there as well.
+// InitHTTPGateway initializes the HTTP Gateway and registers the API methods there as well.
 // The gateway will point towards the gRPC server's port.
-// This function also adds the HTTP middleware.
-func InitHTTPGateway(httpPort, grpcPort string) *http.Server {
-	mux := runtime.NewServeMux(v1.GetHTTPMiddlewareAsMuxOptions()...)
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+// This function also adds the HTTP middleware to the server.
+func InitHTTPGateway(grpcPort, httpPort string, middleware []runtime.ServeMuxOption) *http.Server {
+	mux := runtime.NewServeMux(middleware...)
+	opts := getGRPCDialOptions()
 
 	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, grpcPort, opts); err != nil {
 		log.Fatalf(errMsgGateway, err)
@@ -53,6 +52,12 @@ func ShutdownHTTPServer(httpServer *http.Server) {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		log.Fatalf(errMsgShutdown, err)
 	}
+}
+
+// getGRPCDialOptions returns the gRPC connection dial options.
+func getGRPCDialOptions() []grpc.DialOption {
+	transportCredentialsOption := grpc.WithTransportCredentials(insecure.NewCredentials())
+	return []grpc.DialOption{transportCredentialsOption}
 }
 
 const (
