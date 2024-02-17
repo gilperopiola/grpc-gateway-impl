@@ -1,7 +1,7 @@
 # 🐉 gRPC Gateway Implementation 🐉
 
 ### Need to build a Backend API in Go? 😱 Using both gRPC and HTTP? 🔥 
-### Following a custom Clear Architecture pattern, shrinking the amount of code by a **staggering 33%**? 🤯🥳🥵🤪🤩
+### Following a custom Clean Architecture pattern, shrinking the amount of code by a **staggering 33%**? 🤯🥳🥵🤪🤩
 
 Hmmm...
 
