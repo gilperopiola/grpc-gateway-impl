@@ -1,10 +1,11 @@
 # gRPC Gateway Implementation ;)
 
 # Variables
-PROTO_DIR := ./protos
 PKG_DIR := ./pkg/users
-DOCS_DIR := ./docs
 OUT_DIR := ./out
+DOCS_DIR := ./docs
+PROTO_DIR := ./protos
+USERS_PROTO_FILE := $(PROTO_DIR)/users.proto
 
 # Targets
 # External targets
@@ -18,28 +19,28 @@ run:
 # Internal targets
 
 generate-protos: prepare
-	protoc -I=./protos --go_out=./out --go-grpc_out=./out --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative protos/users.proto
-	protoc -I=./protos --grpc-gateway_out=./out --grpc-gateway_opt=logtostderr=true --grpc-gateway_opt=paths=source_relative protos/users.proto
+	protoc -I=$(PROTO_DIR) --go_out=$(PROTO_DIR) --go-grpc_out=$(PROTO_DIR) --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative $(USERS_PROTO_FILE)
+	protoc -I=$(PROTO_DIR) --grpc-gateway_out=$(PROTO_DIR) --grpc-gateway_opt=logtostderr=true --grpc-gateway_opt=paths=source_relative $(USERS_PROTO_FILE)
 
 	make move-protos --no-print-directory
 	make clean --no-print-directory
 
 generate-swagger: prepare
-	protoc -I=./protos --openapiv2_out=./out protos/users.proto
+	protoc -I=$(PROTO_DIR) --openapiv2_out=$(OUT_DIR) $(USERS_PROTO_FILE)
 
 	make move-swagger --no-print-directory
 	make clean --no-print-directory
 
 prepare:
-	mkdir -p ./out
+	mkdir -p $(OUT_DIR)
 
 clean:
-	rm -rf ./out
+	rm -rf $(OUT_DIR)
 
 move-protos:
-	mv "./out/users.pb.go"      "./pkg/users"
-	mv "./out/users_grpc.pb.go" "./pkg/users"
-	mv "./out/users.pb.gw.go"   "./pkg/users"
+	mv "$(OUT_DIR)/users.pb.go"      "$(PKG_DIR)"
+	mv "$(OUT_DIR)/users_grpc.pb.go" "$(PKG_DIR)"
+	mv "$(OUT_DIR)/users.pb.gw.go"   "$(PKG_DIR)"
 
 move-swagger:
-	mv "./out/users.swagger.json" "./docs"
+	mv "$(OUT_DIR)/users.swagger.json" "$(DOCS_DIR)"
