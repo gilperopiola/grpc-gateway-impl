@@ -70,7 +70,7 @@ func main() {
 type APIComponents struct {
 	// Core
 	API         *v1.API
-	Config      *v1.Config
+	Config      *v1.APIConfig
 	Service     v1Service.ServiceLayer
 	GRPCServer  *grpc.Server
 	HTTPGateway *http.Server
@@ -86,11 +86,27 @@ type APIComponents struct {
 /*         - Init Components -         */
 /* ----------------------------------- */
 
+func newGRPCInterceptors(protoValidator *protovalidate.Validator) grpc.ServerOption {
+	return grpc.ChainUnaryInterceptor(
+		interceptors.NewGRPCLogger(),
+		interceptors.NewGRPCValidator(protoValidator),
+	)
+}
+
+
+func newHTTPMiddleware() []runtime.ServeMuxOption {
+	return []runtime.ServeMuxOption{
+		middleware.NewHTTPLogger(),
+		middleware.NewHTTPErrorHandler(),
+		middleware.NewHTTPResponseModifier(),
+	}
+}
+
 func newGRPCServer(api *v1.API, interceptors grpc.ServerOption) *grpc.Server {
 	return server.InitGRPCServer(api, interceptors)
 }
 
-func newHTTPGateway(config *v1.Config, middleware []runtime.ServeMuxOption, grpcDialOptions []grpc.DialOption) *http.Server {
+func newHTTPGateway(config *v1.APIConfig, middleware []runtime.ServeMuxOption, grpcDialOptions []grpc.DialOption) *http.Server {
 	return server.InitHTTPGateway(config.GRPCPort, config.HTTPPort, middleware, grpcDialOptions)
 }
 
@@ -102,28 +118,14 @@ func newService() v1Service.ServiceLayer {
 	return v1Service.NewService()
 }
 
-func newGRPCInterceptors(protoValidator *protovalidate.Validator) grpc.ServerOption {
-	return grpc.ChainUnaryInterceptor(
-		interceptors.NewGRPCLogger(),
-		interceptors.NewGRPCValidator(protoValidator),
-	)
+func newProtoValidator() *protovalidate.Validator {
+	return v1.NewProtoValidator()
 }
 
 func newGRPCDialOptions() []grpc.DialOption {
 	return server.GetGRPCDialOptions()
 }
 
-func newHTTPMiddleware() []runtime.ServeMuxOption {
-	return []runtime.ServeMuxOption{
-		middleware.NewHTTPLogger(),
-		middleware.NewHTTPErrorHandler(),
-		middleware.NewHTTPResponseModifier(),
-	}
-}
-
-func newProtoValidator() *protovalidate.Validator {
-	return v1.NewProtoValidator()
-}
 
 /* ----------------------------------- */
 /*              - T0D0 -               */
