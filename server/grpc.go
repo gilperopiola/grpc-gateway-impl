@@ -17,7 +17,8 @@ import (
 // The HTTP Gateway will point towards this server.
 // This function also adds the gRPC interceptors to the server.
 func InitGRPCServer(api usersPB.UsersServiceServer, interceptors grpc.ServerOption) *grpc.Server {
-	grpcServer := grpc.NewServer(interceptors)
+	options := []grpc.ServerOption{NewGRPCServerCredentials(), interceptors}
+	grpcServer := grpc.NewServer(options...)
 	usersPB.RegisterUsersServiceServer(grpcServer, api)
 	return grpcServer
 }

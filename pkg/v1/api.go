@@ -51,7 +51,7 @@ func LoadConfig() *APIConfig {
 	return &APIConfig{
 		GRPCPort:   getVar("GRPC_PORT", ":50053"),
 		HTTPPort:   getVar("HTTP_PORT", ":8083"),
-		TLSEnabled: getVarBool("TLS_ENABLED", false),
+		TLSEnabled: getVarBool("TLS_ENABLED", true),
 	}
 }
 

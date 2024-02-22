@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	tlsCertPath = "../server.crt"
-	tlsKeyPath  = "../server.key"
+	tlsCertPath = "./server.crt"
+	tlsKeyPath  = "./server.key"
 )
 
-// newServerCredentials loads the server's certificate and key files and returns a gRPC server option
+// NewGRPCServerCredentials loads the server's certificate and key files and returns a gRPC server option
 // that enables the server to use TLS.
-func newServerCredentials() grpc.ServerOption {
+func NewGRPCServerCredentials() grpc.ServerOption {
 	creds, err := credentials.NewServerTLSFromFile(tlsCertPath, tlsKeyPath)
 	if err != nil {
 		log.Fatalf(msgErrLoadingTLSCredentials_Fatal, err)

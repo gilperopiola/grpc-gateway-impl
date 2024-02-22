@@ -123,6 +123,7 @@ func (aw *App) waitForGracefulShutdown() {
 
 func newGRPCInterceptors(protoValidator v1.ProtoValidatorI) grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
+		interceptors.NewGRPCLogger(),
 		interceptors.NewGRPCValidator(protoValidator),
 	)
 }
@@ -136,7 +137,6 @@ func newHTTPMiddleware() v1.MiddlewareI {
 }
 
 func newGRPCDialOptions(tlsEnabled bool, serverCert *x509.CertPool) v1.GRPCDialOptionsI {
-
 	// Unless TLS is enabled, we use insecure credentials.
 	transportCredentials := grpc.WithTransportCredentials(insecure.NewCredentials())
 	if tlsEnabled {
@@ -145,7 +145,7 @@ func newGRPCDialOptions(tlsEnabled bool, serverCert *x509.CertPool) v1.GRPCDialO
 
 	return []grpc.DialOption{
 		transportCredentials,
-		//grpc.WithUserAgent("gRPC Gateway Implementation by @gilperopiola"),
+		grpc.WithUserAgent("gRPC Gateway Implementation by @gilperopiola"),
 	}
 }
 

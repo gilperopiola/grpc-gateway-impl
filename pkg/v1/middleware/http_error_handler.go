@@ -58,33 +58,43 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 // If the status is not one of the special cases, it just returns the status and the buffer as is.
 func handle4XXError(httpStatus int, buffer []byte, w http.ResponseWriter) (int, []byte) {
 
-	// 401 (we just set a generic message + WWW-Authenticate header).
-	if httpStatus == http.StatusUnauthorized {
+	// 401 Unauthorized 						-> We just set a generic message + WWW-Authenticate header.
+	// 403 Forbidden 							-> Generic message.
+	// 404 Not Found / 405 Method Not Allowed 	-> Generic message + always return 404 Not Found.
+
+	switch httpStatus {
+	case http.StatusUnauthorized: // 401
 		w.Header().Set("WWW-Authenticate", "Bearer")
 		return http.StatusUnauthorized, []byte(unauthorizedErrRespBody)
-	}
 
-	// 403 (generic message).
-	if httpStatus == http.StatusForbidden {
+	case http.StatusForbidden: // 403
 		return http.StatusForbidden, []byte(forbiddenErrRespBody)
-	}
 
-	// 404 / 405 (generic message + always return 404).
-	if httpStatus == http.StatusNotFound || httpStatus == http.StatusMethodNotAllowed {
+	case http.StatusNotFound, http.StatusMethodNotAllowed: // 404 / 405
 		return http.StatusNotFound, []byte(notFoundErrRespBody)
 	}
 
+	// If not, return as is.
 	return httpStatus, buffer
 }
 
 // handle5XXError is a helper function that handles the 503 error case.
 // It just returns 503 as 500 Internal Server Error.
 func handle5XXError(httpStatus int, buffer []byte) (int, []byte) {
-	// 503 (generic message).
-	if httpStatus == http.StatusServiceUnavailable {
+
+	// 500 -> We just set a generic message.
+	// 503 -> Generic message + always return 500 Internal Server Error.
+
+	switch httpStatus {
+	case http.StatusInternalServerError: // 500
+		return http.StatusInternalServerError, []byte(internalErrRespBody)
+
+	case http.StatusServiceUnavailable: // 503
 		return http.StatusInternalServerError, []byte(svcUnavailErrRespBody)
 	}
-	return http.StatusInternalServerError, []byte(internalErrRespBody)
+
+	// If not, return as is.
+	return httpStatus, buffer
 }
 
 // mapGRPCStatusToHTTPResponseData returns the HTTP status code and the HTTP error response body
