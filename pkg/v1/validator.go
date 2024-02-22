@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	msgErrInProtoValidation = "validation error: %v"
-	msgRuntimeErr           = "unexpected runtime validation error: %v"
-	msgUnexpectedValidationErr   = "unexpected validation error: %v"
+	msgErrInProtoValidation    = "validation error: %v"
+	msgRuntimeErr              = "unexpected runtime validation error: %v"
+	msgUnexpectedValidationErr = "unexpected validation error: %v"
 
 	msgNewProtoValidatorErr_Fatal = "Failed to create proto validator: %v" // Fatal error.
 )
@@ -76,5 +76,3 @@ type getMessageFromBrokenRuleFn func(v *validate.Violation) string
 var defaultGetMessageFromBrokenRuleFn = getMessageFromBrokenRuleFn(func(v *validate.Violation) string {
 	return fmt.Sprintf("%s %s", v.FieldPath, v.Message)
 })
-
-

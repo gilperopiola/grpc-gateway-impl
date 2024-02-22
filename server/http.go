@@ -23,7 +23,7 @@ func InitHTTPGateway(grpcPort, httpPort string, middleware []runtime.ServeMuxOpt
 	mux := runtime.NewServeMux(middleware...)
 
 	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, grpcPort, options); err != nil {
-		log.Fatalf(errMsgGateway, err)
+		log.Fatalf(msgErrStartingGateway_Fatal, err)
 	}
 
 	return &http.Server{Addr: httpPort, Handler: mux}
@@ -34,7 +34,7 @@ func RunHTTPServer(server *http.Server) {
 	log.Println("Running HTTP!")
 	go func() {
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf(errMsgServeHTTP, err)
+			log.Fatalf(msgErrServingHTTP_Fatal, err)
 		}
 	}()
 }
@@ -48,14 +48,14 @@ func ShutdownHTTPServer(httpServer *http.Server) {
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		log.Fatalf(errMsgShutdown, err)
+		log.Fatalf(msgErrShuttingDownHTTPServer_Fatal, err)
 	}
 }
 
 const (
-	errMsgServeHTTP = "Failed to serve HTTP: %v"
-	errMsgGateway   = "Failed to start HTTP gateway: %v"
-	errMsgShutdown  = "Failed to shutdown HTTP server: %v"
-
 	shutdownTimeout = 4 * time.Second
+
+	msgErrServingHTTP_Fatal            = "Failed to serve HTTP: %v"
+	msgErrStartingGateway_Fatal        = "Failed to start HTTP gateway: %v"
+	msgErrShuttingDownHTTPServer_Fatal = "Failed to shutdown HTTP server: %v"
 )
