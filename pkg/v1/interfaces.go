@@ -5,7 +5,6 @@ import (
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
 
-	"github.com/bufbuild/protovalidate-go"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 )
@@ -14,7 +13,6 @@ import (
 // They are used to make the code more readable and to avoid having to import the actual types in this file.
 type MiddlewareI []runtime.ServeMuxOption
 type InterceptorsI []grpc.ServerOption
-type ProtoValidatorI *protovalidate.Validator
 type GRPCDialOptionsI []grpc.DialOption
 
 type ServiceLayer interface {

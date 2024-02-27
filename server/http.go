@@ -7,9 +7,9 @@ import (
 	"time"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/grpc"
 )
 
 /* ----------------------------------- */
@@ -18,15 +18,15 @@ import (
 
 // InitHTTPGateway initializes the HTTP Gateway and registers the API methods there as well.
 // The gateway will point towards the gRPC server's port.
-// This function also adds the HTTP middleware to the server.
-func InitHTTPGateway(grpcPort, httpPort string, middleware []runtime.ServeMuxOption, options []grpc.DialOption) *http.Server {
+// This function also adds the HTTP middleware to the server and wraps the mux with an HTTP Logger fn.
+func InitHTTPGateway(grpcPort, httpPort string, middleware v1.MiddlewareI, options v1.GRPCDialOptionsI, loggerWrapper func(next http.Handler) http.Handler) *http.Server {
 	mux := runtime.NewServeMux(middleware...)
 
 	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, grpcPort, options); err != nil {
 		log.Fatalf(msgErrStartingGateway_Fatal, err)
 	}
 
-	return &http.Server{Addr: httpPort, Handler: mux}
+	return &http.Server{Addr: httpPort, Handler: loggerWrapper(mux)}
 }
 
 // RunHTTPServer runs the HTTP server on a given port.

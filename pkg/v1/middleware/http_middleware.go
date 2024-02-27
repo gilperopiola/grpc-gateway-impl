@@ -2,11 +2,13 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"net/http"
+	"time"
+
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/protobuf/proto"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -14,29 +16,30 @@ import (
 /*         - HTTP Middleware -         */
 /* ----------------------------------- */
 
-// NewErrorHandlerMiddleware returns a ServeMuxOption that sets a custom error handler for the HTTP gateway.
-func NewHTTPErrorHandler() runtime.ServeMuxOption {
-	return runtime.WithErrorHandler(handleHTTPError)
+func GetAll() v1.MiddlewareI {
+	return v1.MiddlewareI{
+		runtime.WithErrorHandler(handleHTTPError),
+		runtime.WithForwardResponseOption(modifyHTTPResponseHeaders),
+	}
 }
 
-// NewHTTPLogger returns a ServeMuxOption that logs every HTTP request.
-func NewHTTPLogger() runtime.ServeMuxOption {
-	return runtime.WithForwardResponseOption(logHTTPResponse)
-}
+// LogHTTP doesn't work like a middleware (it's wrapped around the HTTP server when it's created),
+// but I think this belongs here.
+func LogHTTP(logger *zap.Logger) func(next http.Handler) http.Handler {
+	sugar := logger.Sugar()
 
-// NewHTTPResponseModifier returns a ServeMuxOption that modifies the HTTP response before it's written to the client.
-func NewHTTPResponseModifier() runtime.ServeMuxOption {
-	return runtime.WithForwardResponseOption(modifyHTTPResponseHeaders)
-}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			next.ServeHTTP(w, r)
 
-/* ----------------------------------- */
-/*         - Implementations -         */
-/* ----------------------------------- */
-
-// logHTTPResponse logs every HTTP request.
-func logHTTPResponse(ctx context.Context, rw http.ResponseWriter, msg proto.Message) error {
-	log.Printf("HTTP request: %s %s\n", "POST", "/asd")
-	return nil
+			sugar.Infow("HTTP Request",
+				"path", r.URL.Path,
+				"method", r.Method,
+				"duration", time.Since(start),
+			)
+		})
+	}
 }
 
 // modifyHTTPResponseHeaders executes before the response is written to the client.

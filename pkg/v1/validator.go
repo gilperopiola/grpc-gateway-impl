@@ -11,15 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	msgErrInProtoValidation    = "validation error: %v"
-	msgRuntimeErr              = "unexpected runtime validation error: %v"
-	msgUnexpectedValidationErr = "unexpected validation error: %v"
-
-	msgNewProtoValidatorErr_Fatal = "Failed to create proto validator: %v" // Fatal error.
-)
-
-// NewProtoValidator returns a new instance of *protovalidate.Validator.
+// NewProtoValidator returns a new instance of ProtoValidatorI.
 // It calls log.Fatalf if it fails to create the validator.
 func NewProtoValidator() *protovalidate.Validator {
 	protoValidator, err := protovalidate.New()
@@ -38,7 +30,8 @@ func FromValidationErrToGRPCInvalidArgErr(err error) error {
 
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
-		outErrorMsg = fmt.Sprintf(msgErrInProtoValidation, getValidationErrMsg(validationErr))
+		brokenRules := validationErr.ToProto().GetViolations()
+		outErrorMsg = fmt.Sprintf(msgErrInProtoValidation, makeStringFromBrokenValidationRules(brokenRules))
 	}
 
 	var runtimeErr *protovalidate.RuntimeError
@@ -49,19 +42,13 @@ func FromValidationErrToGRPCInvalidArgErr(err error) error {
 	return status.Error(codes.InvalidArgument, outErrorMsg)
 }
 
-// getValidationErrMsg returns a formatted error based on the validation rules that were broken.
-func getValidationErrMsg(validationErr *protovalidate.ValidationError) string {
-	brokenRules := validationErr.ToProto().GetViolations()
-	return makeStringFromBrokenValidationRules(brokenRules)
-}
-
 // makeStringFromBrokenValidationRules returns a string with the broken validation rules.
 // The default concatenates the field path and the message of each broken rule.
 // This is what the user will see as the error message:
 // { "error": "username must be at least 3 characters long" } on a JSON 400 response.
 func makeStringFromBrokenValidationRules(brokenRules []*validate.Violation) (out string) {
 	for i, brokenRule := range brokenRules {
-		out += defaultGetMessageFromBrokenRuleFn(brokenRule)
+		out += getMsgFromBrokenRule(brokenRule)
 		if i < len(brokenRules)-1 {
 			out += ", "
 		}
@@ -69,10 +56,15 @@ func makeStringFromBrokenValidationRules(brokenRules []*validate.Violation) (out
 	return
 }
 
-// getMessageFromBrokenRuleFn is a function type that returns a string from a broken validation rule.
-type getMessageFromBrokenRuleFn func(v *validate.Violation) string
-
-// defaultGetMessageFromBrokenRuleFn is the default implementation of messageFromBrokenRuleFn.
-var defaultGetMessageFromBrokenRuleFn = getMessageFromBrokenRuleFn(func(v *validate.Violation) string {
+// getMsgFromBrokenRule is the default human-facing format in which validation errors translate.
+func getMsgFromBrokenRule(v *validate.Violation) string {
 	return fmt.Sprintf("%s %s", v.FieldPath, v.Message)
-})
+}
+
+const (
+	msgErrInProtoValidation    = "validation error: %v"
+	msgRuntimeErr              = "unexpected runtime validation error: %v"
+	msgUnexpectedValidationErr = "unexpected validation error: %v"
+
+	msgNewProtoValidatorErr_Fatal = "Failed to create proto validator: %v" // Fatal error.
+)
