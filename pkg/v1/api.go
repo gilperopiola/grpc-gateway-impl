@@ -2,7 +2,7 @@ package v1
 
 import (
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-	v1Service "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 )
 
 /* ----------------------------------- */
@@ -13,16 +13,11 @@ import (
 // It has a handler for each API method, connecting it with the Service.
 // It implements the usersPB.UsersServiceServer interface.
 type API struct {
-	Service v1Service.ServiceLayer
+	Service service.ServiceLayer
 	usersPB.UnimplementedUsersServiceServer
 }
 
 // NewAPI returns a new instance of the API.
-func NewAPI(service v1Service.ServiceLayer) *API {
+func NewAPI(service service.ServiceLayer) *API {
 	return &API{Service: service}
-}
-
-// NewService returns a new instance of the Service.
-func NewService() v1Service.ServiceLayer {
-	return v1Service.NewService()
 }

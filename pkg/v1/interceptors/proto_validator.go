@@ -1,4 +1,4 @@
-package v1
+package interceptors
 
 import (
 	"errors"
@@ -21,11 +21,11 @@ func NewProtoValidator() *protovalidate.Validator {
 	return protoValidator
 }
 
-// FromValidationErrToGRPCInvalidArgErr returns an InvalidArgument(3) gRPC error with its corresponding message.
+// fromValidationErrToGRPCInvalidArgErr returns an InvalidArgument(3) gRPC error with its corresponding message.
 // It gets translated to a 400 Bad Request on the error handler.
 // Validation errors are always returned as InvalidArgument.
 // This functions is called from the validation interceptor.
-func FromValidationErrToGRPCInvalidArgErr(err error) error {
+func fromValidationErrToGRPCInvalidArgErr(err error) error {
 	outErrorMsg := fmt.Sprintf(msgUnexpectedValidationErr, err)
 
 	var validationErr *protovalidate.ValidationError

@@ -1,4 +1,4 @@
-package v1
+package server
 
 import (
 	"log"
@@ -10,8 +10,8 @@ import (
 /*             - Config -              */
 /* ----------------------------------- */
 
-// APIConfig holds the configuration for the server.
-type APIConfig struct {
+// Config holds the configuration for the server.
+type Config struct {
 	IsProd   bool
 	GRPCPort string
 	HTTPPort string
@@ -31,7 +31,7 @@ type TLSConfig struct {
 }
 
 // LoadConfig loads the configuration from the environment variables.
-func LoadConfig() *APIConfig {
+func LoadConfig() *Config {
 
 	// The project is either run from the root folder or the /cmd folder.
 	// If it's run from the /cmd folder, we need to add a '..' prefix to the filesystem paths
@@ -40,7 +40,7 @@ func LoadConfig() *APIConfig {
 	workingDirIsCmdFolder := isWorkingDirCmdFolder()
 	workingDirPathPrefix := getPathPrefix(workingDirIsCmdFolder)
 
-	return &APIConfig{
+	return &Config{
 		IsProd:   getVarBool("IS_PROD", false),
 		GRPCPort: getVar("GRPC_PORT", ":50053"),
 		HTTPPort: getVar("HTTP_PORT", ":8083"),

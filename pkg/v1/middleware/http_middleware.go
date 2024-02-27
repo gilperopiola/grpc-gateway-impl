@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -16,8 +14,8 @@ import (
 /*         - HTTP Middleware -         */
 /* ----------------------------------- */
 
-func GetAll() v1.MiddlewareI {
-	return v1.MiddlewareI{
+func GetAll() []runtime.ServeMuxOption {
+	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
 		runtime.WithForwardResponseOption(modifyHTTPResponseHeaders),
 	}

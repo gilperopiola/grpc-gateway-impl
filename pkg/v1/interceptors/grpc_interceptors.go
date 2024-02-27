@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-
 	"github.com/bufbuild/protovalidate-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -29,7 +27,7 @@ func GetAll(logger *zap.Logger, validator *protovalidate.Validator) grpc.ServerO
 func newGRPCValidatorInterceptor(protoValidator *protovalidate.Validator) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
-			return nil, v1.FromValidationErrToGRPCInvalidArgErr(err)
+			return nil, fromValidationErrToGRPCInvalidArgErr(err)
 		}
 		return handler(ctx, req) // Call next handler.
 	}

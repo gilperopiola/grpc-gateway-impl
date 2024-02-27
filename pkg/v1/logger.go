@@ -26,5 +26,5 @@ func NewLogger(isProd bool, opts []zap.Option) *zap.Logger {
 }
 
 const (
-	msgErrCreatingLogger_Fatal = "Failed to create zap logger: %v"
+	msgErrCreatingLogger_Fatal = "Failed to create logger: %v"
 )
