@@ -2,11 +2,13 @@ package interceptors
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/bufbuild/protovalidate-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -14,7 +16,24 @@ import (
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
 
-func GetAll(logger *zap.Logger, validator *protovalidate.Validator) grpc.ServerOption {
+// GetAll returns all the gRPC interceptors as ServerOptions.
+// If TLS is not enabled, return the default interceptors.
+// If TLS is enabled, return the default interceptors + the TLS security interceptor.
+func GetAll(logger *zap.Logger, validator *protovalidate.Validator, tlsEnabled bool, certPath, keyPath string) []grpc.ServerOption {
+	if !tlsEnabled {
+		return []grpc.ServerOption{
+			newDefaultInterceptors(logger, validator),
+		}
+	}
+
+	return []grpc.ServerOption{
+		newGRPCTLSSecurityInterceptor(certPath, keyPath),
+		newDefaultInterceptors(logger, validator),
+	}
+}
+
+// newDefaultInterceptors returns the default gRPC interceptors.
+func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validator) grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
 		newGRPCLoggerInterceptor(logger),
 		newGRPCValidatorInterceptor(validator),
@@ -59,3 +78,17 @@ func newGRPCLoggerInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		return resp, err
 	}
 }
+
+// newGRPCTLSSecurityInterceptor returns a grpc.ServerOption that enables TLS communication.
+// It loads the server's certificate and key from a file.
+func newGRPCTLSSecurityInterceptor(certPath, keyPath string) grpc.ServerOption {
+	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
+	if err != nil {
+		log.Fatalf(msgErrLoadingTLSCredentials_Fatal, err)
+	}
+	return grpc.Creds(creds)
+}
+
+const (
+	msgErrLoadingTLSCredentials_Fatal = "Failed to load server TLS credentials: %v"
+)

@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// NewProtoValidator returns a new instance of ProtoValidatorI.
+// NewProtoValidator returns a new instance of *protovalidate.Validator.
 // It calls log.Fatalf if it fails to create the validator.
 func NewProtoValidator() *protovalidate.Validator {
 	protoValidator, err := protovalidate.New()
@@ -42,7 +42,7 @@ func fromValidationErrToGRPCInvalidArgErr(err error) error {
 	return status.Error(codes.InvalidArgument, outErrorMsg)
 }
 
-// makeStringFromBrokenValidationRules returns a string with the broken validation rules.
+// makeStringFromBrokenValidationRules returns a string detailing the broken validation rules.
 // The default concatenates the field path and the message of each broken rule.
 // This is what the user will see as the error message:
 // { "error": "username must be at least 3 characters long" } on a JSON 400 response.

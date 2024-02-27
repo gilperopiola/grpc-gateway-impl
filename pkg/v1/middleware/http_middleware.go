@@ -14,6 +14,7 @@ import (
 /*         - HTTP Middleware -         */
 /* ----------------------------------- */
 
+// GetAll returns all the HTTP middleware that are used as ServeMuxOptions.
 func GetAll() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
@@ -21,23 +22,31 @@ func GetAll() []runtime.ServeMuxOption {
 	}
 }
 
-// LogHTTP doesn't work like a middleware (it's wrapped around the HTTP server when it's created),
-// but I think this belongs here.
-func LogHTTP(logger *zap.Logger) func(next http.Handler) http.Handler {
+// GetMuxWrapperFn is wrapped around the HTTP server when it's created
+// and logs the HTTP Request's info when it finishes executing.
+// It's used to wrap the ServeMux with middleware.
+func GetMuxWrapperFn(logger *zap.Logger) muxWrapperFn {
 	sugar := logger.Sugar()
-
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			next.ServeHTTP(w, r)
-
-			sugar.Infow("HTTP Request",
-				"path", r.URL.Path,
-				"method", r.Method,
-				"duration", time.Since(start),
-			)
-		})
+		return logHTTP(next, sugar)
 	}
+}
+
+// muxWrapperFn is a middleware that wraps around the HTTP Server's mux.
+type muxWrapperFn func(next http.Handler) http.Handler
+
+// logHTTP logs the HTTP Request's info when it finishes executing.
+func logHTTP(next http.Handler, sugar *zap.SugaredLogger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+
+		sugar.Infow("HTTP Request",
+			"path", r.URL.Path,
+			"method", r.Method,
+			"duration", time.Since(start),
+		)
+	})
 }
 
 // modifyHTTPResponseHeaders executes before the response is written to the client.

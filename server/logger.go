@@ -1,4 +1,4 @@
-package v1
+package server
 
 import (
 	"log"
@@ -10,8 +10,8 @@ import (
 /*             - Logger -              */
 /* ----------------------------------- */
 
-// NewLogger returns a new instance of *zap.Logger.
-func NewLogger(isProd bool, opts []zap.Option) *zap.Logger {
+// newLogger returns a new instance of *zap.Logger.
+func newLogger(isProd bool, opts []zap.Option) *zap.Logger {
 	newLoggerFn := zap.NewDevelopment
 	if isProd {
 		newLoggerFn = zap.NewProduction
@@ -23,6 +23,14 @@ func NewLogger(isProd bool, opts []zap.Option) *zap.Logger {
 	}
 
 	return logger
+}
+
+// newLoggerOptions returns the default options for the logger.
+// For now it only adds a stack trace to panic logs.
+func newLoggerOptions() []zap.Option {
+	return []zap.Option{
+		zap.AddStacktrace(zap.DPanicLevel),
+	}
 }
 
 const (

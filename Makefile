@@ -6,7 +6,6 @@
 # The server not only serves gRPC requests but also serves HTTP requests through the 
 # gRPC Gateway.
 
-########################################################################################################### Variables
 # General Variables
 # 
 # PROTOS_DIR: The directory where the .proto files are located.
@@ -27,7 +26,6 @@ USERS := users
 USERS_PROTO_FILE := $(PROTOS_DIR)/$(USERS).proto
 USERS_PBS_OUT_DIR := $(PBS_OUT_BASE_DIR)/$(USERS)
 
-########################################################################################################### Targets
 # Default target.
 # 
 # The default target is the "all" target. 
@@ -51,3 +49,7 @@ generate-pbs:
 # Generate the Swagger file for the gRPC Gateway.
 generate-swagger:
 	protoc -I=$(PROTOS_DIR) --openapiv2_out=$(SWAGGER_OUT_DIR) $(USERS_PROTO_FILE)
+
+# Test the app.
+test:
+	go test ./... -cover

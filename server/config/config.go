@@ -1,4 +1,4 @@
-package server
+package config
 
 import (
 	"log"
@@ -37,8 +37,8 @@ func LoadConfig() *Config {
 	// If it's run from the /cmd folder, we need to add a '..' prefix to the filesystem paths
 	// to make them relative to the root folder.
 	// Otherwise, we just add a '.', staying on the current directory.
-	workingDirIsCmdFolder := isWorkingDirCmdFolder()
-	workingDirPathPrefix := getPathPrefix(workingDirIsCmdFolder)
+	workingDirIsRootFolder := isWorkingDirRootFolder()
+	workingDirPathPrefix := getPathPrefix(workingDirIsRootFolder)
 
 	return &Config{
 		IsProd:   getVarBool("IS_PROD", false),
@@ -69,22 +69,22 @@ func getVarBool(key string, fallback bool) bool {
 	return fallback
 }
 
-// isWorkingDirCmdFolder returns true if the working directory is the /cmd folder.
-func isWorkingDirCmdFolder() bool {
+// isWorkingDirRootFolder returns true if the working directory is the /cmd folder.
+func isWorkingDirRootFolder() bool {
 	workingDir, err := os.Getwd()
 	if err != nil {
 		log.Fatalf(msgErrGettingWorkingDir, err)
 	}
-	return strings.Contains(workingDir, "cmd")
+	return strings.HasSuffix(workingDir, "grpc-gateway-impl")
 }
 
 // getPathPrefix returns the prefix that needs to be added to the default paths
 // so that we always start at the root folder.
-func getPathPrefix(workingDirIsCmdFolder bool) string {
-	if workingDirIsCmdFolder {
-		return ".."
+func getPathPrefix(workingDirIsRootFolder bool) string {
+	if workingDirIsRootFolder {
+		return "."
 	}
-	return "."
+	return ".."
 }
 
 const (

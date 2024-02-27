@@ -18,20 +18,26 @@ func newHTTPErrorResponse(message string) httpErrorResponseBody {
 	return httpErrorResponseBody{Error: message}
 }
 
+// mapGRPCStatusToHTTPResponseData returns the HTTP status code and the HTTP error response body
+// based on the gRPC status code.
+func mapGRPCStatusToHTTPResponseData(grpcStatus *status.Status) (int, string) {
+	return runtime.HTTPStatusFromCode(grpcStatus.Code()), grpcStatus.Message()
+}
+
 // handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
 // It just converts the gRPC error to an HTTP error and writes it to the response.
 // There are some special cases based on the HTTP Status.
 func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
 
-	// Set the Content-Type header.
-	w.Header().Set("Content-Type", "application/json")
-
 	var (
-		httpRespBuffer          = []byte{}
 		grpcStatus              = status.Convert(err)
 		httpStatus, httpRespMsg = mapGRPCStatusToHTTPResponseData(grpcStatus)
 		httpRespBody            = newHTTPErrorResponse(httpRespMsg)
+		httpRespBuffer          = []byte{}
 	)
+
+	// Set the Content-Type header.
+	w.Header().Set("Content-Type", "application/json")
 
 	// Marshal the error response into a buffer. If it fails, we just write a generic error message
 	// and return a 500 Internal Server Error. This is very unlikely to happen, I guess sometimes
@@ -95,13 +101,6 @@ func handle5XXError(httpStatus int, buffer []byte) (int, []byte) {
 
 	// If not, return as is.
 	return httpStatus, buffer
-}
-
-// mapGRPCStatusToHTTPResponseData returns the HTTP status code and the HTTP error response body
-// based on the gRPC status code.
-func mapGRPCStatusToHTTPResponseData(grpcStatus *status.Status) (int, string) {
-	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
-	return httpStatus, grpcStatus.Message()
 }
 
 // These strings are the JSON representations of an httpErrorResponse. It's what gets sent as the response's body when an error occurs.

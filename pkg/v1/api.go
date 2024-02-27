@@ -13,11 +13,11 @@ import (
 // It has a handler for each API method, connecting it with the Service.
 // It implements the usersPB.UsersServiceServer interface.
 type API struct {
-	Service service.ServiceLayer
+	Service service.Service
 	usersPB.UnimplementedUsersServiceServer
 }
 
 // NewAPI returns a new instance of the API.
-func NewAPI(service service.ServiceLayer) *API {
+func NewAPI(service service.Service) *API {
 	return &API{Service: service}
 }
