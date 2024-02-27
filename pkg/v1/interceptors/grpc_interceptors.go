@@ -6,9 +6,12 @@ import (
 	"time"
 
 	"github.com/bufbuild/protovalidate-go"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -37,6 +40,17 @@ func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validat
 	return grpc.ChainUnaryInterceptor(
 		newGRPCLoggerInterceptor(logger),
 		newGRPCValidatorInterceptor(validator),
+		newGRPCRecoveryInterceptor(logger),
+	)
+}
+
+// newGRPCRecoveryInterceptor returns a gRPC interceptor that recovers from panics.
+func newGRPCRecoveryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
+	return grpc_recovery.UnaryServerInterceptor(
+		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
+			logger.Error("gRPC Panic!", zap.Any("panic", p))
+			return status.Errorf(codes.Internal, "unexpected panic, something went wrong: %v", p)
+		}),
 	)
 }
 
