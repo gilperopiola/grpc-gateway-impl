@@ -20,19 +20,20 @@ import (
 /* ----------------------------------- */
 
 // GetAll returns all the gRPC interceptors as ServerOptions.
-// If TLS is not enabled, return the default interceptors.
-// If TLS is enabled, return the default interceptors + the TLS security interceptor.
+// If TLS is enabled, return the TLS security interceptor + the default interceptors.
+// If TLS is not enabled, only return the default interceptors.
 func GetAll(logger *zap.Logger, validator *protovalidate.Validator, tlsEnabled bool, certPath, keyPath string) []grpc.ServerOption {
-	if !tlsEnabled {
-		return []grpc.ServerOption{
-			newDefaultInterceptors(logger, validator),
-		}
+	out := make([]grpc.ServerOption, 0)
+
+	// Add TLS interceptor.
+	if tlsEnabled {
+		out = append(out, newGRPCTLSInterceptor(certPath, keyPath))
 	}
 
-	return []grpc.ServerOption{
-		newGRPCTLSSecurityInterceptor(certPath, keyPath),
-		newDefaultInterceptors(logger, validator),
-	}
+	// Add default interceptors.
+	out = append(out, newDefaultInterceptors(logger, validator))
+
+	return out
 }
 
 // newDefaultInterceptors returns the default gRPC interceptors.
@@ -49,7 +50,7 @@ func newGRPCRecoveryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor 
 	return grpc_recovery.UnaryServerInterceptor(
 		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
 			logger.Error("gRPC Panic!", zap.Any("panic", p))
-			return status.Errorf(codes.Internal, "unexpected panic, something went wrong: %v", p)
+			return status.Errorf(codes.Internal, errMsgInRecoveryInterceptor, p)
 		}),
 	)
 }
@@ -93,16 +94,18 @@ func newGRPCLoggerInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// newGRPCTLSSecurityInterceptor returns a grpc.ServerOption that enables TLS communication.
+// newGRPCTLSInterceptor returns a grpc.ServerOption that enables TLS communication.
 // It loads the server's certificate and key from a file.
-func newGRPCTLSSecurityInterceptor(certPath, keyPath string) grpc.ServerOption {
+func newGRPCTLSInterceptor(certPath, keyPath string) grpc.ServerOption {
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 	if err != nil {
-		log.Fatalf(msgErrLoadingTLSCredentials_Fatal, err)
+		log.Fatalf(errMsgLoadingTLSCredentials_Fatal, err)
 	}
 	return grpc.Creds(creds)
 }
 
 const (
-	msgErrLoadingTLSCredentials_Fatal = "Failed to load server TLS credentials: %v"
+	errMsgInRecoveryInterceptor = "unexpected panic, something went wrong: %v"
+
+	errMsgLoadingTLSCredentials_Fatal = "Failed to load server TLS credentials: %v" // Fatal error.
 )

@@ -16,7 +16,7 @@ import (
 func NewProtoValidator() *protovalidate.Validator {
 	protoValidator, err := protovalidate.New()
 	if err != nil {
-		log.Fatalf(msgNewProtoValidatorErr_Fatal, err)
+		log.Fatalf(errMsgCreatingProtoValidator_Fatal, err)
 	}
 	return protoValidator
 }
@@ -26,17 +26,17 @@ func NewProtoValidator() *protovalidate.Validator {
 // Validation errors are always returned as InvalidArgument.
 // This functions is called from the validation interceptor.
 func fromValidationErrToGRPCInvalidArgErr(err error) error {
-	outErrorMsg := fmt.Sprintf(msgUnexpectedValidationErr, err)
+	outErrorMsg := fmt.Sprintf(errMsgInValidationUnexpected, err)
 
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
 		brokenRules := validationErr.ToProto().GetViolations()
-		outErrorMsg = fmt.Sprintf(msgErrInProtoValidation, makeStringFromBrokenValidationRules(brokenRules))
+		outErrorMsg = fmt.Sprintf(errMsgInValidation, makeStringFromBrokenValidationRules(brokenRules))
 	}
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
-		outErrorMsg = fmt.Sprintf(msgRuntimeErr, runtimeErr)
+		outErrorMsg = fmt.Sprintf(errMsgInValidationRuntime, runtimeErr)
 	}
 
 	return status.Error(codes.InvalidArgument, outErrorMsg)
@@ -62,9 +62,9 @@ func getMsgFromBrokenRule(v *validate.Violation) string {
 }
 
 const (
-	msgErrInProtoValidation    = "validation error: %v"
-	msgRuntimeErr              = "unexpected runtime validation error: %v"
-	msgUnexpectedValidationErr = "unexpected validation error: %v"
+	errMsgInValidation           = "validation error: %v"
+	errMsgInValidationRuntime    = "unexpected runtime validation error: %v"
+	errMsgInValidationUnexpected = "unexpected validation error: %v"
 
-	msgNewProtoValidatorErr_Fatal = "Failed to create proto validator: %v" // Fatal error.
+	errMsgCreatingProtoValidator_Fatal = "Failed to create proto validator: %v" // Fatal error.
 )

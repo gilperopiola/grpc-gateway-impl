@@ -22,10 +22,10 @@ func main() {
 	// Init everything inside of the App.
 	app.InitGeneralDependencies()
 	app.InitGRPCAndHTTPDependencies()
-	app.InitAPI()
+	app.InitAPIAndServers()
 
 	// Run servers.
-	app.RunAPI()
+	app.Run()
 	time.Sleep(1 * time.Second)
 	log.Println("... ¡gRPC and HTTP OK! ...")
 

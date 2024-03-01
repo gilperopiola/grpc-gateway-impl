@@ -8,7 +8,6 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
-
 	os.Setenv("IS_PROD", "true")
 	os.Setenv("GRPC_PORT", ":9999")
 	os.Setenv("HTTP_PORT", ":8888")

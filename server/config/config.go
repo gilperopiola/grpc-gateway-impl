@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+const (
+	projectName = "grpc-gateway-impl" // Used to check if the working directory is the root folder.
+
+	errMsgGettingWorkingDir_Fatal = "Failed to get working directory: %v" // Fatal error.
+)
+
 /* ----------------------------------- */
 /*             - Config -              */
 /* ----------------------------------- */
@@ -73,9 +79,9 @@ func getVarBool(key string, fallback bool) bool {
 func isWorkingDirRootFolder() bool {
 	workingDir, err := os.Getwd()
 	if err != nil {
-		log.Fatalf(msgErrGettingWorkingDir, err)
+		log.Fatalf(errMsgGettingWorkingDir_Fatal, err)
 	}
-	return strings.HasSuffix(workingDir, "grpc-gateway-impl")
+	return strings.HasSuffix(workingDir, projectName)
 }
 
 // getPathPrefix returns the prefix that needs to be added to the default paths
@@ -86,7 +92,3 @@ func getPathPrefix(workingDirIsRootFolder bool) string {
 	}
 	return ".."
 }
-
-const (
-	msgErrGettingWorkingDir = "Failed to get working directory: %v"
-)

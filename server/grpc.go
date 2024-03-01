@@ -12,13 +12,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// getAllDialOptions returns the gRPC dial options.
-func getAllDialOptions(tlsEnabled bool, serverCert *x509.CertPool) []grpc.DialOption {
-	return []grpc.DialOption{
-		newTLSSecurityDialOption(tlsEnabled, serverCert),
-		grpc.WithUserAgent(customUserAgent),
-	}
-}
+const (
+	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
+
+	errMsgListeningGRPC_Fatal = "Failed to listen gRPC: %v" // Fatal error.
+	errMsgServingGRPC_Fatal   = "Failed to serve gRPC: %v"  // Fatal error.
+)
 
 /* ----------------------------------- */
 /*           - gRPC Server -           */
@@ -40,12 +39,12 @@ func runGRPCServer(grpcServer *grpc.Server, grpcPort string) {
 
 	lis, err := net.Listen("tcp", grpcPort)
 	if err != nil {
-		log.Fatalf(msgErrListeningGRPC_Fatal, err)
+		log.Fatalf(errMsgListeningGRPC_Fatal, err)
 	}
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf(msgErrServingGRPC_Fatal, err)
+			log.Fatalf(errMsgServingGRPC_Fatal, err)
 		}
 	}()
 }
@@ -56,20 +55,21 @@ func shutdownGRPCServer(grpcServer *grpc.Server) {
 	grpcServer.GracefulStop()
 }
 
-const (
-	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
-
-	msgErrListeningGRPC_Fatal = "Failed to listen gRPC: %v"
-	msgErrServingGRPC_Fatal   = "Failed to serve gRPC: %v"
-)
-
 /* ----------------------------------- */
 /*        - gRPC Dial Options -        */
 /* ----------------------------------- */
 
-// newTLSSecurityDialOption returns a gRPC dial option that enables the client to use TLS.
+// getAllDialOptions returns the gRPC dial options.
+func getAllDialOptions(tlsEnabled bool, serverCert *x509.CertPool) []grpc.DialOption {
+	return []grpc.DialOption{
+		newTLSDialOption(tlsEnabled, serverCert),
+		grpc.WithUserAgent(customUserAgent),
+	}
+}
+
+// newTLSDialOption returns a gRPC dial option that enables the client to use TLS.
 // If tlsEnabled is false, it returns an insecure dial option.
-func newTLSSecurityDialOption(tlsEnabled bool, serverCert *x509.CertPool) grpc.DialOption {
+func newTLSDialOption(tlsEnabled bool, serverCert *x509.CertPool) grpc.DialOption {
 	if !tlsEnabled {
 		return grpc.WithTransportCredentials(insecure.NewCredentials())
 	}

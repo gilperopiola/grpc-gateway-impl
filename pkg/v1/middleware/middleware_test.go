@@ -40,7 +40,7 @@ func TestHandleHTTPError(t *testing.T) {
 			name:           "Unauthorized error",
 			err:            status.Error(codes.Unauthenticated, "unauthorized"),
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   unauthorizedErrRespBody,
+			expectedBody:   httpUnauthorizedErrBody,
 		},
 	}
 
@@ -93,11 +93,11 @@ func TestLogHTTP(t *testing.T) {
 	}
 }
 
-func TestModifyHTTPResponseHeaders(t *testing.T) {
+func TestSetHTTPResponseHeaders(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	ctx := context.Background()
 
-	err := modifyHTTPResponseHeaders(ctx, recorder, nil)
+	err := setHTTPResponseHeaders(ctx, recorder, nil)
 	if err != nil {
 		t.Errorf("modifyHTTPResponseHeaders returned an error: %v", err)
 	}

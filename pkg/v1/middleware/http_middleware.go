@@ -13,27 +13,29 @@ import (
 /* ----------------------------------- */
 /*         - HTTP Middleware -         */
 /* ----------------------------------- */
+// Some middleware are passed as ServeMuxOptions when the mux is created,
+// and some are wrapped around the mux after its creation.
 
 // GetAll returns all the HTTP middleware that are used as ServeMuxOptions.
 func GetAll() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
-		runtime.WithForwardResponseOption(modifyHTTPResponseHeaders),
+		runtime.WithForwardResponseOption(setHTTPResponseHeaders),
 	}
 }
 
+// MuxWrapperFn is a middleware that wraps around the HTTP Server's mux.
+type MuxWrapperFn func(next http.Handler) http.Handler
+
 // GetMuxWrapperFn is wrapped around the HTTP server when it's created
 // and logs the HTTP Request's info when it finishes executing.
-// It's used to wrap the ServeMux with middleware.
-func GetMuxWrapperFn(logger *zap.Logger) muxWrapperFn {
+// It's used to wrap the mux with middleware.
+func GetMuxWrapperFn(logger *zap.Logger) MuxWrapperFn {
 	sugar := logger.Sugar()
 	return func(next http.Handler) http.Handler {
 		return logHTTP(next, sugar)
 	}
 }
-
-// muxWrapperFn is a middleware that wraps around the HTTP Server's mux.
-type muxWrapperFn func(next http.Handler) http.Handler
 
 // logHTTP logs the HTTP Request's info when it finishes executing.
 func logHTTP(next http.Handler, sugar *zap.SugaredLogger) http.Handler {
@@ -49,8 +51,8 @@ func logHTTP(next http.Handler, sugar *zap.SugaredLogger) http.Handler {
 	})
 }
 
-// modifyHTTPResponseHeaders executes before the response is written to the client.
-func modifyHTTPResponseHeaders(ctx context.Context, rw http.ResponseWriter, resp protoreflect.ProtoMessage) error {
+// setHTTPResponseHeaders executes before the response is written to the client.
+func setHTTPResponseHeaders(ctx context.Context, rw http.ResponseWriter, resp protoreflect.ProtoMessage) error {
 
 	// Delete gRPC-related headers:
 	rw.Header().Del("Grpc-Metadata-Content-Type")

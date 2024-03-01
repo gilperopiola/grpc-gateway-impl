@@ -7,6 +7,7 @@ import (
 	"time"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/middleware"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -19,46 +20,43 @@ import (
 // initHTTPGateway initializes the HTTP Gateway and registers the API methods there as well.
 // The gateway will point towards the gRPC server's port.
 // This function also adds the HTTP middleware to the server and wraps the mux with an HTTP Logger fn.
-func initHTTPGateway(grpcPort, httpPort string, middleware []runtime.ServeMuxOption, options []grpc.DialOption, muxWrapper muxWrapperFn) *http.Server {
+func initHTTPGateway(grpcPort, httpPort string, middleware []runtime.ServeMuxOption, options []grpc.DialOption, muxWrapper middleware.MuxWrapperFn) *http.Server {
 	mux := runtime.NewServeMux(middleware...)
 
 	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, grpcPort, options); err != nil {
-		log.Fatalf(msgErrStartingGateway_Fatal, err)
+		log.Fatalf(errMsgStartingHTTP_Fatal, err)
 	}
 
 	return &http.Server{Addr: httpPort, Handler: muxWrapper(mux)}
 }
 
-// muxWrapperFn is a middleware that wraps around the HTTP Server's mux.
-type muxWrapperFn func(next http.Handler) http.Handler
-
-// runHTTPServer runs the HTTP server on a given port.
-func runHTTPServer(server *http.Server) {
+// runHTTPGateway runs the HTTP server on a given port.
+func runHTTPGateway(server *http.Server) {
 	log.Println("Running HTTP!")
 	go func() {
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf(msgErrServingHTTP_Fatal, err)
+			log.Fatalf(errMsgServingHTTP_Fatal, err)
 		}
 	}()
 }
 
-// shutdownHTTPServer gracefully shuts down the HTTP server.
+// shutdownHTTPGateway gracefully shuts down the HTTP server.
 // It waits for all connections to be closed before shutting down.
-func shutdownHTTPServer(httpServer *http.Server) {
+func shutdownHTTPGateway(httpServer *http.Server) {
 	log.Println("Shutting down HTTP server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), httpShutdownTimeout)
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		log.Fatalf(msgErrShuttingDownHTTPServer_Fatal, err)
+		log.Fatalf(errMsgShuttingDownHTTP_Fatal, err)
 	}
 }
 
 const (
-	shutdownTimeout = 4 * time.Second
+	httpShutdownTimeout = 4 * time.Second
 
-	msgErrServingHTTP_Fatal            = "Failed to serve HTTP: %v"
-	msgErrStartingGateway_Fatal        = "Failed to start HTTP gateway: %v"
-	msgErrShuttingDownHTTPServer_Fatal = "Failed to shutdown HTTP server: %v"
+	errMsgServingHTTP_Fatal      = "Failed to serve HTTP: %v"           // Fatal error.
+	errMsgStartingHTTP_Fatal     = "Failed to start HTTP gateway: %v"   // Fatal error.
+	errMsgShuttingDownHTTP_Fatal = "Failed to shutdown HTTP server: %v" // Fatal error.
 )

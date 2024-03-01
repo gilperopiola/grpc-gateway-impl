@@ -40,11 +40,11 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 	w.Header().Set("Content-Type", "application/json")
 
 	// Marshal the error response into a buffer. If it fails, we just write a generic error message
-	// and return a 500 Internal Server Error. This is very unlikely to happen, I guess sometimes
-	// it's better to be safe than sorry.
+	// and return a 500 Internal Server Error. This is very unlikely to happen, but
+	// we're better safe than sorry.
 	if httpRespBuffer, err = mar.Marshal(httpRespBody); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(marshalErrRespBody))
+		w.Write([]byte(httpMarshalErrBody))
 		return
 	}
 
@@ -64,20 +64,20 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 // If the status is not one of the special cases, it just returns the status and the buffer as is.
 func handle4XXError(httpStatus int, buffer []byte, w http.ResponseWriter) (int, []byte) {
 
-	// 401 Unauthorized 						-> We just set a generic message + WWW-Authenticate header.
-	// 403 Forbidden 							-> Generic message.
+	// 401 Unauthorized 												-> We just set a generic message + WWW-Authenticate header.
+	// 403 Forbidden 														-> Generic message.
 	// 404 Not Found / 405 Method Not Allowed 	-> Generic message + always return 404 Not Found.
 
 	switch httpStatus {
 	case http.StatusUnauthorized: // 401
 		w.Header().Set("WWW-Authenticate", "Bearer")
-		return http.StatusUnauthorized, []byte(unauthorizedErrRespBody)
+		return http.StatusUnauthorized, []byte(httpUnauthorizedErrBody)
 
 	case http.StatusForbidden: // 403
-		return http.StatusForbidden, []byte(forbiddenErrRespBody)
+		return http.StatusForbidden, []byte(httpForbiddenErrBody)
 
 	case http.StatusNotFound, http.StatusMethodNotAllowed: // 404 / 405
-		return http.StatusNotFound, []byte(notFoundErrRespBody)
+		return http.StatusNotFound, []byte(httpNotFoundErrBody)
 	}
 
 	// If not, return as is.
@@ -93,10 +93,10 @@ func handle5XXError(httpStatus int, buffer []byte) (int, []byte) {
 
 	switch httpStatus {
 	case http.StatusInternalServerError: // 500
-		return http.StatusInternalServerError, []byte(internalErrRespBody)
+		return http.StatusInternalServerError, []byte(httpInternalErrBody)
 
 	case http.StatusServiceUnavailable: // 503
-		return http.StatusInternalServerError, []byte(svcUnavailErrRespBody)
+		return http.StatusInternalServerError, []byte(httpSvcUnavailableErrBody)
 	}
 
 	// If not, return as is.
@@ -105,10 +105,10 @@ func handle5XXError(httpStatus int, buffer []byte) (int, []byte) {
 
 // These strings are the JSON representations of an httpErrorResponse. It's what gets sent as the response's body when an error occurs.
 const (
-	marshalErrRespBody      = `{"error": "unexpected error on our end, marshal of the error response failed."}`
-	notFoundErrRespBody     = `{"error": "not found, check the docs for the correct path and method."}`
-	unauthorizedErrRespBody = `{"error": "unauthorized, please authenticate first."}`
-	forbiddenErrRespBody    = `{"error": "forbidden, you aren't allowed to access this resource."}`
-	svcUnavailErrRespBody   = `{"error": "the service is unavailable right now, maybe try again later."}`
-	internalErrRespBody     = `{"error": "internal server error, something went wrong on our end."}`
+	httpMarshalErrBody        = `{"error": "unexpected error, error response marshalling failed."}`
+	httpNotFoundErrBody       = `{"error": "not found, check the docs for the correct path and method."}`
+	httpUnauthorizedErrBody   = `{"error": "unauthorized, authenticate first."}`
+	httpForbiddenErrBody      = `{"error": "forbidden, not allowed to access this resource."}`
+	httpSvcUnavailableErrBody = `{"error": "service unavailable, try again later."}`
+	httpInternalErrBody       = `{"error": "internal server error, something went wrong on our end."}`
 )

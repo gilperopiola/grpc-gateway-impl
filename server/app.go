@@ -91,8 +91,8 @@ func (a *App) InitGRPCAndHTTPDependencies() {
 	a.HTTPMiddlewareWrapper = middleware.GetMuxWrapperFn(a.Logger)
 }
 
-// InitAPI initializes the API, the Service and the Servers.
-func (a *App) InitAPI() {
+// InitAPIAndServers initializes the API, the Service and the Servers.
+func (a *App) InitAPIAndServers() {
 
 	// Service and API.
 	a.Service = service.NewService()
@@ -103,10 +103,10 @@ func (a *App) InitAPI() {
 	a.HTTPGateway = initHTTPGateway(a.Config.GRPCPort, a.Config.HTTPPort, a.HTTPMiddleware, a.GRPCDialOptions, a.HTTPMiddlewareWrapper)
 }
 
-// RunAPI runs the gRPC and HTTP servers.
-func (a *App) RunAPI() {
+// Run runs the gRPC and HTTP servers.
+func (a *App) Run() {
 	runGRPCServer(a.GRPCServer, a.Config.GRPCPort)
-	runHTTPServer(a.HTTPGateway)
+	runHTTPGateway(a.HTTPGateway)
 }
 
 // WaitForGracefulShutdown waits for a SIGINT or SIGTERM to gracefully shutdown the servers.
@@ -116,7 +116,7 @@ func (a *App) WaitForGracefulShutdown() {
 	<-c
 
 	shutdownGRPCServer(a.GRPCServer)
-	shutdownHTTPServer(a.HTTPGateway)
+	shutdownHTTPGateway(a.HTTPGateway)
 
 	log.Println("Servers stopped! Bye bye~")
 }
@@ -133,7 +133,7 @@ func newTLSCertPool(tlsCertPath string) *x509.CertPool {
 	// Read certificate.
 	cert, err := os.ReadFile(tlsCertPath)
 	if err != nil {
-		log.Fatalf(msgErrReadingTLSCert_Fatal, err)
+		log.Fatalf(errMsgReadingTLSCert_Fatal, err)
 	}
 
 	// Create certificate pool.
@@ -142,11 +142,11 @@ func newTLSCertPool(tlsCertPath string) *x509.CertPool {
 	}
 
 	// Error appending certificate.
-	log.Fatalf(msgErrAppendingTLSCert_Fatal)
+	log.Fatalf(errMsgAppendingTLSCert_Fatal)
 	return nil
 }
 
 const (
-	msgErrReadingTLSCert_Fatal   = "Failed to read TLS certificate: %v"
-	msgErrAppendingTLSCert_Fatal = "Failed to append TLS certificate"
+	errMsgReadingTLSCert_Fatal   = "Failed to read TLS certificate: %v" // Fatal error.
+	errMsgAppendingTLSCert_Fatal = "Failed to append TLS certificate"   // Fatal error.
 )

@@ -6,6 +6,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	errMsgCreatingLogger_Fatal = "Failed to create logger: %v" // Fatal error.
+)
+
 /* ----------------------------------- */
 /*             - Logger -              */
 /* ----------------------------------- */
@@ -19,7 +23,7 @@ func newLogger(isProd bool, opts []zap.Option) *zap.Logger {
 
 	logger, err := newLoggerFn(opts...)
 	if err != nil {
-		log.Fatalf(msgErrCreatingLogger_Fatal, err)
+		log.Fatalf(errMsgCreatingLogger_Fatal, err)
 	}
 
 	return logger
@@ -32,7 +36,3 @@ func newLoggerOptions() []zap.Option {
 		zap.AddStacktrace(zap.DPanicLevel),
 	}
 }
-
-const (
-	msgErrCreatingLogger_Fatal = "Failed to create logger: %v"
-)
