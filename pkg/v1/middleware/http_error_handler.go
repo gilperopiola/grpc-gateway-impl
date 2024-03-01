@@ -8,20 +8,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// httpErrorResponseBody is the struct that gets marshaled onto the HTTP Response body when an error happens.
+/* ----------------------------------- */
+/*        - HTTP Error Handler -       */
+/* ----------------------------------- */
+
+// httpErrorResponseBody is the struct that gets marshalled onto the HTTP Response body when an error happens.
 type httpErrorResponseBody struct {
 	Error string `json:"error"`
-}
-
-// newHTTPErrorResponse is a helper function that returns a new httpErrorResponseBody.
-func newHTTPErrorResponse(message string) httpErrorResponseBody {
-	return httpErrorResponseBody{Error: message}
-}
-
-// mapGRPCStatusToHTTPResponseData returns the HTTP status code and the HTTP error response body
-// based on the gRPC status code.
-func mapGRPCStatusToHTTPResponseData(grpcStatus *status.Status) (int, string) {
-	return runtime.HTTPStatusFromCode(grpcStatus.Code()), grpcStatus.Message()
 }
 
 // handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
@@ -30,10 +23,11 @@ func mapGRPCStatusToHTTPResponseData(grpcStatus *status.Status) (int, string) {
 func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
 
 	var (
-		grpcStatus              = status.Convert(err)
-		httpStatus, httpRespMsg = mapGRPCStatusToHTTPResponseData(grpcStatus)
-		httpRespBody            = newHTTPErrorResponse(httpRespMsg)
-		httpRespBuffer          = []byte{}
+		grpcStatus = status.Convert(err)
+
+		httpStatus     = runtime.HTTPStatusFromCode(grpcStatus.Code())
+		httpRespBody   = httpErrorResponseBody{Error: grpcStatus.Message()}
+		httpRespBuffer = []byte{}
 	)
 
 	// Set the Content-Type header.
@@ -52,7 +46,7 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 	// the status and the buffer are returned as is.
 	httpStatus, httpRespBuffer = handle4XXError(httpStatus, httpRespBuffer, w)
 
-	// Return 5XX errors as 500 Internal Server Error.
+	// Return 5XX errors as 500 Internal Server Error, otherwise return as is.
 	httpStatus, httpRespBuffer = handle5XXError(httpStatus, httpRespBuffer)
 
 	// Write the response.
@@ -67,7 +61,6 @@ func handle4XXError(httpStatus int, buffer []byte, w http.ResponseWriter) (int, 
 	// 401 Unauthorized 												-> We just set a generic message + WWW-Authenticate header.
 	// 403 Forbidden 														-> Generic message.
 	// 404 Not Found / 405 Method Not Allowed 	-> Generic message + always return 404 Not Found.
-
 	switch httpStatus {
 	case http.StatusUnauthorized: // 401
 		w.Header().Set("WWW-Authenticate", "Bearer")
@@ -90,7 +83,6 @@ func handle5XXError(httpStatus int, buffer []byte) (int, []byte) {
 
 	// 500 -> We just set a generic message.
 	// 503 -> Generic message + always return 500 Internal Server Error.
-
 	switch httpStatus {
 	case http.StatusInternalServerError: // 500
 		return http.StatusInternalServerError, []byte(httpInternalErrBody)
@@ -103,7 +95,8 @@ func handle5XXError(httpStatus int, buffer []byte) (int, []byte) {
 	return httpStatus, buffer
 }
 
-// These strings are the JSON representations of an httpErrorResponse. It's what gets sent as the response's body when an error occurs.
+// These strings are the JSON representations of an httpErrorResponse.
+// It's what gets sent as the HTTP Response's body when an error occurs.
 const (
 	httpMarshalErrBody        = `{"error": "unexpected error, error response marshalling failed."}`
 	httpNotFoundErrBody       = `{"error": "not found, check the docs for the correct path and method."}`

@@ -8,7 +8,7 @@ import (
 )
 
 /* ----------------------------------- */
-/*        - Service Methods -          */
+/*          - Users Service -          */
 /* ----------------------------------- */
 
 // Signup should be the implementation of the Signup service method.

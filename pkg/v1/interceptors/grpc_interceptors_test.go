@@ -11,6 +11,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+/* ----------------------------------- */
+/*        - Interceptor Tests -        */
+/* ----------------------------------- */
+
 func TestFromValidationErrToGRPCInvalidArgErr(t *testing.T) {
 	tests := []struct {
 		name             string

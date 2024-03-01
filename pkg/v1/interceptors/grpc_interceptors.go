@@ -15,6 +15,12 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+const (
+	errMsgInRecoveryInterceptor = "unexpected panic, something went wrong: %v"
+
+	errMsgLoadingTLSCredentials_Fatal = "Failed to load server TLS credentials: %v" // Fatal error.
+)
+
 /* ----------------------------------- */
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
@@ -103,9 +109,3 @@ func newGRPCTLSInterceptor(certPath, keyPath string) grpc.ServerOption {
 	}
 	return grpc.Creds(creds)
 }
-
-const (
-	errMsgInRecoveryInterceptor = "unexpected panic, something went wrong: %v"
-
-	errMsgLoadingTLSCredentials_Fatal = "Failed to load server TLS credentials: %v" // Fatal error.
-)

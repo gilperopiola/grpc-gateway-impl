@@ -13,6 +13,16 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	httpShutdownTimeout = 4 * time.Second
+)
+
+const (
+	errMsgServingHTTP_Fatal      = "Failed to serve HTTP: %v"           // Fatal error.
+	errMsgStartingHTTP_Fatal     = "Failed to start HTTP gateway: %v"   // Fatal error.
+	errMsgShuttingDownHTTP_Fatal = "Failed to shutdown HTTP server: %v" // Fatal error.
+)
+
 /* ----------------------------------- */
 /*           - HTTP Server -           */
 /* ----------------------------------- */
@@ -52,11 +62,3 @@ func shutdownHTTPGateway(httpServer *http.Server) {
 		log.Fatalf(errMsgShuttingDownHTTP_Fatal, err)
 	}
 }
-
-const (
-	httpShutdownTimeout = 4 * time.Second
-
-	errMsgServingHTTP_Fatal      = "Failed to serve HTTP: %v"           // Fatal error.
-	errMsgStartingHTTP_Fatal     = "Failed to start HTTP gateway: %v"   // Fatal error.
-	errMsgShuttingDownHTTP_Fatal = "Failed to shutdown HTTP server: %v" // Fatal error.
-)

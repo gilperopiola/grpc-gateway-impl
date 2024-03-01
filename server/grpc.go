@@ -14,7 +14,9 @@ import (
 
 const (
 	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
+)
 
+const (
 	errMsgListeningGRPC_Fatal = "Failed to listen gRPC: %v" // Fatal error.
 	errMsgServingGRPC_Fatal   = "Failed to serve gRPC: %v"  // Fatal error.
 )

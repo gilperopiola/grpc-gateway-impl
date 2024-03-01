@@ -8,7 +8,9 @@ import (
 
 const (
 	projectName = "grpc-gateway-impl" // Used to check if the working directory is the root folder.
+)
 
+const (
 	errMsgGettingWorkingDir_Fatal = "Failed to get working directory: %v" // Fatal error.
 )
 

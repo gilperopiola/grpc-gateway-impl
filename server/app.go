@@ -20,6 +20,15 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	errMsgReadingTLSCert_Fatal   = "Failed to read TLS certificate: %v" // Fatal error.
+	errMsgAppendingTLSCert_Fatal = "Failed to append TLS certificate"   // Fatal error.
+)
+
+/* ----------------------------------- */
+/*         - Main Application -        */
+/* ----------------------------------- */
+
 // App holds every dependency we need to init and run the servers, and the servers themselves.
 // It has an embedded *v1.API, which is our concrete implementation of the gRPC API.
 type App struct {
@@ -50,7 +59,7 @@ type App struct {
 	// They are divided into two different types because the ServeMuxOptions are used to configure the ServeMux,
 	// and the Wrapper is used to wrap the ServeMux with middleware.
 	HTTPMiddleware        []runtime.ServeMuxOption
-	HTTPMiddlewareWrapper func(http.Handler) http.Handler
+	HTTPMiddlewareWrapper middleware.MuxWrapperFn
 
 	// Logger is used to log every gRPC request that comes in through the gRPC
 	// It's used on an interceptor.
@@ -145,8 +154,3 @@ func newTLSCertPool(tlsCertPath string) *x509.CertPool {
 	log.Fatalf(errMsgAppendingTLSCert_Fatal)
 	return nil
 }
-
-const (
-	errMsgReadingTLSCert_Fatal   = "Failed to read TLS certificate: %v" // Fatal error.
-	errMsgAppendingTLSCert_Fatal = "Failed to append TLS certificate"   // Fatal error.
-)
