@@ -1,24 +1,18 @@
 package server
 
 import (
-	"crypto/x509"
 	"log"
 	"net"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
 	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
-)
-
-const (
-	errMsgListeningGRPC_Fatal = "Failed to listen gRPC: %v" // Fatal error.
-	errMsgServingGRPC_Fatal   = "Failed to serve gRPC: %v"  // Fatal error.
 )
 
 /* ----------------------------------- */
@@ -41,12 +35,12 @@ func runGRPCServer(grpcServer *grpc.Server, grpcPort string) {
 
 	lis, err := net.Listen("tcp", grpcPort)
 	if err != nil {
-		log.Fatalf(errMsgListeningGRPC_Fatal, err)
+		log.Fatalf(v1.FatalErrMsgStartingGRPC, err)
 	}
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf(errMsgServingGRPC_Fatal, err)
+			log.Fatalf(v1.FatalErrMsgServingGRPC, err)
 		}
 	}()
 }
@@ -62,18 +56,15 @@ func shutdownGRPCServer(grpcServer *grpc.Server) {
 /* ----------------------------------- */
 
 // getAllDialOptions returns the gRPC dial options.
-func getAllDialOptions(tlsEnabled bool, serverCert *x509.CertPool) []grpc.DialOption {
+func getAllDialOptions(clientTLSCredentials credentials.TransportCredentials) []grpc.DialOption {
 	return []grpc.DialOption{
-		newTLSDialOption(tlsEnabled, serverCert),
+		newTLSDialOption(clientTLSCredentials),
 		grpc.WithUserAgent(customUserAgent),
 	}
 }
 
 // newTLSDialOption returns a gRPC dial option that enables the client to use TLS.
 // If tlsEnabled is false, it returns an insecure dial option.
-func newTLSDialOption(tlsEnabled bool, serverCert *x509.CertPool) grpc.DialOption {
-	if !tlsEnabled {
-		return grpc.WithTransportCredentials(insecure.NewCredentials())
-	}
-	return grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(serverCert, ""))
+func newTLSDialOption(clientCredentials credentials.TransportCredentials) grpc.DialOption {
+	return grpc.WithTransportCredentials(clientCredentials)
 }

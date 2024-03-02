@@ -16,7 +16,4 @@ func TestInitGeneralDependencies(t *testing.T) {
 	if app.ProtoValidator == nil {
 		t.Errorf("Expected ProtoValidator to be initialized, got nil")
 	}
-	if app.ServerTLSCert == nil {
-		t.Errorf("Expected ServerTLSCert to be initialized, got nil")
-	}
 }

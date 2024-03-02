@@ -3,7 +3,8 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"time"
+
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
@@ -24,45 +25,39 @@ func GetAll() []runtime.ServeMuxOption {
 	}
 }
 
-// MuxWrapperFn is a middleware that wraps around the HTTP Server's mux.
-type MuxWrapperFn func(next http.Handler) http.Handler
+// MuxWrapperFunc is a middleware that wraps around the HTTP Server's mux.
+type MuxWrapperFunc func(next http.Handler) http.Handler
 
-// GetMuxWrapperFn is wrapped around the HTTP server when it's created
+// GetMuxWrapperFunc is wrapped around the HTTP server when it's created
 // and logs the HTTP Request's info when it finishes executing.
 // It's used to wrap the mux with middleware.
-func GetMuxWrapperFn(logger *zap.Logger) MuxWrapperFn {
-	sugar := logger.Sugar()
+func GetMuxWrapperFunc(logger *zap.Logger) MuxWrapperFunc {
 	return func(next http.Handler) http.Handler {
-		return logHTTP(next, sugar)
+		return v1.LogHTTP(next, logger)
 	}
-}
-
-// logHTTP logs the HTTP Request's info when it finishes executing.
-func logHTTP(next http.Handler, sugar *zap.SugaredLogger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, r)
-
-		sugar.Infow("HTTP Request",
-			"path", r.URL.Path,
-			"method", r.Method,
-			"duration", time.Since(start),
-		)
-	})
 }
 
 // setHTTPResponseHeaders executes before the response is written to the client.
 func setHTTPResponseHeaders(ctx context.Context, rw http.ResponseWriter, resp protoreflect.ProtoMessage) error {
+	for _, headerToBeDeleted := range defaultResponseHeadersToBeDeleted {
+		rw.Header().Del(headerToBeDeleted)
+	}
 
-	// Delete gRPC-related headers:
-	rw.Header().Del("Grpc-Metadata-Content-Type")
-
-	// Add security-related headers:
-	rw.Header().Set("Content-Security-Policy", "default-src 'self'")
-	rw.Header().Set("X-XSS-Protection", "1; mode=block")
-	rw.Header().Set("X-Frame-Options", "SAMEORIGIN")
-	rw.Header().Set("X-Content-Type-Options", "nosniff")
-	rw.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+	for headerKey, headerValue := range defaultResponseHeaders {
+		rw.Header().Set(headerKey, headerValue)
+	}
 
 	return nil
+}
+
+var defaultResponseHeaders = map[string]string{
+	"Content-Security-Policy":   "default-src 'self'",
+	"X-XSS-Protection":          "1; mode=block",
+	"X-Frame-Options":           "SAMEORIGIN",
+	"X-Content-Type-Options":    "nosniff",
+	"Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+}
+
+var defaultResponseHeadersToBeDeleted = []string{
+	"Grpc-Metadata-Content-Type",
 }

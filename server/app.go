@@ -13,16 +13,13 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/middleware"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 	"github.com/gilperopiola/grpc-gateway-impl/server/config"
+	"github.com/gilperopiola/grpc-gateway-impl/server/security"
 
 	"github.com/bufbuild/protovalidate-go"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-)
-
-const (
-	errMsgReadingTLSCert_Fatal   = "Failed to read TLS certificate: %v" // Fatal error.
-	errMsgAppendingTLSCert_Fatal = "Failed to append TLS certificate"   // Fatal error.
+	"google.golang.org/grpc/credentials"
 )
 
 /* ----------------------------------- */
@@ -59,19 +56,23 @@ type App struct {
 	// They are divided into two different types because the ServeMuxOptions are used to configure the ServeMux,
 	// and the Wrapper is used to wrap the ServeMux with middleware.
 	HTTPMiddleware        []runtime.ServeMuxOption
-	HTTPMiddlewareWrapper middleware.MuxWrapperFn
+	HTTPMiddlewareWrapper middleware.MuxWrapperFunc
 
 	// Logger is used to log every gRPC request that comes in through the gRPC
 	// It's used on an interceptor.
 	//
 	// ProtoValidator is used to validate the incoming gRPC & HTTP requests.
 	// It uses the bufbuild/protovalidate library to enforce the validation rules written in the .proto files.
-	//
-	// ServerTLSCert is a pool of certificates to use for the
-	// It is used to validate the gRPC server's certificate on the HTTP Gateway calls.
 	Logger         *zap.Logger
 	ProtoValidator *protovalidate.Validator
-	ServerTLSCert  *x509.CertPool
+
+	// TLSServerCertificate is a pool of certificates to use for the
+	// It is used to validate the gRPC server's certificate on the HTTP Gateway calls.
+	// TLSServerCredentials and TLSClientCredentials are used to establish the
+	// secure connection between the HTTP Gateway and the gRPC Server.
+	TLSServerCertificate *x509.CertPool
+	TLSServerCredentials credentials.TransportCredentials
+	TLSClientCredentials credentials.TransportCredentials
 }
 
 // NewApp returns a new App with the given configuration.
@@ -80,24 +81,30 @@ func NewApp(config *config.Config) *App {
 }
 
 // InitGeneralDependencies initializes stuff.
-// Logger, Validator and Server TLS Certificate.
+// Logger, Validator and TLS.
 func (a *App) InitGeneralDependencies() {
-	a.Logger = newLogger(a.Config.IsProd, newLoggerOptions())
+	a.Logger = v1.NewLogger(a.Config.IsProd, v1.NewLoggerOptions())
 	a.ProtoValidator = interceptors.NewProtoValidator()
-	a.ServerTLSCert = newTLSCertPool(a.Config.TLS.CertPath)
+
+	// TLS Server objects are only loaded if TLS is enabled.
+	if a.Config.TLS.Enabled {
+		a.TLSServerCertificate = security.NewTLSCertPool(a.Config.TLS.CertPath)
+		a.TLSServerCredentials = security.NewServerTransportCredentials(a.Config.TLS.CertPath, a.Config.TLS.KeyPath)
+	}
+
+	// TLS Client Credentials are always loaded, with an insecure option if TLS is not enabled.
+	a.TLSClientCredentials = security.NewClientTransportCredentials(a.Config.TLS.Enabled, a.TLSServerCertificate)
 }
 
 // InitGRPCAndHTTPDependencies initializes gRPC and HTTP stuff.
 func (a *App) InitGRPCAndHTTPDependencies() {
-	tlsEnabled, certPath, keyPath := a.Config.TLS.Enabled, a.Config.TLS.CertPath, a.Config.TLS.KeyPath
-
 	// gRPC Interceptors and Dial Options.
-	a.GRPCInterceptors = interceptors.GetAll(a.Logger, a.ProtoValidator, tlsEnabled, certPath, keyPath)
-	a.GRPCDialOptions = getAllDialOptions(tlsEnabled, a.ServerTLSCert)
+	a.GRPCInterceptors = interceptors.GetAll(a.Config, a.Logger, a.ProtoValidator, a.TLSServerCredentials)
+	a.GRPCDialOptions = getAllDialOptions(a.TLSClientCredentials)
 
 	// HTTP Middleware and Mux Wrapper.
 	a.HTTPMiddleware = middleware.GetAll()
-	a.HTTPMiddlewareWrapper = middleware.GetMuxWrapperFn(a.Logger)
+	a.HTTPMiddlewareWrapper = middleware.GetMuxWrapperFunc(a.Logger)
 }
 
 // InitAPIAndServers initializes the API, the Service and the Servers.
@@ -128,29 +135,4 @@ func (a *App) WaitForGracefulShutdown() {
 	shutdownHTTPGateway(a.HTTPGateway)
 
 	log.Println("Servers stopped! Bye bye~")
-}
-
-// newTLSCertPool loads the server's certificate from a file and returns a certificate pool.
-// It's a SSL/TLS certificate used to secure the communication between the HTTP Gateway and the gRPC server.
-// It must be in a .crt format.
-//
-// To generate a self-signed certificate, you can use the following command:
-// openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes -subj '/CN=localhost'
-// The certificate must be in the root directory of the project.
-func newTLSCertPool(tlsCertPath string) *x509.CertPool {
-
-	// Read certificate.
-	cert, err := os.ReadFile(tlsCertPath)
-	if err != nil {
-		log.Fatalf(errMsgReadingTLSCert_Fatal, err)
-	}
-
-	// Create certificate pool.
-	if out := x509.NewCertPool(); out.AppendCertsFromPEM(cert) {
-		return out
-	}
-
-	// Error appending certificate.
-	log.Fatalf(errMsgAppendingTLSCert_Fatal)
-	return nil
 }

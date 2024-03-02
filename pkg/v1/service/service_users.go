@@ -5,6 +5,8 @@ import (
 	"math/rand"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 /* ----------------------------------- */
@@ -20,6 +22,11 @@ func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*users
 	// 		return entities.SignupResponse{}, fmt.Errorf("error in something(): %w", err)
 	// }
 
+	// Simulate a random error sometimes.
+	if rand.Intn(4) == 1 {
+		return nil, status.Error(codes.Internal, "error creating user.")
+	}
+
 	return &usersPB.SignupResponse{
 		Id: int32(rand.Intn(1000)),
 	}, nil
@@ -33,6 +40,11 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 	// if err := something(); err != nil {
 	// 		return entities.LoginResponse{}, fmt.Errorf("error in something(): %w", err)
 	// }
+
+	// Simulate a random error sometimes.
+	if rand.Intn(4) == 1 {
+		return nil, status.Error(codes.Internal, "error logging in user.")
+	}
 
 	return &usersPB.LoginResponse{
 		Token: "some.jwt.token",

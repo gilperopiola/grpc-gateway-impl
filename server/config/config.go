@@ -4,30 +4,34 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 )
 
 const (
 	projectName = "grpc-gateway-impl" // Used to check if the working directory is the root folder.
 )
 
-const (
-	errMsgGettingWorkingDir_Fatal = "Failed to get working directory: %v" // Fatal error.
-)
-
 /* ----------------------------------- */
 /*             - Config -              */
 /* ----------------------------------- */
 
-// Config holds the configuration for the server.
+// Config holds the configuration for the entire server.
 type Config struct {
+	*MainConfig // Main holds the main configuration settings of the server.
+
+	TLS         TLSConfig         // TLS holds the configuration of the SSL/TLS connection.
+	RateLimiter RateLimiterConfig // RateLimiter holds the configuration of the rate limiter.
+}
+
+// MainConfig is the main configuration settings of the server.
+type MainConfig struct {
 	IsProd   bool
 	GRPCPort string
 	HTTPPort string
-
-	// TLS holds the configuration for the SSL/TLS connection.
-	TLS TLSConfig
 }
 
+// TLS configuration.
 type TLSConfig struct {
 	// Enabled defines the use of SSL/TLS for the communication
 	// between the HTTP Gateway and the gRPC server.
@@ -36,6 +40,12 @@ type TLSConfig struct {
 	// CertPath & KeyPath are the paths to the SSL/TLS certificate and key files.
 	CertPath string
 	KeyPath  string
+}
+
+// RateLimiter configuration.
+type RateLimiterConfig struct {
+	MaxTokens       int // MaxTokens is the maximum number of tokens the bucket can hold.
+	TokensPerSecond int // TokensPerSecond is the number of tokens reloaded per second.
 }
 
 // LoadConfig loads the configuration from the environment variables.
@@ -49,14 +59,19 @@ func LoadConfig() *Config {
 	workingDirPathPrefix := getPathPrefix(workingDirIsRootFolder)
 
 	return &Config{
-		IsProd:   getVarBool("IS_PROD", false),
-		GRPCPort: getVar("GRPC_PORT", ":50053"),
-		HTTPPort: getVar("HTTP_PORT", ":8083"),
-
+		MainConfig: &MainConfig{
+			IsProd:   getVarBool("IS_PROD", false),
+			GRPCPort: getVar("GRPC_PORT", ":50053"),
+			HTTPPort: getVar("HTTP_PORT", ":8083"),
+		},
 		TLS: TLSConfig{
-			Enabled:  getVarBool("TLS_ENABLED", true),
+			Enabled:  getVarBool("TLS_ENABLED", false),
 			CertPath: getVar("TLS_CERT_PATH", workingDirPathPrefix+"/server.crt"),
 			KeyPath:  getVar("TLS_KEY_PATH", workingDirPathPrefix+"/server.key"),
+		},
+		RateLimiter: RateLimiterConfig{
+			MaxTokens:       20,
+			TokensPerSecond: 5,
 		},
 	}
 }
@@ -81,7 +96,7 @@ func getVarBool(key string, fallback bool) bool {
 func isWorkingDirRootFolder() bool {
 	workingDir, err := os.Getwd()
 	if err != nil {
-		log.Fatalf(errMsgGettingWorkingDir_Fatal, err)
+		log.Fatalf(v1.FatalErrMsgGettingWorkingDir, err)
 	}
 	return strings.HasSuffix(workingDir, projectName)
 }

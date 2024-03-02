@@ -39,6 +39,7 @@ generate: generate-pbs generate-swagger
 # Run both the gRPC server and the gRPC Gateway server.
 # The gRPC server usually listens on port :50051 and the gRPC Gateway on port :8080.
 run:
+	go mod tidy
 	go run cmd/main.go
 
 # Generate the .pb and .pb.gw files for gRPC and gRPC Gateway.

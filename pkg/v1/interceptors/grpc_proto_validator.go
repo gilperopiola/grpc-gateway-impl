@@ -5,18 +5,12 @@ import (
 	"fmt"
 	"log"
 
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	errMsgInValidation           = "validation error: %v"
-	errMsgInValidationRuntime    = "unexpected runtime validation error: %v"
-	errMsgInValidationUnexpected = "unexpected validation error: %v"
-
-	errMsgCreatingProtoValidator_Fatal = "Failed to create proto validator: %v" // Fatal error.
 )
 
 /* ----------------------------------- */
@@ -28,7 +22,7 @@ const (
 func NewProtoValidator() *protovalidate.Validator {
 	protoValidator, err := protovalidate.New()
 	if err != nil {
-		log.Fatalf(errMsgCreatingProtoValidator_Fatal, err)
+		log.Fatalf(v1.FatalErrMsgCreatingProtoValidator, err)
 	}
 	return protoValidator
 }
@@ -38,17 +32,17 @@ func NewProtoValidator() *protovalidate.Validator {
 // Validation errors are always returned as InvalidArgument.
 // This functions is called from the validation interceptor.
 func fromValidationErrToGRPCInvalidArgErr(err error) error {
-	outErrMsg := fmt.Sprintf(errMsgInValidationUnexpected, err)
+	outErrMsg := fmt.Sprintf(v1.ErrMsgInValidationUnexpected, err)
 
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
 		brokenRules := validationErr.ToProto().GetViolations()
-		outErrMsg = fmt.Sprintf(errMsgInValidation, makeStringFromBrokenValidationRules(brokenRules))
+		outErrMsg = fmt.Sprintf(v1.ErrMsgInValidation, makeStringFromBrokenValidationRules(brokenRules))
 	}
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
-		outErrMsg = fmt.Sprintf(errMsgInValidationRuntime, runtimeErr)
+		outErrMsg = fmt.Sprintf(v1.ErrMsgInValidationRuntime, runtimeErr)
 	}
 
 	return status.Error(codes.InvalidArgument, outErrMsg)
