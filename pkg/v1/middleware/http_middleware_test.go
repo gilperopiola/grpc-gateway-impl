@@ -72,7 +72,7 @@ func TestHandleHTTPError(t *testing.T) {
 
 func TestLogHTTP(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	middleware := GetMuxWrapperFunc(logger)
+	middleware := GetAllWrapped(logger)
 
 	called := false
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

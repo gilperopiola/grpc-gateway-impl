@@ -12,6 +12,11 @@
       "name": "UsersService"
     }
   ],
+  "host": "localhost:8083",
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -21,12 +26,29 @@
   "paths": {
     "/v1/login": {
       "post": {
-        "operationId": "UsersService_Login",
+        "summary": "Logs in a user and returns a token.",
+        "operationId": "login",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/usersLoginResponse"
+            }
+          },
+          "400": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "validation error: username value length must be at least 4 characters."
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "unauthorized."
+              }
             }
           },
           "403": {
@@ -41,7 +63,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "not found: email not found"
+                "error": "not found: username not found"
               }
             }
           },
@@ -49,7 +71,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "internal server error"
+                "error": "internal server error, something went wrong on our end."
               }
             }
           },
@@ -63,7 +85,6 @@
         "parameters": [
           {
             "name": "body",
-            "description": "Logs in user.",
             "in": "body",
             "required": true,
             "schema": {
@@ -72,20 +93,35 @@
           }
         ],
         "tags": [
-          "UsersService"
+          "Users"
         ]
       }
     },
     "/v1/signup": {
       "post": {
-        "summary": "Signup",
-        "description": "Creates a new user and returns its ID.",
-        "operationId": "UsersService_Signup",
+        "summary": "Creates a new user and returns its ID.",
+        "operationId": "signup",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/usersSignupResponse"
+            }
+          },
+          "400": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "validation error: username value length must be at least 4 characters."
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "unauthorized."
+              }
             }
           },
           "403": {
@@ -100,7 +136,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "not found: email not found"
+                "error": "not found: username not found"
               }
             }
           },
@@ -108,7 +144,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "internal server error"
+                "error": "internal server error, something went wrong on our end."
               }
             }
           },
@@ -122,7 +158,6 @@
         "parameters": [
           {
             "name": "body",
-            "description": "Creates a new user.",
             "in": "body",
             "required": true,
             "schema": {
@@ -131,7 +166,7 @@
           }
         ],
         "tags": [
-          "UsersService"
+          "Users"
         ]
       }
     }
@@ -177,7 +212,6 @@
           "description": "Password of the user."
         }
       },
-      "description": "Logs in user.",
       "title": "LoginRequest",
       "required": [
         "username",
@@ -204,7 +238,6 @@
           "description": "Password of the user."
         }
       },
-      "description": "Creates a new user.",
       "title": "SignupRequest",
       "required": [
         "username",

@@ -66,8 +66,9 @@ func LogHTTP(next http.Handler, logger *zap.Logger) http.Handler {
 
 		sugar.Infow("HTTP Request", "path", r.URL.Path, "method", r.Method, "duration", duration)
 
-		// All HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
-		// We add a new line to separate the logs and easily identify different requests.
+		// Most HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
+		// As such, we add a new line to separate the logs and easily identify different requests.
+		// The only exception would be if there was an error before calling the gRPC handlers.
 		log.Println("")
 	})
 }

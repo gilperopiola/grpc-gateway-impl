@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 
@@ -50,8 +51,9 @@ func fromValidationErrToGRPCInvalidArgErr(err error) error {
 
 // makeStringFromBrokenValidationRules returns a string detailing the broken validation rules.
 // The default concatenates the field path and the message of each broken rule.
+//
 // This is what the user will see as the error message:
-// { "error": "username must be at least 3 characters long" } on a JSON 400 response.
+// {"error":"validation error: password value length must be at least 8 characters"} on a JSON 400 response.
 func makeStringFromBrokenValidationRules(brokenRules []*validate.Violation) string {
 	out := ""
 	for i, brokenRule := range brokenRules {
@@ -64,6 +66,10 @@ func makeStringFromBrokenValidationRules(brokenRules []*validate.Violation) stri
 }
 
 // getErrMsgFromBrokenRule is the default human-facing format in which validation errors translate.
+// Special cases: obfuscate the invalid regex errors and return a generic message.
 func getErrMsgFromBrokenRule(v *validate.Violation) string {
+	if strings.Contains(v.Message, "match regex pattern") {
+		return fmt.Sprintf("%s value has an invalid format", v.FieldPath)
+	}
 	return fmt.Sprintf("%s %s", v.FieldPath, v.Message)
 }
