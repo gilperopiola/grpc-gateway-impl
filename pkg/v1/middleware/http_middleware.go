@@ -23,8 +23,8 @@ type MuxWrapperFunc func(next http.Handler) http.Handler
 // GetAll returns all the HTTP middleware that are used as ServeMuxOptions.
 func GetAll() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
-		runtime.WithErrorHandler(handleHTTPError),
 		runtime.WithForwardResponseOption(setHTTPResponseHeaders),
+		runtime.WithErrorHandler(handleHTTPError),
 	}
 }
 
@@ -33,7 +33,9 @@ func GetAll() []runtime.ServeMuxOption {
 // It's used to wrap the mux with middleware.
 func GetAllWrapped(logger *zap.Logger) MuxWrapperFunc {
 	return func(next http.Handler) http.Handler {
-		return handleCORS(v1.LogHTTP(next, logger))
+		return handleCORS(
+			v1.LogHTTP(next, logger),
+		)
 	}
 }
 
@@ -56,24 +58,22 @@ func handleCORS(next http.Handler) http.Handler {
 }
 
 // setHTTPResponseHeaders executes before the response is written to the client.
-func setHTTPResponseHeaders(ctx context.Context, rw http.ResponseWriter, resp protoreflect.ProtoMessage) error {
-	for _, headerToBeDeleted := range defaultResponseHeadersToBeDeleted {
+func setHTTPResponseHeaders(_ context.Context, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
+	for _, headerToBeDeleted := range httpResponseHeadersToDelete {
 		rw.Header().Del(headerToBeDeleted)
 	}
-	for headerKey, headerValue := range defaultResponseHeaders {
+	for headerKey, headerValue := range httpResponseHeadersToAdd {
 		rw.Header().Set(headerKey, headerValue)
 	}
 	return nil
 }
 
-var defaultResponseHeaders = map[string]string{
+var httpResponseHeadersToAdd = map[string]string{
 	"Content-Security-Policy":   "default-src 'self'",
-	"X-XSS-Protection":          "1; mode=block",
-	"X-Frame-Options":           "SAMEORIGIN",
-	"X-Content-Type-Options":    "nosniff",
+	"Content-Type":              "application/json",
 	"Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+	"X-Content-Type-Options":    "nosniff",
+	"X-Frame-Options":           "SAMEORIGIN",
+	"X-XSS-Protection":          "1; mode=block",
 }
-
-var defaultResponseHeadersToBeDeleted = []string{
-	"Grpc-Metadata-Content-Type",
-}
+var httpResponseHeadersToDelete = []string{"Grpc-Metadata-Content-Type"}

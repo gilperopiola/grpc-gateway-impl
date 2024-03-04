@@ -26,7 +26,7 @@
   "paths": {
     "/v1/login": {
       "post": {
-        "summary": "Logs in a user and returns a token.",
+        "summary": "Logs in a user with username and password.\nReturns a JWT token string.",
         "operationId": "login",
         "responses": {
           "200": {
@@ -55,7 +55,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "forbidden error"
+                "error": "forbidden error."
               }
             }
           },
@@ -63,7 +63,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "not found: username not found"
+                "error": "not found: username not found."
               }
             }
           },
@@ -99,7 +99,7 @@
     },
     "/v1/signup": {
       "post": {
-        "summary": "Creates a new user and returns its ID.",
+        "summary": "Creates a new user with username and password.\nReturns a random user id.",
         "operationId": "signup",
         "responses": {
           "200": {
@@ -128,7 +128,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "forbidden error"
+                "error": "forbidden error."
               }
             }
           },
@@ -136,7 +136,7 @@
             "description": "",
             "schema": {
               "example": {
-                "error": "not found: username not found"
+                "error": "not found: username not found."
               }
             }
           },

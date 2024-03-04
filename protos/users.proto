@@ -27,50 +27,43 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   produces: "application/json";
   responses: {
     key: "400";
-    value: {
-      schema: {
+    value: { schema: {
         example: '{"error":"validation error: username value length must be at least 4 characters."}';
-      };
-    };
+    }};
   }
   responses: {
     key: "401";
-    value: {
-      schema: {
+    value: { schema: {
         example: '{"error":"unauthorized."}';
-      };
-    };
+    }};
   }
   responses: {
     key: "403";
-    value: {
-      schema: {
-        example: '{"error": "forbidden error"}';
-      };
-    };
+    value: { schema: {
+        example: '{"error": "forbidden error."}';
+    }};
   }
   responses: {
     key: "404";
-    value: {
-      schema: {
-        example: '{"error": "not found: username not found"}';
-      };
-    };
+    value: { schema: {
+        example: '{"error": "not found: username not found."}';
+    }};
   }
   responses: {
     key: "500";
-    value: {
-      schema: {
+    value: { schema: {
         example: '{"error": "internal server error, something went wrong on our end."}';
-      };
-    };
+    }};
   }
 };
 
 /* API Objects */
 
+// Mock Service for user management. Provides mock user signup and login.
 service UsersService {
-  // Creates a new user and returns its ID.
+
+  // Creates a new user with username and password.
+  // Returns a random user id.
   rpc Signup (SignupRequest) returns (SignupResponse) {
     option (google.api.http) = {
       post: "/v1/signup";
@@ -90,7 +83,8 @@ service UsersService {
     };
   }
 
-  // Logs in a user and returns a token.
+  // Logs in a user with username and password.
+  // Returns a JWT token string.
   rpc Login (LoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/v1/login";
@@ -113,9 +107,7 @@ service UsersService {
 
 message SignupRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      title: "SignupRequest"
-    }
+    json_schema: { title: "SignupRequest" }
   };
 
   string username = 1 [
@@ -123,7 +115,7 @@ message SignupRequest {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field) = {string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"}},
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
-      description: "Username of the user."
+      description: "Username of the user.",
     }
   ];
 
@@ -132,7 +124,7 @@ message SignupRequest {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field) = {string: {min_len: 6, pattern: "[A-Za-z0-9]{6,}"}},
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
-      description: "Password of the user."
+      description: "Password of the user.",
     }
   ];
 }
@@ -143,9 +135,7 @@ message SignupResponse {
 
 message LoginRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      title: "LoginRequest"
-    }
+    json_schema: { title: "LoginRequest" }
   };
 
   string username = 1 [
@@ -153,7 +143,7 @@ message LoginRequest {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field) = {string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"}},
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
-      description: "Username of the user."
+      description: "Username of the user.",
     }
   ];
 
@@ -162,7 +152,7 @@ message LoginRequest {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field) = {string: {min_len: 6, pattern: "[A-Za-z0-9]{6,}"}},
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
-      description: "Password of the user."
+      description: "Password of the user.",
     }
   ];
 }

@@ -1,0 +1,79 @@
+{
+	"info": {
+		"_postman_id": "36b1cc57-9f4e-44f6-a383-7e4cfd2b5348",
+		"name": "GRPC Gateway Implementation",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Signup OK (should fail 1 out of 4 times)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"gilperopiola\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+				},
+				"url": {
+					"raw": "{{baseURL}}/v1/signup",
+					"host": [
+						"{{baseURL}}"
+					],
+					"path": [
+						"v1",
+						"signup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login OK (should fail 1 out of 4 times)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"gilperopiola\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+				},
+				"url": {
+					"raw": "{{baseURL}}/v1/login",
+					"host": [
+						"{{baseURL}}"
+					],
+					"path": [
+						"v1",
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "localhost:8083"
+		}
+	]
+}

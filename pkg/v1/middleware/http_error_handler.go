@@ -8,6 +8,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 /* ----------------------------------- */
@@ -25,14 +26,15 @@ type httpErrorResponseBody struct {
 // There are some special cases based on the HTTP Status.
 func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
 
+	// First, get gRPC status from the error. Then, derive the HTTP Response info from that status.
 	var (
 		grpcStatus       = status.Convert(err)
 		httpStatus       = runtime.HTTPStatusFromCode(grpcStatus.Code())
 		httpResponseBody = httpErrorResponseBody{Error: grpcStatus.Message()}
-		outBuffer        = []byte{}
 	)
 
 	// Marshal the error into a buffer. If it fails (unlikely), we just return a generic 500 Internal Server Error.
+	var outBuffer []byte
 	if outBuffer, err = mar.Marshal(httpResponseBody); err != nil {
 		httpStatus = http.StatusInternalServerError
 	}
@@ -42,7 +44,7 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 	httpStatus, outBuffer = handle4xxOr5xxError(httpStatus, outBuffer, w)
 
 	// Write the response.
-	w.Header().Set("Content-Type", "application/json")
+	setHTTPResponseHeaders(ctx, w, protoreflect.ProtoMessage(nil))
 	w.WriteHeader(httpStatus)
 	w.Write(outBuffer)
 }

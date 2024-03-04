@@ -5,9 +5,15 @@ import (
 	"math/rand"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// shouldReturnInternalError helps simulate a random internal error. Returns true 1 out of 4 times.
+func shouldReturnInternalError() bool {
+	return rand.Intn(4) == 1
+}
 
 /* ----------------------------------- */
 /*          - Users Service -          */
@@ -23,7 +29,7 @@ func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*users
 	// }
 
 	// Simulate a random error sometimes.
-	if rand.Intn(4) == 1 {
+	if shouldReturnInternalError() {
 		return nil, status.Error(codes.Internal, "error creating user.")
 	}
 
@@ -42,7 +48,7 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 	// }
 
 	// Simulate a random error sometimes.
-	if rand.Intn(4) == 1 {
+	if shouldReturnInternalError() {
 		return nil, status.Error(codes.Internal, "error logging in user.")
 	}
 

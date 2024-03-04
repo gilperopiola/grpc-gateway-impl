@@ -11,10 +11,6 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-const (
-	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
-)
-
 /* ----------------------------------- */
 /*           - gRPC Server -           */
 /* ----------------------------------- */
@@ -55,16 +51,14 @@ func shutdownGRPCServer(grpcServer *grpc.Server) {
 /*        - gRPC Dial Options -        */
 /* ----------------------------------- */
 
+const (
+	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
+)
+
 // getAllDialOptions returns the gRPC dial options.
 func getAllDialOptions(clientTLSCredentials credentials.TransportCredentials) []grpc.DialOption {
 	return []grpc.DialOption{
-		newTLSDialOption(clientTLSCredentials),
+		grpc.WithTransportCredentials(clientTLSCredentials),
 		grpc.WithUserAgent(customUserAgent),
 	}
-}
-
-// newTLSDialOption returns a gRPC dial option that enables the client to use TLS.
-// If tlsEnabled is false, it returns an insecure dial option.
-func newTLSDialOption(clientCredentials credentials.TransportCredentials) grpc.DialOption {
-	return grpc.WithTransportCredentials(clientCredentials)
 }

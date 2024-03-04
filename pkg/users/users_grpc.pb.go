@@ -17,9 +17,11 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UsersServiceClient interface {
-	// Creates a new user and returns its ID.
+	// Creates a new user with username and password.
+	// Returns a random user id.
 	Signup(ctx context.Context, in *SignupRequest, opts ...grpc.CallOption) (*SignupResponse, error)
-	// Logs in a user and returns a token.
+	// Logs in a user with username and password.
+	// Returns a JWT token string.
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 }
 
@@ -53,9 +55,11 @@ func (c *usersServiceClient) Login(ctx context.Context, in *LoginRequest, opts .
 // All implementations must embed UnimplementedUsersServiceServer
 // for forward compatibility
 type UsersServiceServer interface {
-	// Creates a new user and returns its ID.
+	// Creates a new user with username and password.
+	// Returns a random user id.
 	Signup(context.Context, *SignupRequest) (*SignupResponse, error)
-	// Logs in a user and returns a token.
+	// Logs in a user with username and password.
+	// Returns a JWT token string.
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	mustEmbedUnimplementedUsersServiceServer()
 }
