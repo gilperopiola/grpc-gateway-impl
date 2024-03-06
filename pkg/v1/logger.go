@@ -37,6 +37,8 @@ func NewLoggerOptions() []zap.Option {
 	}
 }
 
+// - GRPC
+
 // LogGRPC logs the gRPC request's info when it finishes executing.
 func LogGRPC(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	sugar := logger.Sugar()
@@ -46,20 +48,17 @@ func LogGRPC(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		duration := time.Since(start)
 
 		if err != nil {
-			sugar.Errorw("gRPC Error",
-				zap.String("method", info.FullMethod),
-				zap.Duration("duration", duration),
-				zap.Error(err))
+			sugar.Errorw("gRPC Error", getEndpointField(info.FullMethod), getDurationField(duration), getErrorField(err))
 		} else {
-			sugar.Infow("gRPC Request",
-				zap.String("method", info.FullMethod),
-				zap.Duration("duration", duration))
+			sugar.Infow("gRPC Request", getEndpointField(info.FullMethod), getDurationField(duration))
 		}
 
 		// After logging the request, we return the response and error because this is an interceptor.
 		return resp, err
 	}
 }
+
+// - HTTP
 
 // LogHTTP logs the HTTP Request's info when it finishes executing.
 func LogHTTP(next http.Handler, logger *zap.Logger) http.Handler {
@@ -69,14 +68,25 @@ func LogHTTP(next http.Handler, logger *zap.Logger) http.Handler {
 		next.ServeHTTP(w, r)
 		duration := time.Since(start)
 
-		sugar.Infow("HTTP Request",
-			zap.String("path", r.URL.Path),
-			zap.String("method", r.Method),
-			zap.Duration("duration", duration))
+		sugar.Infow("HTTP Request", getEndpointField(r.Method+" "+r.URL.Path), getDurationField(duration))
 
 		// Most HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
 		// As such, we add a new line to separate the logs and easily identify different requests.
 		// The only exception would be if there was an error before calling the gRPC handlers.
-		log.Println("")
+		sugar.Infoln("")
 	})
+}
+
+// - Helpers
+
+func getEndpointField(value string) zap.Field {
+	return zap.String("endpoint", value)
+}
+
+func getDurationField(value time.Duration) zap.Field {
+	return zap.Duration("duration", value)
+}
+
+func getErrorField(err error) zap.Field {
+	return zap.Error(err)
 }

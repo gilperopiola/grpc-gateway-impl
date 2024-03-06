@@ -19,13 +19,15 @@ func shouldReturnInternalError() bool {
 /*          - Users Service -          */
 /* ----------------------------------- */
 
+// - Signup
+
 // Signup should be the implementation of the Signup service method.
 func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*usersPB.SignupResponse, error) {
 
 	// ... check username is available, hash password, create user in DB, etc.
 
 	// if err := something(); err != nil {
-	// 		return entities.SignupResponse{}, fmt.Errorf("error in something(): %w", err)
+	// 		return nil, fmt.Errorf("error in something(): %w", err)
 	// }
 
 	// Simulate a random error sometimes.
@@ -33,10 +35,14 @@ func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*users
 		return nil, status.Error(codes.Internal, "error creating user.")
 	}
 
-	return &usersPB.SignupResponse{
-		Id: int32(rand.Intn(1000)),
-	}, nil
+	return newSignupOKResponse(rand.Intn(1000))
 }
+
+func newSignupOKResponse(id int) (*usersPB.SignupResponse, error) {
+	return &usersPB.SignupResponse{Id: int32(id)}, nil
+}
+
+// - Login
 
 // Login should be the implementation of the Login service method.
 func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB.LoginResponse, error) {
@@ -44,7 +50,7 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 	// ... get user from DB, hash password, compare passwords, etc.
 
 	// if err := something(); err != nil {
-	// 		return entities.LoginResponse{}, fmt.Errorf("error in something(): %w", err)
+	// 		return nil, fmt.Errorf("error in something(): %w", err)
 	// }
 
 	// Simulate a random error sometimes.
@@ -52,7 +58,9 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 		return nil, status.Error(codes.Internal, "error logging in user.")
 	}
 
-	return &usersPB.LoginResponse{
-		Token: "some.jwt.token",
-	}, nil
+	return newLoginOKResponse("some.jwt.token")
+}
+
+func newLoginOKResponse(token string) (*usersPB.LoginResponse, error) {
+	return &usersPB.LoginResponse{Token: token}, nil
 }

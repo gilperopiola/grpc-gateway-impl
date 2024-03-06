@@ -34,7 +34,7 @@ func initHTTPGateway(c *config.MainConfig, middleware []runtime.ServeMuxOption, 
 
 // runHTTPGateway runs the HTTP server on a given port.
 func runHTTPGateway(server *http.Server) {
-	log.Println("Running HTTP!")
+	log.Printf("Running HTTP on port %s!\n", server.Addr)
 	go func() {
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf(v1.FatalErrMsgServingHTTP, err)

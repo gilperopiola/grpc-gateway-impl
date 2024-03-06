@@ -54,7 +54,7 @@ func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validat
 func newGRPCValidatorInterceptor(protoValidator *protovalidate.Validator) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
-			return nil, fromValidationErrToGRPCInvalidArgErr(err)
+			return nil, validationErrToInvalidArgErr(err)
 		}
 		return handler(ctx, req) // Call next handler.
 	}
@@ -77,7 +77,7 @@ func newGRPCRecoveryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor 
 	return grpc_recovery.UnaryServerInterceptor(
 		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
 			logger.Error("gRPC Panic!", zap.Any("info", p))
-			return status.Errorf(codes.Internal, v1.ErrMsgInRecoveryInterceptor, p)
+			return status.Errorf(codes.Internal, v1.ErrMsgPanic)
 		}),
 	)
 }

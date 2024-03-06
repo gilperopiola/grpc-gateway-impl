@@ -23,8 +23,8 @@ type MuxWrapperFunc func(next http.Handler) http.Handler
 // GetAll returns all the HTTP middleware that are used as ServeMuxOptions.
 func GetAll() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
+		runtime.WithErrorHandler(handleHTTPError), // Stops other middleware if an error happens.
 		runtime.WithForwardResponseOption(setHTTPResponseHeaders),
-		runtime.WithErrorHandler(handleHTTPError),
 	}
 }
 
@@ -38,6 +38,8 @@ func GetAllWrapped(logger *zap.Logger) MuxWrapperFunc {
 		)
 	}
 }
+
+// - CORS
 
 // handleCORS adds CORS headers to the response and handles preflight requests.
 func handleCORS(next http.Handler) http.Handler {
@@ -56,6 +58,8 @@ func handleCORS(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// - Response Headers
 
 // setHTTPResponseHeaders executes before the response is written to the client.
 func setHTTPResponseHeaders(_ context.Context, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {

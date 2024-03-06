@@ -17,7 +17,7 @@ type Service interface {
 }
 
 // service is our concrete implementation of the Service interface.
-// This struct should usually contain a Repository interface.
+// This struct should usually contain a Repository interface inside.
 type service struct{}
 
 // NewService returns a new instance of the service.

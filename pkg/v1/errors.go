@@ -21,8 +21,8 @@ const (
 	ErrMsgInValidation           = "validation error: %v."
 	ErrMsgInValidationRuntime    = "unexpected runtime validation error: %v."
 	ErrMsgInValidationUnexpected = "unexpected validation error: %v."
-	ErrMsgRateLimitExceeded      = "the server is busy, please try again later."
-	ErrMsgInRecoveryInterceptor  = "unexpected panic, something went wrong: %v."
+	ErrMsgPanic                  = "unexpected panic, something went wrong."
+	ErrMsgRateLimitExceeded      = "rate limit exceeded, try again later."
 
 	// HTTP error response bodies.
 	// These strings are the JSON representations of a middleware.httpErrorResponseBody.

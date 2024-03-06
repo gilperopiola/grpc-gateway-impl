@@ -27,7 +27,7 @@ func initGRPCServer(api usersPB.UsersServiceServer, interceptors []grpc.ServerOp
 // runGRPCServer runs the gRPC server on a given port.
 // It listens for incoming gRPC requests and serves them.
 func runGRPCServer(grpcServer *grpc.Server, grpcPort string) {
-	log.Println("Running gRPC!")
+	log.Printf("Running gRPC on port %s!\n", grpcPort)
 
 	lis, err := net.Listen("tcp", grpcPort)
 	if err != nil {

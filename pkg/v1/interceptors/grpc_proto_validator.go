@@ -28,36 +28,35 @@ func NewProtoValidator() *protovalidate.Validator {
 	return protoValidator
 }
 
-// fromValidationErrToGRPCInvalidArgErr returns an InvalidArgument(3) gRPC error with its corresponding message.
-// It gets translated to a 400 Bad Request on the error handler.
+// validationErrToInvalidArgErr returns an InvalidArgument(3) gRPC error with its corresponding message.
+// It gets translated to a 400 Bad Request on the HTTP error handler.
 // Validation errors are always returned as InvalidArgument.
-// This functions is called from the validation interceptor.
-func fromValidationErrToGRPCInvalidArgErr(err error) error {
-	outErrMsg := fmt.Sprintf(v1.ErrMsgInValidationUnexpected, err)
+// This function is called from the validation interceptor.
+func validationErrToInvalidArgErr(err error) error {
+	message := fmt.Sprintf(v1.ErrMsgInValidationUnexpected, err)
 
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
 		brokenRules := validationErr.ToProto().GetViolations()
-		outErrMsg = fmt.Sprintf(v1.ErrMsgInValidation, makeStringFromBrokenValidationRules(brokenRules))
+		message = fmt.Sprintf(v1.ErrMsgInValidation, parseBrokenRules(brokenRules))
 	}
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
-		outErrMsg = fmt.Sprintf(v1.ErrMsgInValidationRuntime, runtimeErr)
+		message = fmt.Sprintf(v1.ErrMsgInValidationRuntime, runtimeErr)
 	}
 
-	return status.Error(codes.InvalidArgument, outErrMsg)
+	return status.Error(codes.InvalidArgument, message)
 }
 
-// makeStringFromBrokenValidationRules returns a string detailing the broken validation rules.
-// The default concatenates the field path and the message of each broken rule.
+// parseBrokenRules returns a string detailing the broken validation rules.
+// It just concatenates the fieldname and the message of each broken rule.
 //
-// This is what the user will see as the error message:
-// {"error":"validation error: password value length must be at least 8 characters"} on a JSON 400 response.
-func makeStringFromBrokenValidationRules(brokenRules []*validate.Violation) string {
+// This is the default human-facing format in which validation errors translate.
+func parseBrokenRules(brokenRules []*validate.Violation) string {
 	out := ""
 	for i, brokenRule := range brokenRules {
-		out += getErrMsgFromBrokenRule(brokenRule)
+		out += parseBrokenRule(brokenRule)
 		if i < len(brokenRules)-1 {
 			out += ", "
 		}
@@ -65,9 +64,9 @@ func makeStringFromBrokenValidationRules(brokenRules []*validate.Violation) stri
 	return out
 }
 
-// getErrMsgFromBrokenRule is the default human-facing format in which validation errors translate.
+// parseBrokenRule is the default human-facing format in which validation errors translate.
 // Special cases: obfuscate the invalid regex errors and return a generic message.
-func getErrMsgFromBrokenRule(v *validate.Violation) string {
+func parseBrokenRule(v *validate.Violation) string {
 	if strings.Contains(v.Message, "match regex pattern") {
 		return fmt.Sprintf("%s value has an invalid format", v.FieldPath)
 	}
