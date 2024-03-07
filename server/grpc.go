@@ -15,36 +15,50 @@ import (
 /*           - gRPC Server -           */
 /* ----------------------------------- */
 
-// initGRPCServer initializes the gRPC server and registers the API methods.
-// The HTTP Gateway will point towards this server.
-// This function also adds the gRPC interceptors to the server.
-func initGRPCServer(api usersPB.UsersServiceServer, interceptors []grpc.ServerOption) *grpc.Server {
-	grpcServer := grpc.NewServer(interceptors...)
-	usersPB.RegisterUsersServiceServer(grpcServer, api)
-	return grpcServer
+type GRPCServer struct {
+	*grpc.Server
+
+	port         string
+	api          usersPB.UsersServiceServer
+	interceptors []grpc.ServerOption
 }
 
-// runGRPCServer runs the gRPC server on a given port.
-// It listens for incoming gRPC requests and serves them.
-func runGRPCServer(grpcServer *grpc.Server, grpcPort string) {
-	log.Printf("Running gRPC on port %s!\n", grpcPort)
+func newGRPCServer(port string, api usersPB.UsersServiceServer, interceptors []grpc.ServerOption) *GRPCServer {
+	return &GRPCServer{
+		port:         port,
+		api:          api,
+		interceptors: interceptors,
+	}
+}
 
-	lis, err := net.Listen("tcp", grpcPort)
+// Init initializes the gRPC server and registers the API methods.
+// The HTTP Gateway will point towards this server.
+// This function also adds the gRPC interceptors to the server.
+func (g *GRPCServer) Init() {
+	grpcServer := grpc.NewServer(g.interceptors...)
+	usersPB.RegisterUsersServiceServer(grpcServer, g.api)
+	g.Server = grpcServer
+}
+
+// Run runs the gRPC server on a given port.
+// It listens for incoming gRPC requests and serves them.
+func (g *GRPCServer) Run() {
+	log.Printf("Running gRPC on port %s!\n", g.port)
+	lis, err := net.Listen("tcp", g.port)
 	if err != nil {
 		log.Fatalf(v1.FatalErrMsgStartingGRPC, err)
 	}
-
 	go func() {
-		if err := grpcServer.Serve(lis); err != nil {
+		if err := g.Server.Serve(lis); err != nil {
 			log.Fatalf(v1.FatalErrMsgServingGRPC, err)
 		}
 	}()
 }
 
-// shutdownGRPCServer gracefully shuts down the gRPC server.
-func shutdownGRPCServer(grpcServer *grpc.Server) {
+// Shutdown gracefully shuts down the gRPC server.
+func (g *GRPCServer) Shutdown() {
 	log.Println("Shutting down gRPC server...")
-	grpcServer.GracefulStop()
+	g.Server.GracefulStop()
 }
 
 /* ----------------------------------- */
@@ -55,10 +69,10 @@ const (
 	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
 )
 
-// getAllDialOptions returns the gRPC dial options.
-func getAllDialOptions(clientTLSCredentials credentials.TransportCredentials) []grpc.DialOption {
+// AllDialOptions returns the gRPC dial options.
+func AllDialOptions(clientTLSCreds credentials.TransportCredentials) []grpc.DialOption {
 	return []grpc.DialOption{
-		grpc.WithTransportCredentials(clientTLSCredentials),
+		grpc.WithTransportCredentials(clientTLSCreds),
 		grpc.WithUserAgent(customUserAgent),
 	}
 }

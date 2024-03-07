@@ -6,9 +6,9 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/server/config"
 )
 
-func TestInitGeneralDependencies(t *testing.T) {
-	app := NewApp(config.LoadConfig())
-	app.InitGeneralDependencies()
+func TestInit(t *testing.T) {
+	app := NewApp(config.New())
+	app.Init()
 
 	if app.Logger == nil {
 		t.Errorf("Expected Logger to be initialized, got nil")

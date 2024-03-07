@@ -3,17 +3,14 @@ package server
 import (
 	"crypto/x509"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/interceptors"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/middleware"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 	"github.com/gilperopiola/grpc-gateway-impl/server/config"
-	"github.com/gilperopiola/grpc-gateway-impl/server/security"
 
 	"github.com/bufbuild/protovalidate-go"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -21,6 +18,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
+
+// Server is an interface that connects the gRPC and HTTP servers.
+// Both servers have the same methods, but they are implemented differently.
+type Server interface {
+	Init()
+	Run()
+	Shutdown()
+}
 
 /* ----------------------------------- */
 /*         - Main Application -        */
@@ -31,14 +36,15 @@ import (
 type App struct {
 	*v1.API
 
-	// Config holds the configuration of our API.
+	// Cfg holds the configuration of our API.
+	Cfg *config.Config
+
 	// Service holds the business logic of our API.
-	Config  *config.Config
 	Service service.Service
 
 	// GRPCServer and HTTPGateway are the servers we are going to run.
-	GRPCServer  *grpc.Server
-	HTTPGateway *http.Server
+	GRPCServer  Server
+	HTTPGateway Server
 
 	// GRPCInterceptors run before or after gRPC calls.
 	// Right now we only have a Logger and a Validator.
@@ -61,73 +67,69 @@ type App struct {
 
 	// Logger is used to log every gRPC request that comes in through the gRPC
 	// It's used on an interceptor.
-	Logger *zap.Logger
+	//
+	// LoggerOptions are the options we can pass to the Logger.
+	Logger        *zap.Logger
+	LoggerOptions []zap.Option
 
 	// ProtoValidator is used to validate the incoming gRPC & HTTP requests.
 	// It uses the bufbuild/protovalidate library to enforce the validation rules written in the .proto files.
 	ProtoValidator *protovalidate.Validator
 
-	// TLSServerCertificate is a pool of certificates to use for the
+	// TLSServerCert is a pool of certificates to use for the
 	// It is used to validate the gRPC server's certificate on the HTTP Gateway calls.
 	// TLSServerCredentials and TLSClientCredentials are used to establish the
 	// secure connection between the HTTP Gateway and the gRPC Server.
-	TLSServerCertificate *x509.CertPool
-	TLSServerCredentials credentials.TransportCredentials
-	TLSClientCredentials credentials.TransportCredentials
+	TLSServerCert  *x509.CertPool
+	TLSServerCreds credentials.TransportCredentials
+	TLSClientCreds credentials.TransportCredentials
 }
 
 // NewApp returns a new App with the given configuration.
 func NewApp(config *config.Config) *App {
-	return &App{Config: config}
+	return &App{Cfg: config}
 }
 
-// InitGeneralDependencies initializes stuff.
-// Logger, Validator and TLS.
-func (a *App) InitGeneralDependencies() {
-	a.Logger = v1.NewLogger(a.Config.IsProd, v1.NewLoggerOptions())
-	a.ProtoValidator = interceptors.NewProtoValidator()
+// Init initializes all App dependencies.
+func (a *App) Init() {
 
-	tlsConfig := a.Config.TLS
-	{
-		// TLS Server objects are only loaded if TLS is enabled.
-		if tlsConfig.Enabled {
-			a.TLSServerCertificate = security.NewTLSCertPool(tlsConfig.CertPath)
-			a.TLSServerCredentials = security.NewServerTransportCredentials(tlsConfig.CertPath, tlsConfig.KeyPath)
-		}
+	// Logger.
+	a.NewLoggerOptions()
+	a.NewLogger()
 
-		// TLS Client Credentials are always loaded, with an insecure option if TLS is not enabled.
-		a.TLSClientCredentials = security.NewClientTransportCredentials(tlsConfig.Enabled, a.TLSServerCertificate)
+	// Validator.
+	a.NewProtoValidator()
+
+	// TLS Server objects are only loaded if TLS is enabled.
+	if a.Cfg.TLS.Enabled {
+		a.NewTLSServerCert()
+		a.NewTLSServerCreds()
 	}
-}
 
-// InitGRPCAndHTTPDependencies initializes gRPC and HTTP stuff.
-func (a *App) InitGRPCAndHTTPDependencies() {
+	// TLS Client Credentials are always loaded, with an insecure option if TLS is not enabled.
+	a.NewTLSClientCreds()
 
 	// gRPC Interceptors and Dial Options.
-	a.GRPCInterceptors = interceptors.GetAll(a.Config, a.Logger, a.ProtoValidator, a.TLSServerCredentials)
-	a.GRPCDialOptions = getAllDialOptions(a.TLSClientCredentials)
+	a.NewGRPCInterceptors()
+	a.NewGRPCDialOptions()
 
 	// HTTP Middleware and Mux Wrapper.
-	a.HTTPMiddleware = middleware.GetAll()
-	a.HTTPMiddlewareWrapper = middleware.GetAllWrapped(a.Logger)
-}
-
-// InitAPIAndServers initializes the API, the Service and the Servers.
-func (a *App) InitAPIAndServers() {
+	a.NewHTTPMiddleware()
+	a.NewHTTPMiddlewareWrapper()
 
 	// Service and API.
-	a.Service = service.NewService()
-	a.API = v1.NewAPI(a.Service)
+	a.NewService()
+	a.NewAPI()
 
 	// gRPC and HTTP Servers.
-	a.GRPCServer = initGRPCServer(a.API, a.GRPCInterceptors)
-	a.HTTPGateway = initHTTPGateway(a.Config.MainConfig, a.HTTPMiddleware, a.HTTPMiddlewareWrapper, a.GRPCDialOptions)
+	a.NewGRPCServer()
+	a.NewHTTPGateway()
 }
 
 // Run runs the gRPC and HTTP servers.
 func (a *App) Run() {
-	runGRPCServer(a.GRPCServer, a.Config.GRPCPort)
-	runHTTPGateway(a.HTTPGateway)
+	a.GRPCServer.Run()
+	a.HTTPGateway.Run()
 }
 
 // WaitForGracefulShutdown waits for a SIGINT or SIGTERM to gracefully shutdown the servers.
@@ -136,8 +138,8 @@ func (a *App) WaitForGracefulShutdown() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM) // SIGINT and SIGTERM
 	<-c
 
-	shutdownGRPCServer(a.GRPCServer)
-	shutdownHTTPGateway(a.HTTPGateway)
+	a.GRPCServer.Shutdown()
+	a.HTTPGateway.Shutdown()
 
 	log.Println("Servers stopped! Bye bye~")
 }

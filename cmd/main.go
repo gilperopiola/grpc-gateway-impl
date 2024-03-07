@@ -17,12 +17,10 @@ import (
 func main() {
 
 	// Init new App.
-	app := server.NewApp(config.LoadConfig())
+	app := server.NewApp(config.New())
 
 	// Init everything inside of the App.
-	app.InitGeneralDependencies()
-	app.InitGRPCAndHTTPDependencies()
-	app.InitAPIAndServers()
+	app.Init()
 
 	// Run servers.
 	app.Run()

@@ -10,12 +10,12 @@ import (
 
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 	"github.com/gilperopiola/grpc-gateway-impl/server/config"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest/observer"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/bufbuild/protovalidate-go"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -64,7 +64,7 @@ func TestFromValidationErrToGRPCInvalidArgErr(t *testing.T) {
 func TestRateLimiterInterceptor(t *testing.T) {
 
 	// Config: allow 1 request per second with a max of 2.
-	interceptor := newGRPCRateLimiterInterceptor(config.RateLimiterConfig{
+	interceptor := newGRPCRateLimiterInterceptor(&config.RateLimiterConfig{
 		MaxTokens:       2,
 		TokensPerSecond: 1,
 	})
@@ -112,8 +112,8 @@ func TestGRPCLoggerInterceptor(t *testing.T) {
 	if entry.Level != zap.InfoLevel {
 		t.Errorf("Expected InfoLevel log, got %s", entry.Level)
 	}
-	method := entry.ContextMap()["method"].(string)
-	if !bytes.Contains([]byte(entry.Message), []byte("gRPC Request")) || method != "/test/method" {
+	endpoint := entry.ContextMap()["endpoint"].(string)
+	if !bytes.Contains([]byte(entry.Message), []byte("gRPC Request")) || endpoint != "/test/method" {
 		t.Errorf("Log entry does not contain expected message: %s", entry.Message)
 	}
 }

@@ -16,42 +16,59 @@ import (
 )
 
 /* ----------------------------------- */
-/*           - HTTP Server -           */
+/*          - HTTP Gateway -           */
 /* ----------------------------------- */
 
-// initHTTPGateway initializes the HTTP Gateway and registers the API methods there as well.
+type HTTPGateway struct {
+	*http.Server
+	cfg          *config.MainConfig
+	middleware   []runtime.ServeMuxOption
+	middlewareWr middleware.MuxWrapperFunc
+	options      []grpc.DialOption
+}
+
+func newHTTPGateway(c *config.MainConfig, middleware []runtime.ServeMuxOption, middlewareWr middleware.MuxWrapperFunc, options []grpc.DialOption) *HTTPGateway {
+	return &HTTPGateway{
+		cfg:          c,
+		middleware:   middleware,
+		middlewareWr: middlewareWr,
+		options:      options,
+	}
+}
+
+// Init initializes the HTTP Gateway and registers the API methods there as well.
 // The gateway will point towards the gRPC server's port.
 // This function also adds the HTTP middleware to the server and wraps the mux with an HTTP Logger func.
-func initHTTPGateway(c *config.MainConfig, middleware []runtime.ServeMuxOption, middlewareWr middleware.MuxWrapperFunc, options []grpc.DialOption) *http.Server {
-	mux := runtime.NewServeMux(middleware...)
+func (h *HTTPGateway) Init() {
+	mux := runtime.NewServeMux(h.middleware...)
 
-	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, c.GRPCPort, options); err != nil {
+	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.cfg.GRPCPort, h.options); err != nil {
 		log.Fatalf(v1.FatalErrMsgStartingHTTP, err)
 	}
 
-	return &http.Server{Addr: c.HTTPPort, Handler: middlewareWr(mux)}
+	h.Server = &http.Server{Addr: h.cfg.HTTPPort, Handler: h.middlewareWr(mux)}
 }
 
-// runHTTPGateway runs the HTTP server on a given port.
-func runHTTPGateway(server *http.Server) {
-	log.Printf("Running HTTP on port %s!\n", server.Addr)
+// Run runs the HTTP Gateway.
+func (h *HTTPGateway) Run() {
+	log.Printf("Running HTTP on port %s!\n", h.Addr)
 	go func() {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		if err := h.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf(v1.FatalErrMsgServingHTTP, err)
 		}
 	}()
 }
 
-// shutdownHTTPGateway gracefully shuts down the HTTP server.
+// Shutdown gracefully shuts down the HTTP server.
 // It waits for all connections to be closed before shutting down.
-func shutdownHTTPGateway(httpServer *http.Server) {
+func (h *HTTPGateway) Shutdown() {
 	log.Println("Shutting down HTTP server...")
 	shutdownTimeout := 4 * time.Second
 
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	if err := httpServer.Shutdown(ctx); err != nil {
+	if err := h.Server.Shutdown(ctx); err != nil {
 		log.Fatalf(v1.FatalErrMsgShuttingDownHTTP, err)
 	}
 }

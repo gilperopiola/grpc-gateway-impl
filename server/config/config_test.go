@@ -24,7 +24,7 @@ func TestLoadConfig(t *testing.T) {
 		os.Unsetenv("TLS_KEY_PATH")
 	}()
 
-	config := LoadConfig()
+	config := New()
 
 	assert.True(t, config.IsProd)
 	assert.Equal(t, ":9999", config.GRPCPort)

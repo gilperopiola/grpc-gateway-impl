@@ -20,18 +20,18 @@ type MuxWrapperFunc func(next http.Handler) http.Handler
 // Some middleware are passed as ServeMuxOptions when the mux is created,
 // and some are wrapped around the mux after its creation.
 
-// GetAll returns all the HTTP middleware that are used as ServeMuxOptions.
-func GetAll() []runtime.ServeMuxOption {
+// All returns all the HTTP middleware that are used as ServeMuxOptions.
+func All() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError), // Stops other middleware if an error happens.
 		runtime.WithForwardResponseOption(setHTTPResponseHeaders),
 	}
 }
 
-// GetAllWrapped returns the middleware to be wrapped around the HTTP Server when it's created.
+// Wrapper returns the middleware to be wrapped around the HTTP Server when it's created.
 // It handles CORS and logs the HTTP Request's info when it finishes executing.
 // It's used to wrap the mux with middleware.
-func GetAllWrapped(logger *zap.Logger) MuxWrapperFunc {
+func Wrapper(logger *zap.Logger) MuxWrapperFunc {
 	return func(next http.Handler) http.Handler {
 		return handleCORS(
 			v1.LogHTTP(next, logger),

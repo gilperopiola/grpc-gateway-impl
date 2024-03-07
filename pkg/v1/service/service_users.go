@@ -35,10 +35,10 @@ func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*users
 		return nil, status.Error(codes.Internal, "error creating user.")
 	}
 
-	return newSignupOKResponse(rand.Intn(1000))
+	return signupOKResponse(rand.Intn(1000))
 }
 
-func newSignupOKResponse(id int) (*usersPB.SignupResponse, error) {
+func signupOKResponse(id int) (*usersPB.SignupResponse, error) {
 	return &usersPB.SignupResponse{Id: int32(id)}, nil
 }
 
@@ -58,9 +58,9 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 		return nil, status.Error(codes.Internal, "error logging in user.")
 	}
 
-	return newLoginOKResponse("some.jwt.token")
+	return loginOKResponse("some.jwt.token")
 }
 
-func newLoginOKResponse(token string) (*usersPB.LoginResponse, error) {
+func loginOKResponse(token string) (*usersPB.LoginResponse, error) {
 	return &usersPB.LoginResponse{Token: token}, nil
 }

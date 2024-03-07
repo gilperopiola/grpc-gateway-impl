@@ -48,9 +48,9 @@ func LogGRPC(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		duration := time.Since(start)
 
 		if err != nil {
-			sugar.Errorw("gRPC Error", getEndpointField(info.FullMethod), getDurationField(duration), getErrorField(err))
+			sugar.Errorw("gRPC Error", endpointField(info.FullMethod), durationField(duration), errorField(err))
 		} else {
-			sugar.Infow("gRPC Request", getEndpointField(info.FullMethod), getDurationField(duration))
+			sugar.Infow("gRPC Request", endpointField(info.FullMethod), durationField(duration))
 		}
 
 		// After logging the request, we return the response and error because this is an interceptor.
@@ -68,7 +68,7 @@ func LogHTTP(next http.Handler, logger *zap.Logger) http.Handler {
 		next.ServeHTTP(w, r)
 		duration := time.Since(start)
 
-		sugar.Infow("HTTP Request", getEndpointField(r.Method+" "+r.URL.Path), getDurationField(duration))
+		sugar.Infow("HTTP Request", endpointField(r.Method+" "+r.URL.Path), durationField(duration))
 
 		// Most HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
 		// As such, we add a new line to separate the logs and easily identify different requests.
@@ -79,14 +79,14 @@ func LogHTTP(next http.Handler, logger *zap.Logger) http.Handler {
 
 // - Helpers
 
-func getEndpointField(value string) zap.Field {
+func endpointField(value string) zap.Field {
 	return zap.String("endpoint", value)
 }
 
-func getDurationField(value time.Duration) zap.Field {
+func durationField(value time.Duration) zap.Field {
 	return zap.Duration("duration", value)
 }
 
-func getErrorField(err error) zap.Field {
+func errorField(err error) zap.Field {
 	return zap.Error(err)
 }

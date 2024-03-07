@@ -17,8 +17,8 @@ import (
 type Config struct {
 	*MainConfig // Main holds the main configuration settings of the server.
 
-	TLS         TLSConfig         // TLS holds the configuration of the SSL/TLS connection.
-	RateLimiter RateLimiterConfig // RateLimiter holds the configuration of the rate limiter.
+	TLS         *TLSConfig         // TLS holds the configuration of the SSL/TLS connection.
+	RateLimiter *RateLimiterConfig // RateLimiter holds the configuration of the rate limiter.
 }
 
 // MainConfig is the main configuration settings of the server.
@@ -46,8 +46,8 @@ type RateLimiterConfig struct {
 	TokensPerSecond int // TokensPerSecond is the number of tokens reloaded per second.
 }
 
-// LoadConfig loads the configuration from the environment variables.
-func LoadConfig() *Config {
+// New loads the configuration from the environment variables.
+func New() *Config {
 
 	// The project is either run from the root folder or the /cmd folder.
 	// If it's run from the /cmd folder, we need to add a '..' prefix to the filesystem paths
@@ -63,12 +63,12 @@ func LoadConfig() *Config {
 			GRPCPort:    getVar("GRPC_PORT", ":50053"),
 			HTTPPort:    getVar("HTTP_PORT", ":8083"),
 		},
-		TLS: TLSConfig{
+		TLS: &TLSConfig{
 			Enabled:  getVarBool("TLS_ENABLED", false),
 			CertPath: getVar("TLS_CERT_PATH", workingDirPathPrefix+"/server.crt"),
 			KeyPath:  getVar("TLS_KEY_PATH", workingDirPathPrefix+"/server.key"),
 		},
-		RateLimiter: RateLimiterConfig{
+		RateLimiter: &RateLimiterConfig{
 			MaxTokens:       getVarInt("RATE_LIMITER_MAX_TOKENS", 20),
 			TokensPerSecond: getVarInt("RATE_LIMITER_TOKENS_PER_SECOND", 4),
 		},
@@ -100,15 +100,6 @@ func getVarInt(key string, fallback int) int {
 	return fallback
 }
 
-// isWorkingDirRootFolder returns true if the working directory is the /cmd folder.
-func isWorkingDirRootFolder(projectName string) bool {
-	workingDir, err := os.Getwd()
-	if err != nil {
-		log.Fatalf(v1.FatalErrMsgGettingWorkingDir, err)
-	}
-	return strings.HasSuffix(workingDir, projectName)
-}
-
 // getPathPrefix returns the prefix that needs to be added to the default paths
 // so that we always start at the root folder.
 func getPathPrefix(projectName string) string {
@@ -116,4 +107,13 @@ func getPathPrefix(projectName string) string {
 		return "."
 	}
 	return ".."
+}
+
+// isWorkingDirRootFolder returns true if the working directory is the /cmd folder.
+func isWorkingDirRootFolder(projectName string) bool {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		log.Fatalf(v1.FatalErrMsgGettingWorkingDir, err)
+	}
+	return strings.HasSuffix(workingDir, projectName)
 }

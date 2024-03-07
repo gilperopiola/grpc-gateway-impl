@@ -21,10 +21,10 @@ import (
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
 
-// GetAll returns all the gRPC interceptors as ServerOptions.
+// All returns all the gRPC interceptors as ServerOptions.
 // If TLS is enabled, return the TLS security interceptor + the default interceptors.
 // If TLS is not enabled, only return the default interceptors.
-func GetAll(c *config.Config, lg *zap.Logger, vldtr *protovalidate.Validator, svCreds credentials.TransportCredentials) []grpc.ServerOption {
+func All(c *config.Config, lg *zap.Logger, vldtr *protovalidate.Validator, svCreds credentials.TransportCredentials) []grpc.ServerOption {
 	out := make([]grpc.ServerOption, 0)
 
 	// Add TLS interceptor.
@@ -39,7 +39,7 @@ func GetAll(c *config.Config, lg *zap.Logger, vldtr *protovalidate.Validator, sv
 }
 
 // newDefaultInterceptors returns the default gRPC interceptors.
-func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validator, rlConfig config.RateLimiterConfig) grpc.ServerOption {
+func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validator, rlConfig *config.RateLimiterConfig) grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
 		newGRPCRateLimiterInterceptor(rlConfig),
 		newGRPCLoggerInterceptor(logger),
@@ -84,8 +84,8 @@ func newGRPCRecoveryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor 
 
 // newGRPCRateLimiterInterceptor returns a gRPC interceptor that limits the rate of requests.
 // It returns a gRPC ResourceExhausted error if the rate limit is exceeded.
-func newGRPCRateLimiterInterceptor(config config.RateLimiterConfig) grpc.UnaryServerInterceptor {
-	limiter := rate.NewLimiter(rate.Limit(config.TokensPerSecond), config.MaxTokens)
+func newGRPCRateLimiterInterceptor(cfg *config.RateLimiterConfig) grpc.UnaryServerInterceptor {
+	limiter := rate.NewLimiter(rate.Limit(cfg.TokensPerSecond), cfg.MaxTokens)
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if !limiter.Allow() {
 			return nil, status.Errorf(codes.ResourceExhausted, v1.ErrMsgRateLimitExceeded)
