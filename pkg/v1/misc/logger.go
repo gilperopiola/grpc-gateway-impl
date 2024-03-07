@@ -1,10 +1,12 @@
-package v1
+package misc
 
 import (
 	"context"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -23,7 +25,7 @@ func NewLogger(isProd bool, opts []zap.Option) *zap.Logger {
 
 	logger, err := newLoggerFunc(opts...)
 	if err != nil {
-		log.Fatalf(FatalErrMsgCreatingLogger, err)
+		log.Fatalf(errs.FatalErrMsgCreatingLogger, err)
 	}
 
 	return logger
@@ -36,8 +38,6 @@ func NewLoggerOptions() []zap.Option {
 		zap.AddStacktrace(zap.DPanicLevel),
 	}
 }
-
-// - GRPC
 
 // LogGRPC logs the gRPC request's info when it finishes executing.
 func LogGRPC(logger *zap.Logger) grpc.UnaryServerInterceptor {
@@ -58,8 +58,6 @@ func LogGRPC(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// - HTTP
-
 // LogHTTP logs the HTTP Request's info when it finishes executing.
 func LogHTTP(next http.Handler, logger *zap.Logger) http.Handler {
 	sugar := logger.Sugar()
@@ -76,8 +74,6 @@ func LogHTTP(next http.Handler, logger *zap.Logger) http.Handler {
 		sugar.Infoln("")
 	})
 }
-
-// - Helpers
 
 func endpointField(value string) zap.Field {
 	return zap.String("endpoint", value)

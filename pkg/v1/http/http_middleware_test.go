@@ -1,4 +1,4 @@
-package middleware
+package http
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
@@ -30,19 +30,19 @@ func TestHandleHTTPError(t *testing.T) {
 			name:           "NotFound error",
 			err:            status.Error(codes.NotFound, "resource not found"),
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   v1.HTTPNotFoundErrBody,
+			expectedBody:   errs.HTTPNotFoundErrBody,
 		},
 		{
 			name:           "Internal error",
 			err:            status.Error(codes.Internal, "internal error"),
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   v1.HTTPInternalErrBody,
+			expectedBody:   errs.HTTPInternalErrBody,
 		},
 		{
 			name:           "Unauthorized error",
 			err:            status.Error(codes.Unauthenticated, "unauthorized"),
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   v1.HTTPUnauthorizedErrBody,
+			expectedBody:   errs.HTTPUnauthorizedErrBody,
 		},
 	}
 
@@ -72,7 +72,7 @@ func TestHandleHTTPError(t *testing.T) {
 
 func TestLogHTTP(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	middleware := Wrapper(logger)
+	middleware := MiddlewareWrapper(logger)
 
 	called := false
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

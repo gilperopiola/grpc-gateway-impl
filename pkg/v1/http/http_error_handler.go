@@ -1,11 +1,10 @@
-package middleware
+package http
 
 import (
 	"context"
 	"net/http"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -62,19 +61,19 @@ func handle4xxOr5xxError(httpStatus int, buffer []byte, w http.ResponseWriter) (
 	switch httpStatus {
 	case http.StatusUnauthorized:
 		w.Header().Set("WWW-Authenticate", "Bearer")
-		return http.StatusUnauthorized, []byte(v1.HTTPUnauthorizedErrBody) // 401
+		return http.StatusUnauthorized, []byte(errs.HTTPUnauthorizedErrBody) // 401
 
 	case http.StatusForbidden:
-		return http.StatusForbidden, []byte(v1.HTTPForbiddenErrBody) // 403
+		return http.StatusForbidden, []byte(errs.HTTPForbiddenErrBody) // 403
 
 	case http.StatusNotFound, http.StatusMethodNotAllowed:
-		return http.StatusNotFound, []byte(v1.HTTPNotFoundErrBody) // 404 / 405
+		return http.StatusNotFound, []byte(errs.HTTPNotFoundErrBody) // 404 / 405
 
 	case http.StatusInternalServerError:
-		return http.StatusInternalServerError, []byte(v1.HTTPInternalErrBody) // 500
+		return http.StatusInternalServerError, []byte(errs.HTTPInternalErrBody) // 500
 
 	case http.StatusServiceUnavailable:
-		return http.StatusInternalServerError, []byte(v1.HTTPServiceUnavailErrBody) // 503
+		return http.StatusInternalServerError, []byte(errs.HTTPServiceUnavailErrBody) // 503
 	}
 
 	// If not, return as is.

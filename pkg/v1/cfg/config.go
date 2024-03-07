@@ -1,4 +1,4 @@
-package config
+package cfg
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 )
 
 /* ----------------------------------- */
@@ -113,7 +113,7 @@ func getPathPrefix(projectName string) string {
 func isWorkingDirRootFolder(projectName string) bool {
 	workingDir, err := os.Getwd()
 	if err != nil {
-		log.Fatalf(v1.FatalErrMsgGettingWorkingDir, err)
+		log.Fatalf(errs.FatalErrMsgGettingWorkingDir, err)
 	}
 	return strings.HasSuffix(workingDir, projectName)
 }

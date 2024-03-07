@@ -1,10 +1,11 @@
-package interceptors
+package grpc
 
 import (
 	"context"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-	"github.com/gilperopiola/grpc-gateway-impl/server/config"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/misc"
 
 	"github.com/bufbuild/protovalidate-go"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -14,17 +15,16 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 /* ----------------------------------- */
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
 
-// All returns all the gRPC interceptors as ServerOptions.
+// AllInterceptors returns all the gRPC interceptors as ServerOptions.
 // If TLS is enabled, return the TLS security interceptor + the default interceptors.
 // If TLS is not enabled, only return the default interceptors.
-func All(c *config.Config, lg *zap.Logger, vldtr *protovalidate.Validator, svCreds credentials.TransportCredentials) []grpc.ServerOption {
+func AllInterceptors(c *cfg.Config, lg *zap.Logger, vldtr *protovalidate.Validator, svCreds credentials.TransportCredentials) []grpc.ServerOption {
 	out := make([]grpc.ServerOption, 0)
 
 	// Add TLS interceptor.
@@ -39,7 +39,7 @@ func All(c *config.Config, lg *zap.Logger, vldtr *protovalidate.Validator, svCre
 }
 
 // newDefaultInterceptors returns the default gRPC interceptors.
-func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validator, rlConfig *config.RateLimiterConfig) grpc.ServerOption {
+func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validator, rlConfig *cfg.RateLimiterConfig) grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
 		newGRPCRateLimiterInterceptor(rlConfig),
 		newGRPCLoggerInterceptor(logger),
@@ -52,18 +52,13 @@ func newDefaultInterceptors(logger *zap.Logger, validator *protovalidate.Validat
 // that enforces the validation rules written in the .proto files.
 // It returns a gRPC InvalidArgument error if the validation fails.
 func newGRPCValidatorInterceptor(protoValidator *protovalidate.Validator) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
-			return nil, validationErrToInvalidArgErr(err)
-		}
-		return handler(ctx, req) // Call next handler.
-	}
+	return misc.Validate(protoValidator)
 }
 
 // newGRPCLoggerInterceptor returns a gRPC interceptor that logs every gRPC request that comes in through the gRPC server.
 // It logs the full method of the request, and it runs before any validation.
 func newGRPCLoggerInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
-	return v1.LogGRPC(logger)
+	return misc.LogGRPC(logger)
 }
 
 // newGRPCTLSInterceptor returns a grpc.ServerOption that enables TLS communication.
@@ -77,18 +72,18 @@ func newGRPCRecoveryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor 
 	return grpc_recovery.UnaryServerInterceptor(
 		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
 			logger.Error("gRPC Panic!", zap.Any("info", p))
-			return status.Errorf(codes.Internal, v1.ErrMsgPanic)
+			return status.Errorf(codes.Internal, errs.ErrMsgPanic)
 		}),
 	)
 }
 
 // newGRPCRateLimiterInterceptor returns a gRPC interceptor that limits the rate of requests.
 // It returns a gRPC ResourceExhausted error if the rate limit is exceeded.
-func newGRPCRateLimiterInterceptor(cfg *config.RateLimiterConfig) grpc.UnaryServerInterceptor {
+func newGRPCRateLimiterInterceptor(cfg *cfg.RateLimiterConfig) grpc.UnaryServerInterceptor {
 	limiter := rate.NewLimiter(rate.Limit(cfg.TokensPerSecond), cfg.MaxTokens)
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if !limiter.Allow() {
-			return nil, status.Errorf(codes.ResourceExhausted, v1.ErrMsgRateLimitExceeded)
+			return nil, status.Errorf(codes.ResourceExhausted, errs.ErrMsgRateLimitExceeded)
 		}
 		return handler(ctx, req)
 	}

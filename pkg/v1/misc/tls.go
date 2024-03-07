@@ -1,11 +1,11 @@
-package config
+package misc
 
 import (
 	"crypto/x509"
 	"log"
 	"os"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -26,12 +26,12 @@ func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
 	// Read certificate.
 	cert, err := os.ReadFile(tlsCertPath)
 	if err != nil {
-		log.Fatalf(v1.FatalErrMsgReadingTLSCert, err)
+		log.Fatalf(errs.FatalErrMsgReadingTLSCert, err)
 	}
 
 	// Append encoded certificate.
 	if !out.AppendCertsFromPEM(cert) {
-		log.Fatalf(v1.FatalErrMsgAppendingTLSCert)
+		log.Fatalf(errs.FatalErrMsgAppendingTLSCert)
 	}
 
 	return out
@@ -41,7 +41,7 @@ func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
 func NewServerTransportCredentials(certPath, keyPath string) credentials.TransportCredentials {
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 	if err != nil {
-		log.Fatalf(v1.FatalErrMsgLoadingTLSCredentials, err)
+		log.Fatalf(errs.FatalErrMsgLoadingTLSCredentials, err)
 	}
 	return creds
 }

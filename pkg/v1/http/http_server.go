@@ -1,4 +1,4 @@
-package server
+package http
 
 import (
 	"context"
@@ -7,9 +7,8 @@ import (
 	"time"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/middleware"
-	"github.com/gilperopiola/grpc-gateway-impl/server/config"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -21,13 +20,14 @@ import (
 
 type HTTPGateway struct {
 	*http.Server
-	cfg          *config.MainConfig
+
+	cfg          *cfg.MainConfig
 	middleware   []runtime.ServeMuxOption
-	middlewareWr middleware.MuxWrapperFunc
+	middlewareWr MuxWrapperFunc
 	options      []grpc.DialOption
 }
 
-func newHTTPGateway(c *config.MainConfig, middleware []runtime.ServeMuxOption, middlewareWr middleware.MuxWrapperFunc, options []grpc.DialOption) *HTTPGateway {
+func NewHTTPGateway(c *cfg.MainConfig, middleware []runtime.ServeMuxOption, middlewareWr MuxWrapperFunc, options []grpc.DialOption) *HTTPGateway {
 	return &HTTPGateway{
 		cfg:          c,
 		middleware:   middleware,
@@ -43,7 +43,7 @@ func (h *HTTPGateway) Init() {
 	mux := runtime.NewServeMux(h.middleware...)
 
 	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.cfg.GRPCPort, h.options); err != nil {
-		log.Fatalf(v1.FatalErrMsgStartingHTTP, err)
+		log.Fatalf(errs.FatalErrMsgStartingHTTP, err)
 	}
 
 	h.Server = &http.Server{Addr: h.cfg.HTTPPort, Handler: h.middlewareWr(mux)}
@@ -54,7 +54,7 @@ func (h *HTTPGateway) Run() {
 	log.Printf("Running HTTP on port %s!\n", h.Addr)
 	go func() {
 		if err := h.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf(v1.FatalErrMsgServingHTTP, err)
+			log.Fatalf(errs.FatalErrMsgServingHTTP, err)
 		}
 	}()
 }
@@ -69,6 +69,6 @@ func (h *HTTPGateway) Shutdown() {
 	defer cancel()
 
 	if err := h.Server.Shutdown(ctx); err != nil {
-		log.Fatalf(v1.FatalErrMsgShuttingDownHTTP, err)
+		log.Fatalf(errs.FatalErrMsgShuttingDownHTTP, err)
 	}
 }

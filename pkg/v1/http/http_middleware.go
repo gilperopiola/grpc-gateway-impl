@@ -1,10 +1,10 @@
-package middleware
+package http
 
 import (
 	"context"
 	"net/http"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/misc"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
@@ -20,26 +20,24 @@ type MuxWrapperFunc func(next http.Handler) http.Handler
 // Some middleware are passed as ServeMuxOptions when the mux is created,
 // and some are wrapped around the mux after its creation.
 
-// All returns all the HTTP middleware that are used as ServeMuxOptions.
-func All() []runtime.ServeMuxOption {
+// AllMiddleware returns all the HTTP middleware that are used as ServeMuxOptions.
+func AllMiddleware() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError), // Stops other middleware if an error happens.
 		runtime.WithForwardResponseOption(setHTTPResponseHeaders),
 	}
 }
 
-// Wrapper returns the middleware to be wrapped around the HTTP Server when it's created.
+// MiddlewareWrapper returns the middleware to be wrapped around the HTTP Server when it's created.
 // It handles CORS and logs the HTTP Request's info when it finishes executing.
 // It's used to wrap the mux with middleware.
-func Wrapper(logger *zap.Logger) MuxWrapperFunc {
+func MiddlewareWrapper(logger *zap.Logger) MuxWrapperFunc {
 	return func(next http.Handler) http.Handler {
 		return handleCORS(
-			v1.LogHTTP(next, logger),
+			misc.LogHTTP(next, logger),
 		)
 	}
 }
-
-// - CORS
 
 // handleCORS adds CORS headers to the response and handles preflight requests.
 func handleCORS(next http.Handler) http.Handler {
@@ -58,8 +56,6 @@ func handleCORS(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-// - Response Headers
 
 // setHTTPResponseHeaders executes before the response is written to the client.
 func setHTTPResponseHeaders(_ context.Context, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
@@ -80,4 +76,5 @@ var httpResponseHeadersToAdd = map[string]string{
 	"X-Frame-Options":           "SAMEORIGIN",
 	"X-XSS-Protection":          "1; mode=block",
 }
+
 var httpResponseHeadersToDelete = []string{"Grpc-Metadata-Content-Type"}

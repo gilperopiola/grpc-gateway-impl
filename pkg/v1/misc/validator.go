@@ -1,17 +1,20 @@
-package interceptors
+package misc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
 
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/bufbuild/protovalidate-go"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 /* ----------------------------------- */
@@ -23,9 +26,18 @@ import (
 func NewProtoValidator() *protovalidate.Validator {
 	protoValidator, err := protovalidate.New()
 	if err != nil {
-		log.Fatalf(v1.FatalErrMsgCreatingProtoValidator, err)
+		log.Fatalf(errs.FatalErrMsgCreatingProtoValidator, err)
 	}
 	return protoValidator
+}
+
+func Validate(protoValidator *protovalidate.Validator) func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		if err := protoValidator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
+			return nil, validationErrToInvalidArgErr(err)
+		}
+		return handler(ctx, req) // Call next handler.
+	}
 }
 
 // validationErrToInvalidArgErr returns an InvalidArgument(3) gRPC error with its corresponding message.
@@ -33,17 +45,17 @@ func NewProtoValidator() *protovalidate.Validator {
 // Validation errors are always returned as InvalidArgument.
 // This function is called from the validation interceptor.
 func validationErrToInvalidArgErr(err error) error {
-	message := fmt.Sprintf(v1.ErrMsgInValidationUnexpected, err)
+	message := fmt.Sprintf(errs.ErrMsgInValidationUnexpected, err)
 
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
 		brokenRules := validationErr.ToProto().GetViolations()
-		message = fmt.Sprintf(v1.ErrMsgInValidation, parseBrokenRules(brokenRules))
+		message = fmt.Sprintf(errs.ErrMsgInValidation, parseBrokenRules(brokenRules))
 	}
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
-		message = fmt.Sprintf(v1.ErrMsgInValidationRuntime, runtimeErr)
+		message = fmt.Sprintf(errs.ErrMsgInValidationRuntime, runtimeErr)
 	}
 
 	return status.Error(codes.InvalidArgument, message)

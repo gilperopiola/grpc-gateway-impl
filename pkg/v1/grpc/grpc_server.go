@@ -1,14 +1,13 @@
-package server
+package grpc
 
 import (
 	"log"
 	"net"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 /* ----------------------------------- */
@@ -23,7 +22,7 @@ type GRPCServer struct {
 	interceptors []grpc.ServerOption
 }
 
-func newGRPCServer(port string, api usersPB.UsersServiceServer, interceptors []grpc.ServerOption) *GRPCServer {
+func NewGRPCServer(port string, api usersPB.UsersServiceServer, interceptors []grpc.ServerOption) *GRPCServer {
 	return &GRPCServer{
 		port:         port,
 		api:          api,
@@ -46,11 +45,11 @@ func (g *GRPCServer) Run() {
 	log.Printf("Running gRPC on port %s!\n", g.port)
 	lis, err := net.Listen("tcp", g.port)
 	if err != nil {
-		log.Fatalf(v1.FatalErrMsgStartingGRPC, err)
+		log.Fatalf(errs.FatalErrMsgStartingGRPC, err)
 	}
 	go func() {
 		if err := g.Server.Serve(lis); err != nil {
-			log.Fatalf(v1.FatalErrMsgServingGRPC, err)
+			log.Fatalf(errs.FatalErrMsgServingGRPC, err)
 		}
 	}()
 }
@@ -59,20 +58,4 @@ func (g *GRPCServer) Run() {
 func (g *GRPCServer) Shutdown() {
 	log.Println("Shutting down gRPC server...")
 	g.Server.GracefulStop()
-}
-
-/* ----------------------------------- */
-/*        - gRPC Dial Options -        */
-/* ----------------------------------- */
-
-const (
-	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
-)
-
-// AllDialOptions returns the gRPC dial options.
-func AllDialOptions(clientTLSCreds credentials.TransportCredentials) []grpc.DialOption {
-	return []grpc.DialOption{
-		grpc.WithTransportCredentials(clientTLSCreds),
-		grpc.WithUserAgent(customUserAgent),
-	}
 }

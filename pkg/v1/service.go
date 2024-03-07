@@ -1,4 +1,4 @@
-package service
+package v1
 
 import (
 	"context"
@@ -16,12 +16,29 @@ func shouldReturnInternalError() bool {
 }
 
 /* ----------------------------------- */
-/*          - Users Service -          */
+/*           - v1 Service -            */
 /* ----------------------------------- */
 
-// - Signup
+// Service is the interface that defines the methods of the API.
+type Service interface {
+	usersPB.UsersServiceServer
+}
 
-// Signup should be the implementation of the Signup service method.
+// Service is our concrete implementation of the gRPC API defined in the .proto files.
+type service struct {
+	*usersPB.UnimplementedUsersServiceServer
+}
+
+// NewService returns a new instance of the Service.
+func NewService() *service {
+	return &service{}
+}
+
+/* ----------------------------------- */
+/*        - Service Handlers -         */
+/* ----------------------------------- */
+
+// Signup is the handler / entrypoint for the Signup API method. Both gRPC and HTTP.
 func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*usersPB.SignupResponse, error) {
 
 	// ... check username is available, hash password, create user in DB, etc.
@@ -42,9 +59,7 @@ func signupOKResponse(id int) (*usersPB.SignupResponse, error) {
 	return &usersPB.SignupResponse{Id: int32(id)}, nil
 }
 
-// - Login
-
-// Login should be the implementation of the Login service method.
+// Login is the handler / entrypoint for the Login API method. Both gRPC and HTTP.
 func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB.LoginResponse, error) {
 
 	// ... get user from DB, hash password, compare passwords, etc.

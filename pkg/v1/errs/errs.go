@@ -1,4 +1,4 @@
-package v1
+package errs
 
 // Note these are just error messages and not actual errors.
 

@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/gilperopiola/grpc-gateway-impl/server"
-	"github.com/gilperopiola/grpc-gateway-impl/server/config"
+	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
 )
 
 /* ----------------------------------- */
@@ -15,19 +15,13 @@ import (
 /* This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it. */
 
 func main() {
-
-	// Init new App.
-	app := server.NewApp(config.New())
-
-	// Init everything inside of the App.
+	app := v1.NewAPI(cfg.New())
 	app.Init()
 
-	// Run servers.
 	app.Run()
 	time.Sleep(1 * time.Second)
 	log.Println("... ¡gRPC and HTTP OK! ...")
 
-	// Wait for shutdown.
 	app.WaitForGracefulShutdown()
 }
 
