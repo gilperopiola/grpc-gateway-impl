@@ -10,7 +10,7 @@ import (
 /* ----------------------------------- */
 
 const (
-	customUserAgent = "gRPC Gateway Implementation by @gilperopiola"
+	customUserAgent = "by @gilperopiola"
 )
 
 // AllDialOptions returns the gRPC dial options.

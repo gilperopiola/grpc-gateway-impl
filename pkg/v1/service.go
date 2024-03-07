@@ -2,18 +2,11 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
-
-// shouldReturnInternalError helps simulate a random internal error. Returns true 1 out of 4 times.
-func shouldReturnInternalError() bool {
-	return rand.Intn(4) == 1
-}
 
 /* ----------------------------------- */
 /*           - v1 Service -            */
@@ -48,8 +41,8 @@ func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*users
 	// }
 
 	// Simulate a random error sometimes.
-	if shouldReturnInternalError() {
-		return nil, status.Error(codes.Internal, "error creating user.")
+	if err := simulateRandomErr(); err != nil {
+		return nil, fmt.Errorf("Service.Signup: %w", err)
 	}
 
 	return signupOKResponse(rand.Intn(1000))
@@ -69,8 +62,8 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 	// }
 
 	// Simulate a random error sometimes.
-	if shouldReturnInternalError() {
-		return nil, status.Error(codes.Internal, "error logging in user.")
+	if err := simulateRandomErr(); err != nil {
+		return nil, fmt.Errorf("Service.Login: %w", err)
 	}
 
 	return loginOKResponse("some.jwt.token")
@@ -78,4 +71,12 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 
 func loginOKResponse(token string) (*usersPB.LoginResponse, error) {
 	return &usersPB.LoginResponse{Token: token}, nil
+}
+
+// simulateRandomErr returns an error 1 out of 5 times.
+func simulateRandomErr() error {
+	if rand.Intn(5) == 1 {
+		return fmt.Errorf("random error")
+	}
+	return nil
 }

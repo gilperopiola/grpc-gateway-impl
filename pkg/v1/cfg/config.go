@@ -13,26 +13,26 @@ import (
 /*             - Config -              */
 /* ----------------------------------- */
 
-// Config holds the configuration for the entire server.
+// Config holds the configuration of the entire API.
 type Config struct {
-	*MainConfig // Main holds the main configuration settings of the server.
-
-	TLS         *TLSConfig         // TLS holds the configuration of the SSL/TLS connection.
-	RateLimiter *RateLimiterConfig // RateLimiter holds the configuration of the rate limiter.
+	*MainConfig
+	*TLSConfig
+	*RateLimiterConfig
 }
 
-// MainConfig is the main configuration settings of the server.
+// MainConfig holds the main configuration settings of the API.
 type MainConfig struct {
 	ProjectName string
-	IsProd      bool
-	GRPCPort    string
-	HTTPPort    string
+
+	IsProd bool
+
+	GRPCPort string
+	HTTPPort string
 }
 
 // TLS configuration.
 type TLSConfig struct {
-	// Enabled defines the use of SSL/TLS for the communication
-	// between the HTTP Gateway and the gRPC server.
+	// Enabled defines the use of SSL/TLS for the communication between the servers.
 	Enabled bool
 
 	// CertPath & KeyPath are the paths to the SSL/TLS certificate and key files.
@@ -46,15 +46,14 @@ type RateLimiterConfig struct {
 	TokensPerSecond int // TokensPerSecond is the number of tokens reloaded per second.
 }
 
-// New loads the configuration from the environment variables.
-func New() *Config {
+// Init loads the configuration from the environment variables.
+func Init() *Config {
+	projectName := getVar("PROJECT_NAME", "grpc-gateway-impl")
 
 	// The project is either run from the root folder or the /cmd folder.
-	// If it's run from the /cmd folder, we need to add a '..' prefix to the filesystem paths
-	// to make them relative to the root folder.
-	// Otherwise, we just add a '.', staying on the current directory.
-	projectName := getVar("PROJECT_NAME", "grpc-gateway-impl")
-	workingDirPathPrefix := getPathPrefix(projectName)
+	// If it's run from /cmd, we add a '..' prefix to the filesystem paths to move them back to the root folder.
+	// Otherwise, we just add a '.', staying on the root.
+	filePathPrefix := getPathPrefix(projectName)
 
 	return &Config{
 		MainConfig: &MainConfig{
@@ -63,12 +62,12 @@ func New() *Config {
 			GRPCPort:    getVar("GRPC_PORT", ":50053"),
 			HTTPPort:    getVar("HTTP_PORT", ":8083"),
 		},
-		TLS: &TLSConfig{
+		TLSConfig: &TLSConfig{
 			Enabled:  getVarBool("TLS_ENABLED", false),
-			CertPath: getVar("TLS_CERT_PATH", workingDirPathPrefix+"/server.crt"),
-			KeyPath:  getVar("TLS_KEY_PATH", workingDirPathPrefix+"/server.key"),
+			CertPath: getVar("TLS_CERT_PATH", filePathPrefix+"/server.crt"),
+			KeyPath:  getVar("TLS_KEY_PATH", filePathPrefix+"/server.key"),
 		},
-		RateLimiter: &RateLimiterConfig{
+		RateLimiterConfig: &RateLimiterConfig{
 			MaxTokens:       getVarInt("RATE_LIMITER_MAX_TOKENS", 20),
 			TokensPerSecond: getVarInt("RATE_LIMITER_TOKENS_PER_SECOND", 4),
 		},
@@ -86,7 +85,7 @@ func getVar(key, fallback string) string {
 // getVarBool returns the value of an env var as a boolean or a fallback value if it doesn't exist.
 func getVarBool(key string, fallback bool) bool {
 	if value, exists := os.LookupEnv(key); exists {
-		return value == "true" || value == "1" || value == "TRUE"
+		return value == "true" || value == "TRUE" || value == "1"
 	}
 	return fallback
 }
@@ -100,8 +99,7 @@ func getVarInt(key string, fallback int) int {
 	return fallback
 }
 
-// getPathPrefix returns the prefix that needs to be added to the default paths
-// so that we always start at the root folder.
+// getPathPrefix returns the prefix that needs to be added to the default paths to start at the root folder.
 func getPathPrefix(projectName string) string {
 	if isWorkingDirRootFolder(projectName) {
 		return "."
@@ -109,11 +107,13 @@ func getPathPrefix(projectName string) string {
 	return ".."
 }
 
-// isWorkingDirRootFolder returns true if the working directory is the /cmd folder.
+// isWorkingDirRootFolder returns true if the working directory is the root folder.
 func isWorkingDirRootFolder(projectName string) bool {
 	workingDir, err := os.Getwd()
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgGettingWorkingDir, err)
 	}
+
+	// The project name is the last part of the root folder path.
 	return strings.HasSuffix(workingDir, projectName)
 }

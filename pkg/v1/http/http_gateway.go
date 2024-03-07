@@ -18,40 +18,42 @@ import (
 /*          - HTTP Gateway -           */
 /* ----------------------------------- */
 
+// HTTPGateway is a wrapper around the actual HTTP Server.
 type HTTPGateway struct {
 	*http.Server
 
-	cfg          *cfg.MainConfig
-	middleware   []runtime.ServeMuxOption
-	middlewareWr MuxWrapperFunc
-	options      []grpc.DialOption
+	cfg         *cfg.MainConfig
+	middleware  []runtime.ServeMuxOption
+	muxWrapper  MuxWrapperFunc
+	grpcOptions []grpc.DialOption
 }
 
-func NewHTTPGateway(c *cfg.MainConfig, middleware []runtime.ServeMuxOption, middlewareWr MuxWrapperFunc, options []grpc.DialOption) *HTTPGateway {
+// NewHTTPGateway returns a new instance of HTTPGateway.
+func NewHTTPGateway(c *cfg.MainConfig, middleware []runtime.ServeMuxOption, muxWrapper MuxWrapperFunc, grpcOpts []grpc.DialOption) *HTTPGateway {
 	return &HTTPGateway{
-		cfg:          c,
-		middleware:   middleware,
-		middlewareWr: middlewareWr,
-		options:      options,
+		cfg:         c,
+		middleware:  middleware,
+		muxWrapper:  muxWrapper,
+		grpcOptions: grpcOpts,
 	}
 }
 
-// Init initializes the HTTP Gateway and registers the API methods there as well.
-// The gateway will point towards the gRPC server's port.
-// This function also adds the HTTP middleware to the server and wraps the mux with an HTTP Logger func.
+// Init initializes the HTTP Gateway and registers the API endpoints. It will point towards the gRPC Server's port.
+// It also adds the HTTP middleware and wraps the mux.
 func (h *HTTPGateway) Init() {
 	mux := runtime.NewServeMux(h.middleware...)
 
-	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.cfg.GRPCPort, h.options); err != nil {
+	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.cfg.GRPCPort, h.grpcOptions); err != nil {
 		log.Fatalf(errs.FatalErrMsgStartingHTTP, err)
 	}
 
-	h.Server = &http.Server{Addr: h.cfg.HTTPPort, Handler: h.middlewareWr(mux)}
+	h.Server = &http.Server{Addr: h.cfg.HTTPPort, Handler: h.muxWrapper(mux)}
 }
 
 // Run runs the HTTP Gateway.
 func (h *HTTPGateway) Run() {
 	log.Printf("Running HTTP on port %s!\n", h.Addr)
+
 	go func() {
 		if err := h.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf(errs.FatalErrMsgServingHTTP, err)
@@ -59,7 +61,7 @@ func (h *HTTPGateway) Run() {
 	}()
 }
 
-// Shutdown gracefully shuts down the HTTP server.
+// Shutdown gracefully shuts down the HTTP Server.
 // It waits for all connections to be closed before shutting down.
 func (h *HTTPGateway) Shutdown() {
 	log.Println("Shutting down HTTP server...")

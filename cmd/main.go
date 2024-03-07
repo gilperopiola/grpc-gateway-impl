@@ -15,7 +15,7 @@ import (
 /* This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it. */
 
 func main() {
-	app := v1.NewAPI(cfg.New())
+	app := v1.NewAPI(cfg.Init())
 	app.Init()
 
 	app.Run()

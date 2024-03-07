@@ -5,34 +5,33 @@ import (
 	"net/http"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 /* ----------------------------------- */
 /*        - HTTP Error Handler -       */
 /* ----------------------------------- */
 
-// httpErrorResponseBody is the struct that gets marshalled onto the HTTP Response body when an error happens.
-// The format is basically '{"error": "error message."}'.
-type httpErrorResponseBody struct {
+// httpErrResponseBody is the struct that gets marshalled onto the HTTP Response body when an error happens.
+// The format is '{"error": "error message."}'.
+type httpErrResponseBody struct {
 	Error string `json:"error"`
 }
 
-// handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
-// It just converts the gRPC error to an HTTP error and writes it to the response.
-// There are some special cases based on the HTTP Status.
-func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
+// handleHTTPErr is a custom error handler for the HTTP Gateway. It's pretty simple.
+// It converts the gRPC error to an HTTP error and writes it to the response.
+func handleHTTPErr(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
 
 	// First, get gRPC status from the error. Then, derive the HTTP Response info from that status.
 	var (
 		grpcStatus       = status.Convert(err)
 		httpStatus       = runtime.HTTPStatusFromCode(grpcStatus.Code())
-		httpResponseBody = httpErrorResponseBody{Error: grpcStatus.Message()}
+		httpResponseBody = httpErrResponseBody{Error: grpcStatus.Message()}
 	)
 
-	// Marshal the error into a buffer. If it fails (unlikely), we just return a generic 500 Internal Server Error.
+	// Marshal the error into a buffer. If it fails (unlikely), we return a generic 500 Internal Server Error.
 	var outBuffer []byte
 	if outBuffer, err = mar.Marshal(httpResponseBody); err != nil {
 		httpStatus = http.StatusInternalServerError
@@ -43,7 +42,7 @@ func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, mar runtime.Mar
 	httpStatus, outBuffer = handle4xxOr5xxError(httpStatus, outBuffer, w)
 
 	// Write the response.
-	setHTTPResponseHeaders(ctx, w, protoreflect.ProtoMessage(nil))
+	setHTTPResponseHeadersWrapper(w)
 	w.WriteHeader(httpStatus)
 	w.Write(outBuffer)
 }

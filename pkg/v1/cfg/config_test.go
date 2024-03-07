@@ -24,14 +24,14 @@ func TestLoadConfig(t *testing.T) {
 		os.Unsetenv("TLS_KEY_PATH")
 	}()
 
-	config := New()
+	config := Init()
 
 	assert.True(t, config.IsProd)
 	assert.Equal(t, ":9999", config.GRPCPort)
 	assert.Equal(t, ":8888", config.HTTPPort)
-	assert.False(t, config.TLS.Enabled)
-	assert.Equal(t, "/path/to/cert", config.TLS.CertPath)
-	assert.Equal(t, "/path/to/key", config.TLS.KeyPath)
+	assert.False(t, config.TLSConfig.Enabled)
+	assert.Equal(t, "/path/to/cert", config.TLSConfig.CertPath)
+	assert.Equal(t, "/path/to/key", config.TLSConfig.KeyPath)
 }
 
 func TestGetVar(t *testing.T) {

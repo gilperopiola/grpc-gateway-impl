@@ -1,4 +1,4 @@
-package misc
+package dependencies
 
 import (
 	"crypto/x509"
@@ -19,7 +19,6 @@ import (
 // It's a SSL/TLS certificate used to secure the communication between the HTTP Gateway and the gRPC server.
 // It must be in a .crt format.
 func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
-
 	// Create certificate pool.
 	out := x509.NewCertPool()
 
@@ -41,7 +40,7 @@ func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
 func NewServerTransportCredentials(certPath, keyPath string) credentials.TransportCredentials {
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 	if err != nil {
-		log.Fatalf(errs.FatalErrMsgLoadingTLSCredentials, err)
+		log.Fatalf(errs.FatalErrMsgLoadingTLSCreds, err)
 	}
 	return creds
 }

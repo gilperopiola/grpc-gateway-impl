@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/dependencies"
+	"golang.org/x/time/rate"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
@@ -19,11 +21,13 @@ import (
 
 func TestRateLimiterInterceptor(t *testing.T) {
 
+	// Create rate limiter and logger.
+	rateLimiterCfg := &cfg.RateLimiterConfig{MaxTokens: 2, TokensPerSecond: 1}
+	limiter := rate.NewLimiter(rate.Limit(rateLimiterCfg.TokensPerSecond), rateLimiterCfg.MaxTokens)
+	logger := zap.NewNop()
+
 	// Config: allow 1 request per second with a max of 2.
-	interceptor := newGRPCRateLimiterInterceptor(&cfg.RateLimiterConfig{
-		MaxTokens:       2,
-		TokensPerSecond: 1,
-	})
+	interceptor := getGRPCRateLimiterInterceptor(limiter, &dependencies.Logger{Logger: logger})
 
 	// Mock handler to simulate gRPC method execution.
 	mockHandler := func(ctx context.Context, req interface{}) (interface{}, error) { return nil, nil }
@@ -50,7 +54,7 @@ func TestRateLimiterInterceptor(t *testing.T) {
 func TestGRPCLoggerInterceptor(t *testing.T) {
 	core, recorded := observer.New(zap.InfoLevel)
 	logger := zap.New(core)
-	interceptor := newGRPCLoggerInterceptor(logger)
+	interceptor := getGRPCLoggerInterceptor(&dependencies.Logger{Logger: logger})
 
 	// Mock handler to simulate gRPC method execution.
 	mockHandler := func(ctx context.Context, req interface{}) (interface{}, error) { return "mockResponse", nil }

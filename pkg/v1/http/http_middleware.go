@@ -4,37 +4,35 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/misc"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/dependencies"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
-
-// MuxWrapperFunc is a middleware that wraps around the HTTP Server's mux.
-type MuxWrapperFunc func(next http.Handler) http.Handler
 
 /* ----------------------------------- */
 /*         - HTTP Middleware -         */
 /* ----------------------------------- */
-// Some middleware are passed as ServeMuxOptions when the mux is created,
-// and some are wrapped around the mux after its creation.
+// Some middleware are passed as ServeMuxOptions when the mux is created.
+// Some are wrapped around the mux afterwards.
+
+// MuxWrapperFunc is a middleware that wraps around the HTTP Gateway's mux.
+type MuxWrapperFunc func(next http.Handler) http.Handler
 
 // AllMiddleware returns all the HTTP middleware that are used as ServeMuxOptions.
 func AllMiddleware() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
-		runtime.WithErrorHandler(handleHTTPError), // Stops other middleware if an error happens.
+		runtime.WithErrorHandler(handleHTTPErr), // Stops other middleware if an error happens.
 		runtime.WithForwardResponseOption(setHTTPResponseHeaders),
 	}
 }
 
-// MiddlewareWrapper returns the middleware to be wrapped around the HTTP Server when it's created.
-// It handles CORS and logs the HTTP Request's info when it finishes executing.
-// It's used to wrap the mux with middleware.
-func MiddlewareWrapper(logger *zap.Logger) MuxWrapperFunc {
+// AllMiddlewareWrapper returns the middleware to be wrapped around the HTTP Gateway's Mux.
+func AllMiddlewareWrapper(logger *dependencies.Logger) MuxWrapperFunc {
+	sugar := logger.Sugar()
 	return func(next http.Handler) http.Handler {
 		return handleCORS(
-			misc.LogHTTP(next, logger),
+			logger.LogHTTP(next, sugar),
 		)
 	}
 }
@@ -42,9 +40,11 @@ func MiddlewareWrapper(logger *zap.Logger) MuxWrapperFunc {
 // handleCORS adds CORS headers to the response and handles preflight requests.
 func handleCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+		// Add headers.
+		for key, value := range corsHeaders {
+			w.Header().Set(key, value)
+		}
 
 		// Handle preflight requests.
 		if r.Method == "OPTIONS" {
@@ -57,6 +57,12 @@ func handleCORS(next http.Handler) http.Handler {
 	})
 }
 
+var corsHeaders = map[string]string{
+	"Access-Control-Allow-Origin":  "*",
+	"Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+	"Access-Control-Allow-Headers": "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+}
+
 // setHTTPResponseHeaders executes before the response is written to the client.
 func setHTTPResponseHeaders(_ context.Context, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
 	for _, headerToBeDeleted := range httpResponseHeadersToDelete {
@@ -66,6 +72,11 @@ func setHTTPResponseHeaders(_ context.Context, rw http.ResponseWriter, _ protore
 		rw.Header().Set(headerKey, headerValue)
 	}
 	return nil
+}
+
+// setHTTPResponseHeadersWrapper allows setHTTPResponseHeaders to be called without context and message.
+func setHTTPResponseHeadersWrapper(rw http.ResponseWriter) error {
+	return setHTTPResponseHeaders(context.Background(), rw, protoreflect.ProtoMessage(nil))
 }
 
 var httpResponseHeadersToAdd = map[string]string{

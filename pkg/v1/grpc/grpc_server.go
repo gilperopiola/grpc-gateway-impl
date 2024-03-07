@@ -14,6 +14,7 @@ import (
 /*           - gRPC Server -           */
 /* ----------------------------------- */
 
+// GRPCServer is a wrapper around the actual gRPC Server.
 type GRPCServer struct {
 	*grpc.Server
 
@@ -22,6 +23,7 @@ type GRPCServer struct {
 	interceptors []grpc.ServerOption
 }
 
+// NewGRPCServer returns a new instance of GRPCServer.
 func NewGRPCServer(port string, api usersPB.UsersServiceServer, interceptors []grpc.ServerOption) *GRPCServer {
 	return &GRPCServer{
 		port:         port,
@@ -30,23 +32,21 @@ func NewGRPCServer(port string, api usersPB.UsersServiceServer, interceptors []g
 	}
 }
 
-// Init initializes the gRPC server and registers the API methods.
-// The HTTP Gateway will point towards this server.
-// This function also adds the gRPC interceptors to the server.
+// Init initializes the gRPC Server, adds the interceptors and registers the API methods.
 func (g *GRPCServer) Init() {
-	grpcServer := grpc.NewServer(g.interceptors...)
-	usersPB.RegisterUsersServiceServer(grpcServer, g.api)
-	g.Server = grpcServer
+	g.Server = grpc.NewServer(g.interceptors...)
+	usersPB.RegisterUsersServiceServer(g.Server, g.api)
 }
 
-// Run runs the gRPC server on a given port.
-// It listens for incoming gRPC requests and serves them.
+// Run makes the gRPC Server listen for incoming gRPC requests and serves them.
 func (g *GRPCServer) Run() {
 	log.Printf("Running gRPC on port %s!\n", g.port)
+
 	lis, err := net.Listen("tcp", g.port)
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgStartingGRPC, err)
 	}
+
 	go func() {
 		if err := g.Server.Serve(lis); err != nil {
 			log.Fatalf(errs.FatalErrMsgServingGRPC, err)
@@ -54,7 +54,7 @@ func (g *GRPCServer) Run() {
 	}()
 }
 
-// Shutdown gracefully shuts down the gRPC server.
+// Shutdown gracefully shuts down the gRPC Server.
 func (g *GRPCServer) Shutdown() {
 	log.Println("Shutting down gRPC server...")
 	g.Server.GracefulStop()
