@@ -40,6 +40,8 @@ type API struct {
 	HTTPMiddleware        []runtime.ServeMuxOption
 	HTTPMiddlewareWrapper httpV1.MuxWrapperFunc
 
+	Repository Repository // Repository to interact with the database.
+
 	// Dependencies needed to run the API.
 	// Validator, Rate Limiter, Logger, TLS Certs, etc.
 	*dependencies.Dependencies
@@ -69,6 +71,7 @@ func (a *API) Init() {
 	a.InitValidator()
 	a.InitRateLimiter()
 	a.InitTLSDependencies()
+	a.InitRepository()
 	a.InitService()
 	a.InitGRPCServer()
 	a.InitHTTPGateway()
@@ -99,8 +102,12 @@ func (a *API) InitConfig() {
 	a.Config = cfg.Init()
 }
 
+func (a *API) InitRepository() {
+	a.Repository = NewRepository(NewDatabase())
+}
+
 func (a *API) InitService() {
-	a.Service = NewService()
+	a.Service = NewService(a.Repository)
 }
 
 func (a *API) InitGRPCServer() {

@@ -17,6 +17,9 @@ USERS_PBS_OUT_DIR := $(PBS_OUT_BASE_DIR)/$(USERS)
 # Also runs the gRPC Server and the gRPC Gateway.
 all: clean generate test run
 
+# Generates code and runs Servers.
+all-fast: generate run
+
 # Generates the gRPC and gRPC Gateway files, as well as the Swagger documentation.
 generate: generate-pbs generate-swagger
 

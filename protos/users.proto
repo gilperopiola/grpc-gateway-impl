@@ -1,23 +1,28 @@
 syntax = "proto3";
 
-/* Users protofile */
-
 package users;
 option go_package = "github.com/gilperopiola/grpc-gateway-impl/pkg/users";
 
+/* ----------------------------------- */
+/*              - Users -              */
+/* ----------------------------------- */
+
+// T0D0 - These imports sometimes are marked as errors, fix.
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-/* OpenAPI Spec */
+/* ----------------------------------- */
+/*         - Swagger Schema -          */
+/* ----------------------------------- */
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "gRPC -> HTTP Gateway Implementation ;)";
-    version: "1.0";
+    title: "grpc-gateway-impl";
+    version: "1.0"; // T0D0 - Use version from go.mod
     contact: {
-      email: "ferra.main@gmail.com";
+      email: "";
     };
   };
   host: "localhost:8083";
@@ -57,18 +62,17 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   }
 };
 
-/* API Objects */
+/* ----------------------------------- */
+/*          - Users Service -          */
+/* ----------------------------------- */
 
 // Mock Service for user management. Provides mock user signup and login.
 service UsersService {
 
   // Creates a new user with username and password.
-  // Returns a random user id.
+  // Returns the created user's unique ID.
   rpc Signup (SignupRequest) returns (SignupResponse) {
-    option (google.api.http) = {
-      post: "/v1/signup";
-      body: "*";
-    };
+    option (google.api.http) = { post: "/v1/signup" body: "*"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "signup";
       tags: ["Users"];
@@ -103,6 +107,24 @@ service UsersService {
       };
     };
   }
+
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/{user_id}";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "get_user";
+      tags: ["Users"];
+      responses: {
+        key: "200";
+        value: {
+          schema: {
+            json_schema: {ref: ".users.GetUserResponse"}
+          }
+        };
+      };
+    };
+  }
 }
 
 message SignupRequest {
@@ -115,7 +137,7 @@ message SignupRequest {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field) = {string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"}},
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
-      description: "Username of the user.",
+      description: "Username of the user to sign up.",
     }
   ];
 
@@ -124,7 +146,7 @@ message SignupRequest {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field) = {string: {min_len: 6, pattern: "[A-Za-z0-9]{6,}"}},
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
-      description: "Password of the user.",
+      description: "Password of the user to sign up.",
     }
   ];
 }
@@ -159,4 +181,16 @@ message LoginRequest {
 
 message LoginResponse {
   string token = 1;
+}
+
+message GetUserRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: { title: "GetUserRequest" }
+  };
+
+  int32 user_id = 1;
+}
+
+message GetUserResponse {
+  string username = 1;
 }

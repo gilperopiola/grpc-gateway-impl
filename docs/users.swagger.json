@@ -1,11 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "gRPC -\u003e HTTP Gateway Implementation ;)",
+    "title": "grpc-gateway-impl",
     "version": "1.0",
-    "contact": {
-      "email": "ferra.main@gmail.com"
-    }
+    "contact": {}
   },
   "tags": [
     {
@@ -99,7 +97,7 @@
     },
     "/v1/signup": {
       "post": {
-        "summary": "Creates a new user with username and password.\nReturns a random user id.",
+        "summary": "Creates a new user with username and password.\nReturns the created user's unique ID.",
         "operationId": "signup",
         "responses": {
           "200": {
@@ -169,6 +167,77 @@
           "Users"
         ]
       }
+    },
+    "/v1/users/{userId}": {
+      "get": {
+        "operationId": "get_user",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/usersGetUserResponse"
+            }
+          },
+          "400": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "validation error: username value length must be at least 4 characters."
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "unauthorized."
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "forbidden error."
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "not found: username not found."
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "internal server error, something went wrong on our end."
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      }
     }
   },
   "definitions": {
@@ -197,6 +266,14 @@
             "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
+        }
+      }
+    },
+    "usersGetUserResponse": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
         }
       }
     },
@@ -231,11 +308,11 @@
       "properties": {
         "username": {
           "type": "string",
-          "description": "Username of the user."
+          "description": "Username of the user to sign up."
         },
         "password": {
           "type": "string",
-          "description": "Password of the user."
+          "description": "Password of the user to sign up."
         }
       },
       "title": "SignupRequest",
