@@ -17,7 +17,9 @@ import (
 type Config struct {
 	*MainConfig
 	*TLSConfig
+	*JWTConfig
 	*RateLimiterConfig
+	*DBConfig
 }
 
 // MainConfig holds the main configuration settings of the API.
@@ -40,10 +42,25 @@ type TLSConfig struct {
 	KeyPath  string
 }
 
+type JWTConfig struct {
+	Secret      string
+	SessionDays int
+}
+
 // RateLimiter configuration.
 type RateLimiterConfig struct {
 	MaxTokens       int // MaxTokens is the maximum number of tokens the bucket can hold.
 	TokensPerSecond int // TokensPerSecond is the number of tokens reloaded per second.
+}
+
+// DBConfig holds the configuration for the database connection.
+type DBConfig struct {
+	Username string
+	Password string
+	Hostname string
+	Port     string
+	Schema   string
+	Params   string
 }
 
 // Init loads the configuration from the environment variables.
@@ -67,9 +84,21 @@ func Init() *Config {
 			CertPath: getVar("TLS_CERT_PATH", filePathPrefix+"/server.crt"),
 			KeyPath:  getVar("TLS_KEY_PATH", filePathPrefix+"/server.key"),
 		},
+		JWTConfig: &JWTConfig{
+			Secret:      getVar("JWT_SECRET", "change-this"),
+			SessionDays: getVarInt("JWT_SESSION_DAYS", 7),
+		},
 		RateLimiterConfig: &RateLimiterConfig{
 			MaxTokens:       getVarInt("RATE_LIMITER_MAX_TOKENS", 20),
 			TokensPerSecond: getVarInt("RATE_LIMITER_TOKENS_PER_SECOND", 4),
+		},
+		DBConfig: &DBConfig{
+			Username: getVar("DB_USERNAME", "root"),
+			Password: getVar("DB_PASSWORD", ""),
+			Hostname: getVar("DB_HOSTNAME", "localhost"),
+			Port:     getVar("DB_PORT", "3306"),
+			Schema:   getVar("DB_SCHEMA", "grpc-gateway-impl"),
+			Params:   getVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
 		},
 	}
 }

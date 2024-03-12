@@ -272,8 +272,9 @@
     "usersGetUserResponse": {
       "type": "object",
       "properties": {
-        "username": {
-          "type": "string"
+        "user": {
+          "$ref": "#/definitions/usersUserInfo",
+          "readOnly": true
         }
       }
     },
@@ -327,6 +328,28 @@
         "id": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "usersUserInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "readOnly": true
+        },
+        "username": {
+          "type": "string",
+          "readOnly": true
+        },
+        "created_at": {
+          "type": "string",
+          "readOnly": true
+        },
+        "updated_at": {
+          "type": "string",
+          "readOnly": true
         }
       }
     }

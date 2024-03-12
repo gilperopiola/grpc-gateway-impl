@@ -192,5 +192,27 @@ message GetUserRequest {
 }
 
 message GetUserResponse {
-  string username = 1;
+  UserInfo user = 1 [
+    json_name = "user",
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+}
+
+message UserInfo {
+  int32 id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string username = 3 [
+    json_name = "username",
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string created_at = 5 [
+    json_name = "created_at",
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string updated_at = 7 [
+    json_name = "updated_at",
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
 }

@@ -1,117 +1,58 @@
 package v1
 
 import (
-	"context"
-	"crypto/sha256"
-	"encoding/base64"
-	"fmt"
-	"math/rand"
-
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/dependencies"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gorm.io/gorm"
 )
 
 /* ----------------------------------- */
 /*           - v1 Service -            */
 /* ----------------------------------- */
 
-// Service is the interface that defines the methods of the API.
+// Service holds every gRPC method of the usersPB.UsersServiceServer.
+// It handles the business logic of the API.
 type Service interface {
 	usersPB.UsersServiceServer
 }
 
-// Service is our concrete implementation of the gRPC API defined in the .proto files.
+// service is our concrete implementation of the Service interface.
+// It has an embedded Repository to interact with the database.
 type service struct {
-	DB Repository
+	DB             Repository
+	TokenGenerator dependencies.TokenGenerator
+	PwdHasher      dependencies.PwdHasher
+
 	*usersPB.UnimplementedUsersServiceServer
 }
 
-// NewService returns a new instance of the Service.
-func NewService(db Repository) *service {
-	return &service{DB: db}
+// NewService returns a new instance of the service.
+func NewService(db Repository, tokenGen dependencies.TokenGenerator, pwdHasher dependencies.PwdHasher) *service {
+	return &service{
+		DB:             db,
+		TokenGenerator: tokenGen,
+		PwdHasher:      pwdHasher,
+	}
 }
 
 /* ----------------------------------- */
-/*        - Service Handlers -         */
+/*         - Service Errors -          */
 /* ----------------------------------- */
 
-// Signup is the handler / entrypoint for the Signup API method. Both gRPC and HTTP.
-func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*usersPB.SignupResponse, error) {
-	user, err := s.DB.GetUser(0, in.Username)
-	if err != nil || user == nil {
-		return nil, status.Errorf(codes.Unknown, "Service.Signup: %v", err)
-	}
-
-	if user.Username != "" {
-		return nil, status.Errorf(codes.AlreadyExists, "Service.Signup: user already exists")
-	}
-
-	user.Username = in.Username
-	user.Password = hashPassword(in.Password, "some-salt")
-
-	if user, err = s.DB.CreateUser(*user); err != nil {
-		return nil, status.Errorf(codes.Unknown, "Service.Signup: %v", err)
-	}
-
-	return signupOKResponse(user.ID)
+var grpcUnknownErr = func(str string, err error) error {
+	return status.Errorf(codes.Unknown, "%s: %v", str, err)
 }
 
-func signupOKResponse(id int) (*usersPB.SignupResponse, error) {
-	return &usersPB.SignupResponse{Id: int32(id)}, nil
+var grpcNotFoundErr = func(entity string) error {
+	return status.Errorf(codes.NotFound, "%s not found.", entity)
 }
 
-// Login is the handler / entrypoint for the Login API method. Both gRPC and HTTP.
-func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB.LoginResponse, error) {
-
-	user, err := s.DB.GetUser(0, in.Username)
-	if err != nil {
-		return nil, status.Errorf(codes.Unknown, "Service.Login: %v", err)
-	}
-	if user != nil && user.Username == "" {
-		return nil, status.Errorf(codes.Unauthenticated, "Service.Login: user does not exist")
-	}
-
-	if user.Password != hashPassword(in.Password, "some-salt") {
-		return nil, status.Errorf(codes.Unauthenticated, "Service.Login: password does not match")
-	}
-
-	tokenString, _ := GenerateToken(user.ID, user.Username, "", "user", "some", 7)
-
-	return loginOKResponse(tokenString)
+var grpcAlreadyExistsErr = func(entity string) error {
+	return status.Errorf(codes.AlreadyExists, "%s already exists.", entity)
 }
 
-func loginOKResponse(token string) (*usersPB.LoginResponse, error) {
-	return &usersPB.LoginResponse{Token: token}, nil
-}
-
-// GetUser is the handler / entrypoint for the GetUser API method. Both gRPC and HTTP.
-func (s *service) GetUser(ctx context.Context, in *usersPB.GetUserRequest) (*usersPB.GetUserResponse, error) {
-	user, err := s.DB.GetUser(int(in.UserId), "")
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, status.Errorf(codes.NotFound, "Service.GetUser: user not found")
-		}
-		return nil, status.Errorf(codes.Unknown, "Service.GetUser: error retrieving user: %v", err)
-	}
-
-	return &usersPB.GetUserResponse{
-		Username: user.Username,
-	}, nil
-}
-
-// simulateRandomErr returns an error 1 out of 5 times.
-func simulateRandomErr() error {
-	if rand.Intn(5) == 1 {
-		return fmt.Errorf("random error")
-	}
-	return nil
-}
-
-// hashPassword returns a base64 encoded sha256 hash of the pwd + salt
-func hashPassword(pwd string, salt string) string {
-	hasher := sha256.New()
-	hasher.Write([]byte(pwd + salt))
-	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+var grpcUnauthenticatedErr = func(reason string) error {
+	return status.Errorf(codes.Unauthenticated, reason)
 }

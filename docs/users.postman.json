@@ -6,13 +6,46 @@
 	},
 	"item": [
 		{
-			"name": "Signup OK (should fail 1 out of 4 times)",
+			"name": "Signup OK",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"let username = \"user_\" + utils.generateRandomString(4)\r",
+							"postman.setEnvironmentVariable(\"username\", username);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var responseData = pm.response.json();\r",
+							"pm.test(\"Response has a field 'id' with a numeric value\", function () {\r",
+							"    pm.expect(responseData).to.have.property(\"id\");\r",
+							"    pm.expect(responseData.id).to.be.a(\"number\");\r",
+							"});\r",
+							"\r",
+							"pm.environment.set(\"user_id\", responseData.id);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"username\": \"gilperopiola\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+					"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
 				},
 				"url": {
 					"raw": "{{baseURL}}/v1/signup",
@@ -28,13 +61,35 @@
 			"response": []
 		},
 		{
-			"name": "Login OK (should fail 1 out of 4 times)",
+			"name": "Login OK",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var responseData = pm.response.json();\r",
+							"pm.test(\"Response has a field 'token' with a string\", function () {\r",
+							"    pm.expect(responseData).to.have.property(\"token\");\r",
+							"    pm.expect(responseData.token).to.be.a(\"string\");\r",
+							"});\r",
+							"\r",
+							"pm.environment.set(\"token\", responseData.token);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"username\": \"gilperopiola\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+					"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
 				},
 				"url": {
 					"raw": "{{baseURL}}/v1/login",
@@ -48,6 +103,58 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "Get User OK",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var responseData = pm.response.json();\r",
+							"pm.test(\"Response has a field 'user'\", function () {\r",
+							"    pm.expect(responseData).to.have.property(\"user\");\r",
+							"});\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{baseURL}}/v1/users/{{user_id}}",
+					"host": [
+						"{{baseURL}}"
+					],
+					"path": [
+						"v1",
+						"users",
+						"{{user_id}}"
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [
@@ -56,6 +163,17 @@
 			"script": {
 				"type": "text/javascript",
 				"exec": [
+					"utils = {",
+					"    generateRandomString: function (length){",
+					"        const characters = 'abcdef';",
+					"        let result = '';",
+					"        for (let i = 0; i < length; i++) {",
+					"            result += characters.charAt(Math.floor(Math.random() * characters.length));",
+					"        }",
+					"        return result;",
+					"    },",
+					"}",
+					"",
 					""
 				]
 			}

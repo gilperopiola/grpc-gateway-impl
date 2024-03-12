@@ -8,6 +8,14 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// Server is an interface that abstracts the gRPC & HTTP Servers.
+// Both servers have the same methods, but they are implemented differently.
+type Server interface {
+	Init()
+	Run()
+	Shutdown()
+}
+
 // Dependencies holds all the dependencies that are used in the API.
 // Has embedded fields.
 type Dependencies struct {
@@ -21,6 +29,10 @@ type Dependencies struct {
 
 	// RateLimiter is used to limit the number of requests that get processed.
 	RateLimiter *rate.Limiter
+
+	Authenticator *jwtAuthenticator
+
+	PwdHasher *pwdHasher
 
 	// TLSDependencies holds the server certificate and server & client credentials.
 	*TLSDependencies // Embedded.

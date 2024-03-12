@@ -19,6 +19,7 @@ const (
 	FatalErrMsgStartingHTTP      = "Failed to start HTTP server: %v"
 	FatalErrMsgServingHTTP       = "Failed to serve HTTP server: %v"
 	FatalErrMsgShuttingDownHTTP  = "Failed to shutdown HTTP server: %v"
+	FatalErrMsgConnectingDB      = "Failed to connect to the database: %v"
 
 	// Request lifecycle error messages.
 	ErrMsgInValidation           = "validation error: %v."

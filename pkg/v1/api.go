@@ -7,12 +7,13 @@ import (
 	"syscall"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/db"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/dependencies"
 	grpcV1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/grpc"
 	httpV1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/http"
-	"golang.org/x/time/rate"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 )
 
@@ -26,9 +27,12 @@ type API struct {
 	Service     // API.
 	*cfg.Config // API Configuration.
 
+	Repository Repository   // Repository to interact with the database.
+	Database   *db.Database // Database connection.
+
 	// GRPCServer and HTTPGateway are the servers we are going to run.
-	GRPCServer  Server
-	HTTPGateway Server
+	GRPCServer  dependencies.Server
+	HTTPGateway dependencies.Server
 
 	// GRPCInterceptors run before or after gRPC calls.
 	// GRPCDialOptions configure the communication between the HTTP Gateway and the gRPC Server.
@@ -40,10 +44,7 @@ type API struct {
 	HTTPMiddleware        []runtime.ServeMuxOption
 	HTTPMiddlewareWrapper httpV1.MuxWrapperFunc
 
-	Repository Repository // Repository to interact with the database.
-
-	// Dependencies needed to run the API.
-	// Validator, Rate Limiter, Logger, TLS Certs, etc.
+	// Dependencies needed to run the API. Validator, Rate Limiter, Logger, TLS Certs, etc.
 	*dependencies.Dependencies
 }
 
@@ -57,18 +58,12 @@ func NewAPI(config *cfg.Config) *API {
 	}
 }
 
-// Server is an interface that abstracts the gRPC & HTTP Servers.
-// Both servers have the same methods, but they are implemented differently.
-type Server interface {
-	Init()
-	Run()
-	Shutdown()
-}
-
 // Init initializes all API dependencies.
 func (a *API) Init() {
 	a.InitLogger()
 	a.InitValidator()
+	a.InitAuthenticator()
+	a.InitPwdHasher()
 	a.InitRateLimiter()
 	a.InitTLSDependencies()
 	a.InitRepository()
@@ -103,11 +98,12 @@ func (a *API) InitConfig() {
 }
 
 func (a *API) InitRepository() {
-	a.Repository = NewRepository(NewDatabase())
+	a.Database = db.NewDatabase(a.DBConfig)
+	a.Repository = NewRepository(a.Database)
 }
 
 func (a *API) InitService() {
-	a.Service = NewService(a.Repository)
+	a.Service = NewService(a.Repository, a.Authenticator, a.PwdHasher)
 }
 
 func (a *API) InitGRPCServer() {
@@ -131,6 +127,14 @@ func (a *API) InitLogger() {
 
 func (a *API) InitValidator() {
 	a.Validator = dependencies.NewValidator()
+}
+
+func (a *API) InitAuthenticator() {
+	a.Authenticator = dependencies.NewJWTAuthenticator(a.JWTConfig.Secret, a.JWTConfig.SessionDays)
+}
+
+func (a *API) InitPwdHasher() {
+	a.PwdHasher = dependencies.NewPwdHasher(a.JWTConfig.Secret)
 }
 
 func (a *API) InitRateLimiter() {
