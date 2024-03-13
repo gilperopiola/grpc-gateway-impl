@@ -2,159 +2,996 @@
 	"info": {
 		"_postman_id": "36b1cc57-9f4e-44f6-a383-7e4cfd2b5348",
 		"name": "GRPC Gateway Implementation",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "5310198",
+		"_collection_link": "https://warped-escape-42133.postman.co/workspace/NotSpoton~8743d5aa-98de-435e-839b-e4188f191c81/collection/5310198-36b1cc57-9f4e-44f6-a383-7e4cfd2b5348?action=share&source=collection_link&creator=5310198"
 	},
 	"item": [
 		{
-			"name": "Signup OK",
-			"event": [
+			"name": "Happy Path",
+			"item": [
 				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							"let username = \"user_\" + utils.generateRandomString(4)\r",
-							"postman.setEnvironmentVariable(\"username\", username);\r",
-							""
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"\r",
-							"var responseData = pm.response.json();\r",
-							"pm.test(\"Response has a field 'id' with a numeric value\", function () {\r",
-							"    pm.expect(responseData).to.have.property(\"id\");\r",
-							"    pm.expect(responseData.id).to.be.a(\"number\");\r",
-							"});\r",
-							"\r",
-							"pm.environment.set(\"user_id\", responseData.id);\r",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
-				},
-				"url": {
-					"raw": "{{baseURL}}/v1/signup",
-					"host": [
-						"{{baseURL}}"
+					"name": "Signup OK",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"let username = \"user_\" + utils.generateRandomString(4)\r",
+									"postman.setEnvironmentVariable(\"username\", username);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'id' with a numeric value\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"id\");\r",
+									"    pm.expect(responseData.id).to.be.a(\"number\");\r",
+									"});\r",
+									"\r",
+									"pm.environment.set(\"user_id\", responseData.id);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
 					],
-					"path": [
-						"v1",
-						"signup"
-					]
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/signup",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login OK",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'token' with a string\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"token\");\r",
+									"    pm.expect(responseData.token).to.be.a(\"string\");\r",
+									"});\r",
+									"\r",
+									"pm.environment.set(\"token\", responseData.token);\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User OK",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'user'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"user\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users/{{user_id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Admin OK",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'token' with a string\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"token\");\r",
+									"    pm.expect(responseData.token).to.be.a(\"string\");\r",
+									"});\r",
+									"\r",
+									"pm.environment.set(\"token_admin\", responseData.token);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"admin\",\r\n    \"password\": \"change_me\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users OK",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'users'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"users\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_admin}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users OK With Filter",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'users'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"users\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_admin}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users?filter=admin",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "admin"
+								}
+							]
+						}
+					},
+					"response": []
 				}
-			},
-			"response": []
+			]
 		},
 		{
-			"name": "Login OK",
-			"event": [
+			"name": "Error Scenarios",
+			"item": [
 				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"\r",
-							"var responseData = pm.response.json();\r",
-							"pm.test(\"Response has a field 'token' with a string\", function () {\r",
-							"    pm.expect(responseData).to.have.property(\"token\");\r",
-							"    pm.expect(responseData.token).to.be.a(\"string\");\r",
-							"});\r",
-							"\r",
-							"pm.environment.set(\"token\", responseData.token);\r",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
-				},
-				"url": {
-					"raw": "{{baseURL}}/v1/login",
-					"host": [
-						"{{baseURL}}"
+					"name": "Signup Existing Username",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {\r",
+									"    pm.response.to.have.status(409);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
 					],
-					"path": [
-						"v1",
-						"login"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get User OK",
-			"event": [
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/signup",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
 				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"\r",
-							"var responseData = pm.response.json();\r",
-							"pm.test(\"Response has a field 'user'\", function () {\r",
-							"    pm.expect(responseData).to.have.property(\"user\");\r",
-							"});\r",
-							"\r",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{token}}",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": ""
-				},
-				"url": {
-					"raw": "{{baseURL}}/v1/users/{{user_id}}",
-					"host": [
-						"{{baseURL}}"
+					"name": "Signup Without Body",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
 					],
-					"path": [
-						"v1",
-						"users",
-						"{{user_id}}"
-					]
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/signup",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Signup Invalid Username",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"invalid_username_invalid_username_invalid_username\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/signup",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Signup Invalid Password",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"username\",\r\n    \"password\": \"invalid_p4ssw0rd_invalid_p4ssw0rd_invalid_p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/signup",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Non Existing User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {\r",
+									"    pm.response.to.have.status(401);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"non_existing_user\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Wrong Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {\r",
+									"    pm.response.to.have.status(401);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"wr0ng_p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Without Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Without JWT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {\r",
+									"    pm.response.to.have.status(401);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users/{{user_id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Empty Authorization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {\r",
+									"    pm.response.to.have.status(401);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users/{{user_id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Wrong Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {\r",
+									"    pm.response.to.have.status(401);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXJfYmRjZCIsInJvbGUiOiJkZWZhdWx0IiwiZXhwIjoxNzEwOTExODYyLCJpYXQiOjE3MTAzMDcwNjIsImp0aSI6IjE0In0.Brwtug0khD3umyca9C00t0Rj6c9tTH_ywV4jerHGUdQ",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users/{{user_id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Wrong UserID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 403\", function () {\r",
+									"    pm.response.to.have.status(403);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users/1",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users Non Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 403\", function () {\r",
+									"    pm.response.to.have.status(403);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users Invalid Params",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_admin}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users?page=0&page_size=500",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "page_size",
+									"value": "500"
+								}
+							]
+						}
+					},
+					"response": []
 				}
-			},
-			"response": []
+			]
 		}
 	],
 	"event": [

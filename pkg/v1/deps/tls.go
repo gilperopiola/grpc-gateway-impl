@@ -1,4 +1,4 @@
-package dependencies
+package deps
 
 import (
 	"crypto/x509"
@@ -19,6 +19,7 @@ import (
 // It's a SSL/TLS certificate used to secure the communication between the HTTP Gateway and the gRPC server.
 // It must be in a .crt format.
 func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
+
 	// Create certificate pool.
 	out := x509.NewCertPool()
 

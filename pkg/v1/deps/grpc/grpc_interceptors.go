@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/dependencies"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -20,7 +20,7 @@ import (
 /* ----------------------------------- */
 
 // AllInterceptors returns all the gRPC interceptors as ServerOptions.
-func AllInterceptors(deps *dependencies.Dependencies, tlsEnabled bool) []grpc.ServerOption {
+func AllInterceptors(deps *deps.Deps, tlsEnabled bool) []grpc.ServerOption {
 	out := make([]grpc.ServerOption, 0)
 	if tlsEnabled {
 		out = append(out, getGRPCTLSInterceptor(deps.ServerCreds)) // TLS interceptor.
@@ -30,7 +30,7 @@ func AllInterceptors(deps *dependencies.Dependencies, tlsEnabled bool) []grpc.Se
 }
 
 // getDefaultInterceptors returns the default gRPC interceptors.
-func getDefaultInterceptors(deps *dependencies.Dependencies) grpc.ServerOption {
+func getDefaultInterceptors(deps *deps.Deps) grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
 		getGRPCRateLimiterInterceptor(deps.RateLimiter, deps.Logger),
 		getGRPCLoggerInterceptor(deps.Logger),
@@ -40,18 +40,18 @@ func getDefaultInterceptors(deps *dependencies.Dependencies) grpc.ServerOption {
 	)
 }
 
-func getGRPCJWTInterceptor(tokenValidator dependencies.TokenValidator) grpc.UnaryServerInterceptor {
-	return tokenValidator.Validate(dependencies.AnyRole)
+func getGRPCJWTInterceptor(tokenValidator deps.TokenValidator) grpc.UnaryServerInterceptor {
+	return tokenValidator.Validate()
 }
 
 // getGRPCValidatorInterceptor takes a *Validator and returns a gRPC interceptor
 // that enforces the validation rules written in the .proto files.
-func getGRPCValidatorInterceptor(validator *dependencies.Validator) grpc.UnaryServerInterceptor {
+func getGRPCValidatorInterceptor(validator *deps.Validator) grpc.UnaryServerInterceptor {
 	return validator.Validate()
 }
 
 // getGRPCLoggerInterceptor returns a gRPC interceptor that logs every gRPC request that comes in through the gRPC server.
-func getGRPCLoggerInterceptor(logger *dependencies.Logger) grpc.UnaryServerInterceptor {
+func getGRPCLoggerInterceptor(logger *deps.Logger) grpc.UnaryServerInterceptor {
 	sugar := logger.Sugar()
 	return logger.LogGRPC(sugar)
 }
@@ -63,7 +63,7 @@ func getGRPCTLSInterceptor(serverCreds credentials.TransportCredentials) grpc.Se
 }
 
 // getGRPCRecoveryInterceptor returns a gRPC interceptor that recovers from panics.
-func getGRPCRecoveryInterceptor(logger *dependencies.Logger) grpc.UnaryServerInterceptor {
+func getGRPCRecoveryInterceptor(logger *deps.Logger) grpc.UnaryServerInterceptor {
 	return grpc_recovery.UnaryServerInterceptor(
 		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
 			logger.Error("gRPC Panic!", zap.Any("info", p))
@@ -74,7 +74,7 @@ func getGRPCRecoveryInterceptor(logger *dependencies.Logger) grpc.UnaryServerInt
 
 // getGRPCRateLimiterInterceptor returns a gRPC interceptor that limits the rate of requests that the server can process.
 // Returns a gRPC ResourceExhausted error if the rate limit is exceeded.
-func getGRPCRateLimiterInterceptor(limiter *rate.Limiter, logger *dependencies.Logger) grpc.UnaryServerInterceptor {
+func getGRPCRateLimiterInterceptor(limiter *rate.Limiter, logger *deps.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if !limiter.Allow() {
 			logger.Error("Rate limit exceeded!")

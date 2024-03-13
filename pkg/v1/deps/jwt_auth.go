@@ -1,10 +1,12 @@
-package dependencies
+package deps
 
 import (
 	"context"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/db"
 
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/exp/slices"
@@ -18,29 +20,21 @@ import (
 /*            - JWT Auth -             */
 /* ----------------------------------- */
 
-type Role string
-
-const (
-	AnyRole     Role = "any"
-	DefaultRole Role = "default"
-	AdminRole   Role = "admin"
-)
-
 type Claims struct {
-	Username string `json:"username"`
-	Role     Role   `json:"role"`
+	Username string  `json:"username"`
+	Role     db.Role `json:"role"`
 	jwt.RegisteredClaims
 }
 
 type TokenGenerator interface {
-	Generate(id int, username string, role Role) (string, error)
+	Generate(id int, username string, role db.Role) (string, error)
 }
 
 type TokenValidator interface {
-	Validate(expectedRole Role) grpc.UnaryServerInterceptor
+	Validate() grpc.UnaryServerInterceptor
 
 	getBearerFromCtx(ctx context.Context) (string, error)
-	getClaimsFromBearer(bearer string, expectedRole Role) (*Claims, error)
+	getClaimsFromBearer(bearer string) (*Claims, error)
 	addClaimsInfoToCtx(c context.Context, claims *Claims) context.Context
 	keyFunc(_ *jwt.Token) (interface{}, error)
 }
@@ -58,7 +52,7 @@ func NewJWTAuthenticator(secret string, sessionDays int) *jwtAuthenticator {
 /*         - Generate Token -          */
 /* ----------------------------------- */
 
-func (a *jwtAuthenticator) Generate(id int, username string, role Role) (string, error) {
+func (a *jwtAuthenticator) Generate(id int, username string, role db.Role) (string, error) {
 
 	// New claims with Username, Role and ID.
 	claims := &Claims{
@@ -84,26 +78,30 @@ func (a *jwtAuthenticator) Generate(id int, username string, role Role) (string,
 /*         - Validate Token -          */
 /* ----------------------------------- */
 
-// RequestWithUserID is an interface that lets us use protobuf request types that have a GetUserId method.
+// RequestWithUserID is an interface that lets us abstract .pb request types that have a GetUserId method.
 type RequestWithUserID interface {
 	GetUserId() int32
 }
 
-var methodsWithoutAuth = []string{
+var publicMethods = []string{
 	"/users.UsersService/Signup",
 	"/users.UsersService/Login",
 }
 
-var methodsWithSelfAuth = []string{
+var selfAuthMethods = []string{
 	"/users.UsersService/GetUser",
 }
 
-func (a *jwtAuthenticator) Validate(expectedRole Role) grpc.UnaryServerInterceptor {
+var adminMethods = []string{
+	"/users.UsersService/GetUsers",
+}
+
+func (a *jwtAuthenticator) Validate() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		grpcMethod := svInfo.FullMethod
 
 		// If the method does not require authentication, skip validation.
-		if slices.Contains(methodsWithoutAuth, grpcMethod) {
+		if slices.Contains(publicMethods, grpcMethod) {
 			return handler(ctx, req)
 		}
 
@@ -114,14 +112,19 @@ func (a *jwtAuthenticator) Validate(expectedRole Role) grpc.UnaryServerIntercept
 		}
 
 		// Get the claims from the token and validate them.
-		claims, err := a.getClaimsFromBearer(bearer, expectedRole)
+		claims, err := a.getClaimsFromBearer(bearer)
 		if err != nil {
 			return nil, err
 		}
 
 		// If the method only allows the user to access their own data, check if the JWT User ID is the same as the one on the request.
-		if slices.Contains(methodsWithSelfAuth, grpcMethod) && fmt.Sprint(req.(RequestWithUserID).GetUserId()) != claims.ID {
+		if slices.Contains(selfAuthMethods, grpcMethod) && fmt.Sprint(req.(RequestWithUserID).GetUserId()) != claims.ID {
 			return nil, status.Errorf(codes.PermissionDenied, "auth: user id invalid")
+		}
+
+		// If the method only allows admins, check if the user is an admin.
+		if slices.Contains(adminMethods, grpcMethod) && claims.Role != db.AdminRole {
+			return nil, status.Errorf(codes.PermissionDenied, "auth: role invalid")
 		}
 
 		// Add the user info to the context.
@@ -151,7 +154,7 @@ func (a *jwtAuthenticator) getBearerFromCtx(ctx context.Context) (string, error)
 }
 
 // getClaimsFromBearer parses the token into Claims and then validates them.
-func (a *jwtAuthenticator) getClaimsFromBearer(bearer string, expectedRole Role) (*Claims, error) {
+func (a *jwtAuthenticator) getClaimsFromBearer(bearer string) (*Claims, error) {
 	jwtToken, err := jwt.ParseWithClaims(bearer, &Claims{}, a.keyFunc)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "auth: token invalid")
@@ -159,9 +162,6 @@ func (a *jwtAuthenticator) getClaimsFromBearer(bearer string, expectedRole Role)
 	claims, ok := jwtToken.Claims.(*Claims)
 	if !ok || !jwtToken.Valid || claims.Valid() != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "auth: token invalid")
-	}
-	if expectedRole != AnyRole && claims.Role != expectedRole {
-		return nil, status.Errorf(codes.Unauthenticated, "auth: role invalid")
 	}
 	return claims, nil
 }

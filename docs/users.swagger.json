@@ -168,8 +168,98 @@
         ]
       }
     },
+    "/v1/users": {
+      "get": {
+        "operationId": "get_users",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/usersGetUsersResponse"
+            }
+          },
+          "400": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "validation error: username value length must be at least 4 characters."
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "unauthorized."
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "forbidden error."
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "not found: username not found."
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "internal server error, something went wrong on our end."
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "description": "Page number.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": "1"
+          },
+          {
+            "name": "page_size",
+            "description": "Users per page.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": "10"
+          },
+          {
+            "name": "filter",
+            "description": "Username filter.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/v1/users/{userId}": {
       "get": {
+        "summary": "Gets a user by ID. Returns the user's information.\nRequires a JWT Token with a matching user's ID.",
         "operationId": "get_user",
         "responses": {
           "200": {
@@ -278,6 +368,23 @@
         }
       }
     },
+    "usersGetUsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/usersUserInfo"
+          },
+          "readOnly": true
+        },
+        "pagination": {
+          "$ref": "#/definitions/usersPaginationInfo",
+          "readOnly": true
+        }
+      }
+    },
     "usersLoginRequest": {
       "type": "object",
       "properties": {
@@ -301,6 +408,21 @@
       "properties": {
         "token": {
           "type": "string"
+        }
+      }
+    },
+    "usersPaginationInfo": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "integer",
+          "format": "int32",
+          "readOnly": true
+        },
+        "total": {
+          "type": "integer",
+          "format": "int32",
+          "readOnly": true
         }
       }
     },

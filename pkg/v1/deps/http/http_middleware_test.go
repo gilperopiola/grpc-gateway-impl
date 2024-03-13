@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/dependencies"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -73,7 +73,7 @@ func TestHandleHTTPError(t *testing.T) {
 
 func TestLogHTTP(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	middleware := AllMiddlewareWrapper(&dependencies.Logger{Logger: logger})
+	middleware := AllMiddlewareWrapper(&deps.Logger{Logger: logger})
 
 	called := false
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -23,7 +23,10 @@ type UsersServiceClient interface {
 	// Logs in a user with username and password.
 	// Returns a JWT token string.
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// Gets a user by ID. Returns the user's information.
+	// Requires a JWT Token with a matching user's ID.
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error)
 }
 
 type usersServiceClient struct {
@@ -61,6 +64,15 @@ func (c *usersServiceClient) GetUser(ctx context.Context, in *GetUserRequest, op
 	return out, nil
 }
 
+func (c *usersServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error) {
+	out := new(GetUsersResponse)
+	err := c.cc.Invoke(ctx, "/users.UsersService/GetUsers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UsersServiceServer is the server API for UsersService service.
 // All implementations must embed UnimplementedUsersServiceServer
 // for forward compatibility
@@ -71,7 +83,10 @@ type UsersServiceServer interface {
 	// Logs in a user with username and password.
 	// Returns a JWT token string.
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	// Gets a user by ID. Returns the user's information.
+	// Requires a JWT Token with a matching user's ID.
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error)
 	mustEmbedUnimplementedUsersServiceServer()
 }
 
@@ -87,6 +102,9 @@ func (UnimplementedUsersServiceServer) Login(context.Context, *LoginRequest) (*L
 }
 func (UnimplementedUsersServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedUsersServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
 }
 func (UnimplementedUsersServiceServer) mustEmbedUnimplementedUsersServiceServer() {}
 
@@ -155,6 +173,24 @@ func _UsersService_GetUser_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UsersService_GetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UsersServiceServer).GetUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/users.UsersService/GetUsers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UsersServiceServer).GetUsers(ctx, req.(*GetUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _UsersService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "users.UsersService",
 	HandlerType: (*UsersServiceServer)(nil),
@@ -170,6 +206,10 @@ var _UsersService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUser",
 			Handler:    _UsersService_GetUser_Handler,
+		},
+		{
+			MethodName: "GetUsers",
+			Handler:    _UsersService_GetUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

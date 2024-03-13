@@ -530,7 +530,7 @@ message JSONSchema {
   reserved 29;
   // following fields are reserved, as the properties have been omitted from
   // OpenAPI v2:
-  // patternProperties, dependencies, propertyNames, const
+  // patternProperties, deps, propertyNames, const
   reserved 30 to 33;
   // Items in 'array' must be unique.
   repeated string array = 34;

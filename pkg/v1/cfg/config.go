@@ -61,6 +61,8 @@ type DBConfig struct {
 	Port     string
 	Schema   string
 	Params   string
+
+	AdminPassword string
 }
 
 // Init loads the configuration from the environment variables.
@@ -85,12 +87,12 @@ func Init() *Config {
 			KeyPath:  getVar("TLS_KEY_PATH", filePathPrefix+"/server.key"),
 		},
 		JWTConfig: &JWTConfig{
-			Secret:      getVar("JWT_SECRET", "change-this"),
+			Secret:      getVar("JWT_SECRET", "change_me"),
 			SessionDays: getVarInt("JWT_SESSION_DAYS", 7),
 		},
 		RateLimiterConfig: &RateLimiterConfig{
-			MaxTokens:       getVarInt("RATE_LIMITER_MAX_TOKENS", 20),
-			TokensPerSecond: getVarInt("RATE_LIMITER_TOKENS_PER_SECOND", 4),
+			MaxTokens:       getVarInt("RATE_LIMITER_MAX_TOKENS", 40),
+			TokensPerSecond: getVarInt("RATE_LIMITER_TOKENS_PER_SECOND", 10),
 		},
 		DBConfig: &DBConfig{
 			Username: getVar("DB_USERNAME", "root"),
@@ -99,6 +101,8 @@ func Init() *Config {
 			Port:     getVar("DB_PORT", "3306"),
 			Schema:   getVar("DB_SCHEMA", "grpc-gateway-impl"),
 			Params:   getVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
+
+			AdminPassword: getVar("DB_ADMIN_PASSWORD", "change_me"), // This gets hashed before being used.
 		},
 	}
 }

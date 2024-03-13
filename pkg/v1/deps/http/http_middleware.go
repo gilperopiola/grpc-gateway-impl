@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/dependencies"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -28,7 +28,7 @@ func AllMiddleware() []runtime.ServeMuxOption {
 }
 
 // AllMiddlewareWrapper returns the middleware to be wrapped around the HTTP Gateway's Mux.
-func AllMiddlewareWrapper(logger *dependencies.Logger) MuxWrapperFunc {
+func AllMiddlewareWrapper(logger *deps.Logger) MuxWrapperFunc {
 	sugar := logger.Sugar()
 	return func(next http.Handler) http.Handler {
 		return handleCORS(

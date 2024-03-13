@@ -32,5 +32,24 @@ func (db *Database) Connect(c *cfg.DBConfig) {
 		log.Fatalf(errs.FatalErrMsgConnectingDB, err)
 	}
 
+	// Migrate the models to the database.
 	db.DB.AutoMigrate(allModels...)
+
+	// Insert the admin user if it doesn't exist.
+	db.InsertAdmin(c.AdminPassword)
+}
+
+func (db *Database) InsertAdmin(adminPwd string) {
+	if err := db.DB.Create(&User{Username: "admin", Password: adminPwd, Role: AdminRole}).Error; err != nil {
+		log.Printf("error inserting admin: %v\n", err)
+	}
+}
+
+func (db *Database) Close() {
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		log.Printf("error getting db connection: %v\n", err)
+		return
+	}
+	sqlDB.Close()
 }
