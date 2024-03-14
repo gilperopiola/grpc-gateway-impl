@@ -20,6 +20,19 @@ import (
 /*            - JWT Auth -             */
 /* ----------------------------------- */
 
+var publicMethods = []string{
+	"/users.UsersService/Signup",
+	"/users.UsersService/Login",
+}
+
+var selfAuthMethods = []string{
+	"/users.UsersService/GetUser",
+}
+
+var adminMethods = []string{
+	"/users.UsersService/GetUsers",
+}
+
 type Claims struct {
 	Username string  `json:"username"`
 	Role     db.Role `json:"role"`
@@ -52,6 +65,7 @@ func NewJWTAuthenticator(secret string, sessionDays int) *jwtAuthenticator {
 /*         - Generate Token -          */
 /* ----------------------------------- */
 
+// Generate returns a JWT token with the given user id, username and role.
 func (a *jwtAuthenticator) Generate(id int, username string, role db.Role) (string, error) {
 
 	// New claims with Username, Role and ID.
@@ -83,19 +97,7 @@ type RequestWithUserID interface {
 	GetUserId() int32
 }
 
-var publicMethods = []string{
-	"/users.UsersService/Signup",
-	"/users.UsersService/Login",
-}
-
-var selfAuthMethods = []string{
-	"/users.UsersService/GetUser",
-}
-
-var adminMethods = []string{
-	"/users.UsersService/GetUsers",
-}
-
+// Validate returns a gRPC interceptor that validates the JWT token from the context.
 func (a *jwtAuthenticator) Validate() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		grpcMethod := svInfo.FullMethod

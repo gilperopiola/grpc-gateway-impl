@@ -9,26 +9,27 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/db"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps"
-	grpcV1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps/grpc"
-	httpV1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps/http"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps/grpc"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps/http"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
+	grpc_external "google.golang.org/grpc"
 )
 
 /* ----------------------------------- */
 /*             - v1 API -              */
 /* ----------------------------------- */
 
-// API holds the gRPC & HTTP Servers, and all their deps.
+// API holds the gRPC & HTTP Servers, and all their dependencies.
 // It has an embedded Service that implements all the API Handlers.
 type API struct {
-	Service     // API.
-	*cfg.Config // API Configuration.
+	service.Service // API.
+	*cfg.Config     // API Configuration.
 
-	Repository Repository   // Repository to interact with the database.
-	Database   *db.Database // Database connection.
+	Repository db.Repository // Repository to interact with the database.
+	Database   *db.Database  // Database connection.
 
 	// GRPCServer and HTTPGateway are the servers we are going to run.
 	GRPCServer  deps.Server
@@ -36,13 +37,13 @@ type API struct {
 
 	// GRPCInterceptors run before or after gRPC calls.
 	// GRPCDialOptions configure the communication between the HTTP Gateway and the gRPC Server.
-	GRPCInterceptors []grpc.ServerOption
-	GRPCDialOptions  []grpc.DialOption
+	GRPCInterceptors []grpc_external.ServerOption
+	GRPCDialOptions  []grpc_external.DialOption
 
 	// HTTPMiddleware are the ServeMuxOptions that run before or after HTTP calls.
 	// HTTPMiddlewareWrapper are the middleware that wrap around the HTTP Gateway.
 	HTTPMiddleware        []runtime.ServeMuxOption
-	HTTPMiddlewareWrapper httpV1.MuxWrapperFunc
+	HTTPMiddlewareWrapper http.MuxWrapperFunc
 
 	// Deps needed to run the API. Validator, Rate Limiter, Logger, TLS Certs, etc.
 	*deps.Deps
@@ -50,20 +51,19 @@ type API struct {
 
 // NewAPI returns a new API with the given configuration.
 func NewAPI(config *cfg.Config) *API {
-	return &API{
-		Config: config,
-		Deps:   deps.NewDeps(),
-	}
+	api := &API{Config: config, Deps: deps.NewDeps()}
+	api.Init()
+	return api
 }
 
-// Init initializes all API deps.
+// Init initializes all API components.
 func (a *API) Init() {
 	a.InitLogger()
-	a.InitValidator()
-	a.InitAuthenticator()
+	a.InitTLSDeps()
 	a.InitPwdHasher()
 	a.InitRateLimiter()
-	a.InitTLSDeps()
+	a.InitValidator()
+	a.InitAuthenticator()
 	a.InitRepository()
 	a.InitService()
 	a.InitGRPCServer()
@@ -85,6 +85,7 @@ func (a *API) WaitForGracefulShutdown() {
 	a.Database.Close()
 	a.GRPCServer.Shutdown()
 	a.HTTPGateway.Shutdown()
+
 	log.Println("Servers stopped! Bye bye~")
 }
 
@@ -93,30 +94,29 @@ func (a *API) WaitForGracefulShutdown() {
 /* ----------------------------------- */
 
 func (a *API) InitConfig() {
-	a.Config = cfg.Init()
+	a.Config = cfg.Load()
 }
 
 func (a *API) InitRepository() {
-	a.DBConfig.AdminPassword = a.PwdHasher.Hash(a.DBConfig.AdminPassword) // Hash admin pwd.
 	a.Database = db.NewDatabase(a.DBConfig)
-	a.Repository = NewRepository(a.Database)
+	a.Repository = db.NewRepository(a.Database)
 }
 
 func (a *API) InitService() {
-	a.Service = NewService(a.Repository, a.Authenticator, a.PwdHasher)
+	a.Service = service.NewService(a.Repository, a.Authenticator, a.PwdHasher)
 }
 
 func (a *API) InitGRPCServer() {
-	a.GRPCInterceptors = grpcV1.AllInterceptors(a.Deps, a.TLSConfig.Enabled)
-	a.GRPCDialOptions = grpcV1.AllDialOptions(a.ClientCreds)
-	a.GRPCServer = grpcV1.NewGRPCServer(a.Config.GRPCPort, a.Service, a.GRPCInterceptors)
+	a.GRPCInterceptors = grpc.AllInterceptors(a.Deps, a.TLSConfig.Enabled)
+	a.GRPCDialOptions = grpc.AllDialOptions(a.ClientCreds)
+	a.GRPCServer = grpc.NewGRPCServer(a.Config.GRPCPort, a.Service, a.GRPCInterceptors)
 	a.GRPCServer.Init()
 }
 
 func (a *API) InitHTTPGateway() {
-	a.HTTPMiddleware = httpV1.AllMiddleware()
-	a.HTTPMiddlewareWrapper = httpV1.AllMiddlewareWrapper(a.Logger)
-	a.HTTPGateway = httpV1.NewHTTPGateway(a.MainConfig, a.HTTPMiddleware, a.HTTPMiddlewareWrapper, a.GRPCDialOptions)
+	a.HTTPMiddleware = http.AllMiddleware()
+	a.HTTPMiddlewareWrapper = http.AllMiddlewareWrapper(a.Logger)
+	a.HTTPGateway = http.NewHTTPGateway(a.MainConfig, a.HTTPMiddleware, a.HTTPMiddlewareWrapper, a.GRPCDialOptions)
 	a.HTTPGateway.Init()
 }
 
@@ -135,6 +135,9 @@ func (a *API) InitAuthenticator() {
 
 func (a *API) InitPwdHasher() {
 	a.PwdHasher = deps.NewPwdHasher(a.JWTConfig.Secret)
+
+	// Hash the DB admin password.
+	a.DBConfig.AdminPassword = a.PwdHasher.Hash(a.DBConfig.AdminPassword)
 }
 
 func (a *API) InitRateLimiter() {

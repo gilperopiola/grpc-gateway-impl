@@ -1,34 +1,40 @@
-package v1
+package db
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/db"
-
 	"gorm.io/gorm"
 )
 
+/* ----------------------------------- */
+/*            - Repository -           */
+/* ----------------------------------- */
+
 // Repository is the interface that wraps the basic methods to interact with the database.
 type Repository interface {
-	CreateUser(username, hashedPwd string) (*db.User, error)
-	GetUser(userID int, username string) (*db.User, error)
-	GetUsers(page, pageSize int, filter string) ([]*db.User, int, error)
+	CreateUser(username, hashedPwd string) (*User, error)
+	GetUser(opts ...QueryOption) (*User, error)
+	GetUsers(page, pageSize int, opts ...QueryOption) ([]*User, int, error)
 }
 
 // repository is our concrete implementation of the Repository interface.
 type repository struct {
-	*db.Database
+	*Database
 }
 
 // NewRepository returns a new instance of the repository.
-func NewRepository(database *db.Database) *repository {
+func NewRepository(database *Database) *repository {
 	return &repository{Database: database}
 }
 
+/* ----------------------------------- */
+/*         - Users Repository -        */
+/* ----------------------------------- */
+
 // CreateUser creates a new user in the database.
-func (r *repository) CreateUser(username, hashedPwd string) (*db.User, error) {
-	user := db.User{Username: username, Password: hashedPwd}
+func (r *repository) CreateUser(username, hashedPwd string) (*User, error) {
+	user := User{Username: username, Password: hashedPwd}
 	if err := r.DB.Create(&user).Error; err != nil {
 		return nil, fmt.Errorf("error creating user: %w", err)
 	}
@@ -36,9 +42,15 @@ func (r *repository) CreateUser(username, hashedPwd string) (*db.User, error) {
 }
 
 // GetUser returns a user from the database.
-func (r *repository) GetUser(userID int, username string) (*db.User, error) {
-	var user db.User
-	err := r.DB.Where("id = ? OR username = ?", userID, username).First(&user).Error
+func (r *repository) GetUser(opts ...QueryOption) (*User, error) {
+	var user User
+
+	query := r.DB.Model(&User{})
+	for _, opt := range opts {
+		query = opt(query)
+	}
+
+	err := query.First(&user).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
@@ -46,21 +58,17 @@ func (r *repository) GetUser(userID int, username string) (*db.User, error) {
 }
 
 // GetUsers returns a list of users from the database.
-func (r *repository) GetUsers(page, pageSize int, filter string) ([]*db.User, int, error) {
-	var users []*db.User
+func (r *repository) GetUsers(page, pageSize int, opts ...QueryOption) ([]*User, int, error) {
+	var users []*User
 	var totalRecords int64
 
-	query := r.DB.Model(&db.User{})
-	if filter != "" {
-		query = query.Where("username LIKE ?", "%"+filter+"%")
+	query := r.DB.Model(&User{})
+	for _, opt := range opts {
+		query = opt(query)
 	}
 
-	if err := query.Count(&totalRecords).Error; err != nil {
-		return nil, 0, fmt.Errorf("error counting users: %w", err)
-	}
-
-	if totalRecords == 0 {
-		return users, 0, nil
+	if err := query.Count(&totalRecords).Error; err != nil || totalRecords == 0 {
+		return nil, 0, err
 	}
 
 	if err := query.Offset(page * pageSize).Limit(pageSize).Find(&users).Error; err != nil {

@@ -24,7 +24,7 @@ func TestLoadConfig(t *testing.T) {
 		os.Unsetenv("TLS_KEY_PATH")
 	}()
 
-	config := Init()
+	config := Load()
 
 	assert.True(t, config.IsProd)
 	assert.Equal(t, ":9999", config.GRPCPort)
@@ -41,8 +41,8 @@ func TestGetVar(t *testing.T) {
 	os.Setenv(testKey, testValue)
 	defer os.Unsetenv(testKey)
 
-	assert.Equal(t, testValue, getVar(testKey, "fallback"))
-	assert.Equal(t, "fallback", getVar("NON_EXISTING_VAR", "fallback"))
+	assert.Equal(t, testValue, getEnvStr(testKey, "fallback"))
+	assert.Equal(t, "fallback", getEnvStr("NON_EXISTING_VAR", "fallback"))
 }
 
 func TestGetVarBool(t *testing.T) {
@@ -53,8 +53,8 @@ func TestGetVarBool(t *testing.T) {
 		os.Unsetenv("FALSE_VAR")
 	}()
 
-	assert.True(t, getVarBool("TRUE_VAR", false))
-	assert.False(t, getVarBool("FALSE_VAR", true))
-	assert.True(t, getVarBool("NON_EXISTING_VAR", true))
-	assert.False(t, getVarBool("NON_EXISTING_VAR", false))
+	assert.True(t, getEnvBool("TRUE_VAR", false))
+	assert.False(t, getEnvBool("FALSE_VAR", true))
+	assert.True(t, getEnvBool("NON_EXISTING_VAR", true))
+	assert.False(t, getEnvBool("NON_EXISTING_VAR", false))
 }

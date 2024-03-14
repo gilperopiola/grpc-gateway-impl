@@ -6,6 +6,10 @@ import (
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
 )
 
+/* ----------------------------------- */
+/*              - Models -             */
+/* ----------------------------------- */
+
 var allModels = []interface{}{
 	User{},
 }

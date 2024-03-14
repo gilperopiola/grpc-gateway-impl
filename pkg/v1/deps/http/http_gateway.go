@@ -21,20 +21,21 @@ import (
 // HTTPGateway is a wrapper around the actual HTTP Server.
 type HTTPGateway struct {
 	*http.Server
-
-	cfg         *cfg.MainConfig
-	middleware  []runtime.ServeMuxOption
-	muxWrapper  MuxWrapperFunc
-	grpcOptions []grpc.DialOption
+	port              string
+	middleware        []runtime.ServeMuxOption
+	middlewareWrapper MuxWrapperFunc
+	grpcPort          string
+	grpcOptions       []grpc.DialOption
 }
 
 // NewHTTPGateway returns a new instance of HTTPGateway.
 func NewHTTPGateway(c *cfg.MainConfig, middleware []runtime.ServeMuxOption, muxWrapper MuxWrapperFunc, grpcOpts []grpc.DialOption) *HTTPGateway {
 	return &HTTPGateway{
-		cfg:         c,
-		middleware:  middleware,
-		muxWrapper:  muxWrapper,
-		grpcOptions: grpcOpts,
+		port:              c.HTTPPort,
+		middleware:        middleware,
+		middlewareWrapper: muxWrapper,
+		grpcPort:          c.GRPCPort,
+		grpcOptions:       grpcOpts,
 	}
 }
 
@@ -43,16 +44,16 @@ func NewHTTPGateway(c *cfg.MainConfig, middleware []runtime.ServeMuxOption, muxW
 func (h *HTTPGateway) Init() {
 	mux := runtime.NewServeMux(h.middleware...)
 
-	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.cfg.GRPCPort, h.grpcOptions); err != nil {
+	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.grpcPort, h.grpcOptions); err != nil {
 		log.Fatalf(errs.FatalErrMsgStartingHTTP, err)
 	}
 
-	h.Server = &http.Server{Addr: h.cfg.HTTPPort, Handler: h.muxWrapper(mux)}
+	h.Server = &http.Server{Addr: h.port, Handler: h.middlewareWrapper(mux)}
 }
 
 // Run runs the HTTP Gateway.
 func (h *HTTPGateway) Run() {
-	log.Printf("Running HTTP on port %s!\n", h.Addr)
+	log.Printf("Running HTTP on port %s!\n", h.port)
 
 	go func() {
 		if err := h.ListenAndServe(); err != http.ErrServerClosed {

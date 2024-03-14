@@ -12,11 +12,11 @@ import (
 /*            - Welcome~! -            */
 /* ----------------------------------- */
 /*
-/* This is the entrypoint of our app. Here we start the gRPC server and point the HTTP Gateway towards it. */
+/* This is the entrypoint of our app.
+/* Here we start the gRPC server and point the HTTP Gateway towards it. */
 
 func main() {
-	app := v1.NewAPI(cfg.Init())
-	app.Init()
+	app := v1.NewAPI(cfg.Load())
 
 	app.Run()
 	time.Sleep(1 * time.Second)
@@ -28,7 +28,5 @@ func main() {
 /* ----------------------------------- */
 /*              - T0D0 -               */
 /* ----------------------------------- */
-/* Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD / Tests /
-/* Logging / Metrics / Tracing / Security / Caching / Rate limiting /
-/* Postman collection / Full Swagger
-/* -------------------------------------------------------------------------- */
+/* Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD /
+/* Logging / Metrics / Tracing / Caching / Tests */

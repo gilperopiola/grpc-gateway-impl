@@ -48,8 +48,7 @@ type Deps struct {
 
 // TLSDeps holds the TLS configuration for the gRPC Server and the HTTP Gateway.
 type TLSDeps struct {
-	// ServerCert is a pool of certificates to use for the Server's TLS configuration.
-	ServerCert *x509.CertPool
+	ServerCert *x509.CertPool // ServerCert is a pool of certificates.
 
 	// ServerCreds and ClientCreds are used to secure the connection between the HTTP Gateway and the gRPC Server.
 	ServerCreds credentials.TransportCredentials

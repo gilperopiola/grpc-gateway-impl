@@ -1,7 +1,8 @@
-package v1
+package service
 
 import (
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/db"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps"
 
 	"google.golang.org/grpc/codes"
@@ -21,7 +22,7 @@ type Service interface {
 // service is our concrete implementation of the Service interface.
 // It has an embedded Repository to interact with the database.
 type service struct {
-	DB             Repository
+	DB             db.Repository
 	TokenGenerator deps.TokenGenerator
 	PwdHasher      deps.PwdHasher
 
@@ -29,7 +30,7 @@ type service struct {
 }
 
 // NewService returns a new instance of the service.
-func NewService(db Repository, tokenGen deps.TokenGenerator, pwdHasher deps.PwdHasher) *service {
+func NewService(db db.Repository, tokenGen deps.TokenGenerator, pwdHasher deps.PwdHasher) *service {
 	return &service{
 		DB:             db,
 		TokenGenerator: tokenGen,
@@ -59,4 +60,43 @@ var grpcUnauthenticatedErr = func(reason string) error {
 
 var grpcInvalidArgumentErr = func(entity string) error {
 	return status.Errorf(codes.InvalidArgument, "invalid %s.", entity)
+}
+
+/* ----------------------------------- */
+/*     - Pagination & Filtering -      */
+/* ----------------------------------- */
+
+// RequestWithPagination is an interface that lets us abstract .pb request types that have pagination methods.
+type RequestWithPagination interface {
+	GetPage() int32
+	GetPageSize() int32
+}
+
+// RequestWithFilter is an interface that lets us abstract .pb request types that have a filter field.
+type RequestWithFilter interface {
+	GetFilter() string
+}
+
+// getPaginationValues returns the page and pageSize values from a gRPC Request with pagination methods.
+// It defaults to page 1 and pageSize 10 if the values are not set or are invalid.
+func getPaginationValues[r RequestWithPagination](req r) (int, int) {
+	page := 1
+	pageSize := 10
+
+	if req.GetPage() > 0 {
+		page = int(req.GetPage())
+	}
+	if req.GetPageSize() > 0 {
+		pageSize = int(req.GetPageSize())
+	}
+
+	return page, pageSize
+}
+
+// getFilterOption returns a []db.QueryOption with a filtering option if the request has a filter.
+func getFilterOption[r RequestWithFilter](request r, fieldName string, opts ...db.QueryOption) []db.QueryOption {
+	if request.GetFilter() != "" {
+		return append(opts, db.WithField(fieldName, request.GetFilter()))
+	}
+	return opts
 }

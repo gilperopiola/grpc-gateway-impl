@@ -17,7 +17,6 @@ import (
 // GRPCServer is a wrapper around the actual gRPC Server.
 type GRPCServer struct {
 	*grpc.Server
-
 	port         string
 	api          usersPB.UsersServiceServer
 	interceptors []grpc.ServerOption

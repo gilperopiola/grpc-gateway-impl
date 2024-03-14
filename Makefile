@@ -10,7 +10,7 @@ USERS := users
 USERS_PROTO_FILE := $(PROTOS_DIR)/$(USERS).proto
 USERS_PBS_OUT_DIR := $(PBS_OUT_BASE_DIR)/$(USERS)
 
-# Default target.
+# Default target
 # 
 # Generates the gRPC and gRPC Gateway code from the .proto files.
 # Also generates the Swagger documentation.

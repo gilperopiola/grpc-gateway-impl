@@ -65,67 +65,67 @@ type DBConfig struct {
 	AdminPassword string
 }
 
-// Init loads the configuration from the environment variables.
-func Init() *Config {
-	projectName := getVar("PROJECT_NAME", "grpc-gateway-impl")
+// Load loads the configuration from the environment variables.
+func Load() *Config {
 
 	// The project is either run from the root folder or the /cmd folder.
 	// If it's run from /cmd, we add a '..' prefix to the filesystem paths to move them back to the root folder.
 	// Otherwise, we just add a '.', staying on the root.
-	filePathPrefix := getPathPrefix(projectName)
+	projectName := getEnvStr("PROJECT_NAME", "grpc-gateway-impl")
+	filesPrefix := getPathPrefix(projectName)
 
 	return &Config{
 		MainConfig: &MainConfig{
 			ProjectName: projectName,
-			IsProd:      getVarBool("IS_PROD", false),
-			GRPCPort:    getVar("GRPC_PORT", ":50053"),
-			HTTPPort:    getVar("HTTP_PORT", ":8083"),
+			IsProd:      getEnvBool("IS_PROD", false),
+			GRPCPort:    getEnvStr("GRPC_PORT", ":50053"),
+			HTTPPort:    getEnvStr("HTTP_PORT", ":8083"),
 		},
 		TLSConfig: &TLSConfig{
-			Enabled:  getVarBool("TLS_ENABLED", false),
-			CertPath: getVar("TLS_CERT_PATH", filePathPrefix+"/server.crt"),
-			KeyPath:  getVar("TLS_KEY_PATH", filePathPrefix+"/server.key"),
+			Enabled:  getEnvBool("TLS_ENABLED", false),
+			CertPath: getEnvStr("TLS_CERT_PATH", filesPrefix+"/server.crt"),
+			KeyPath:  getEnvStr("TLS_KEY_PATH", filesPrefix+"/server.key"),
 		},
 		JWTConfig: &JWTConfig{
-			Secret:      getVar("JWT_SECRET", "change_me"),
-			SessionDays: getVarInt("JWT_SESSION_DAYS", 7),
+			Secret:      getEnvStr("JWT_SECRET", "please_set_the_env_var"),
+			SessionDays: getEnvInt("JWT_SESSION_DAYS", 7),
 		},
 		RateLimiterConfig: &RateLimiterConfig{
-			MaxTokens:       getVarInt("RATE_LIMITER_MAX_TOKENS", 40),
-			TokensPerSecond: getVarInt("RATE_LIMITER_TOKENS_PER_SECOND", 10),
+			MaxTokens:       getEnvInt("RATE_LIMITER_MAX_TOKENS", 40),
+			TokensPerSecond: getEnvInt("RATE_LIMITER_TOKENS_PER_SECOND", 10),
 		},
 		DBConfig: &DBConfig{
-			Username: getVar("DB_USERNAME", "root"),
-			Password: getVar("DB_PASSWORD", ""),
-			Hostname: getVar("DB_HOSTNAME", "localhost"),
-			Port:     getVar("DB_PORT", "3306"),
-			Schema:   getVar("DB_SCHEMA", "grpc-gateway-impl"),
-			Params:   getVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
+			Username: getEnvStr("DB_USERNAME", "root"),
+			Password: getEnvStr("DB_PASSWORD", ""),
+			Hostname: getEnvStr("DB_HOSTNAME", "localhost"),
+			Port:     getEnvStr("DB_PORT", "3306"),
+			Schema:   getEnvStr("DB_SCHEMA", "grpc-gateway-impl"),
+			Params:   getEnvStr("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
 
-			AdminPassword: getVar("DB_ADMIN_PASSWORD", "change_me"), // This gets hashed before being used.
+			AdminPassword: getEnvStr("DB_ADMIN_PASSWORD", "please_set_the_env_var"), // This gets hashed before being used.
 		},
 	}
 }
 
-// getVar returns the value of an env var or a fallback value if it doesn't exist.
-func getVar(key, fallback string) string {
+// getEnvStr returns the value of an env var or a fallback value if it doesn't exist.
+func getEnvStr(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
 	return fallback
 }
 
-// getVarBool returns the value of an env var as a boolean or a fallback value if it doesn't exist.
-func getVarBool(key string, fallback bool) bool {
+// getEnvBool returns the value of an env var as a boolean or a fallback value if it doesn't exist.
+func getEnvBool(key string, fallback bool) bool {
 	if value, exists := os.LookupEnv(key); exists {
 		return value == "true" || value == "TRUE" || value == "1"
 	}
 	return fallback
 }
 
-// getVarBool returns the value of an env var as an int or a fallback value if it doesn't exist.
-func getVarInt(key string, fallback int) int {
-	valueStr := getVar(key, "")
+// getEnvInt returns the value of an env var as an int or a fallback value if it doesn't exist.
+func getEnvInt(key string, fallback int) int {
+	valueStr := getEnvStr(key, "")
 	if value, err := strconv.Atoi(valueStr); err == nil {
 		return value
 	}

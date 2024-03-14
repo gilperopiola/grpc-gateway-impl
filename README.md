@@ -20,30 +20,31 @@ The best thing about using **`.proto`** files is that you clearly define your se
 * Assert validation rules for each request.
 * Automatically generate a **`swagger`** spec.
 
-#### ✅ And so you can basically remove the **`Transport Layer`** altogether from your API's internal architecture.
+#### ✅ And so you can basically *`remove the Transport Layer`* altogether from your API's internal architecture.
 
 ## Is this a fully working example? 👀
 
-**~Kinda**. We implement a simple **`gRPC & HTTP backend API`** with 2 mock endpoints: **Signup** and **Login**.
+**~Yeah, actually!**. We implement a simple **`gRPC & HTTP Backend API`** with 4 endpoints: **Signup** and **Login**, **GetUser** and **GetUsers**.
 
-* With **`gRPC-Gateway`** we expose our gRPC service as a **`RESTful HTTP API`**, defining routes and verbs with annotations on the **`.proto`** files.
-* Then we just generate the gateway code and run it alongside the gRPC server. The gateway will translate HTTP requests to gRPC calls, handling input automatically.
-* Although we have a **`Service Layer`** implementing the 2 API methods, they don't do much: **There is no DB or persistent storage**.
-* **`Protovalidate`** is used to define input rules on the **`.proto`** files themselves for each request, which we enforce using an interceptor.
+`We got TLS, JWT Auth with Roles, Rate Limiting, Logging. What else do you want, huh?`
 
 ## Commands ✍🏼
 
-**`make all`**: Generate and run.
+**`make all-fast`**: Generate files and run app.
 
 **`make run`**: Hmm... What could this possible be?
 
-**`make gen`**: Based on the .proto files, generate the .pb files and the swagger documentation.
+**`make generate`**: Based on the .proto files, generate the .pb files and the swagger documentation.
 
-**`make protoc-gen`**: Based on the .proto files, generate the .pb files.
+**`make generate-pbs`**: Based on the .proto files, generate the .pb files.
 
-**`make swagger-gen`**: Based on the .proto files, generate the swagger documentation.
+**`make generate-swagger`**: Based on the .proto files, generate the swagger documentation.
+
+For more commands, check the Makefile.
 
 ## Request lifecycle 🔄
+
+This needs some love, it's pretty outdated:
 
  - **`RegisterUsersServiceHandlerClient`**
  - **`request_UsersService_Signup_0`**
@@ -52,9 +53,9 @@ The best thing about using **`.proto`** files is that you clearly define your se
  - **`func (s *Server) processUnaryRPC`**
  - **`_UsersService_Signup_Handler`**
  - **`NewValidationInterceptor`** (the inside function)
- - If error
+ - *If error*
    - **`handleHTTPError`**
- - If no error
+ - *If no error*
 	 - **`func (api *API) Signup`**
 	 - **`func (s *service) Signup`**
 	 - (Here the request starts backtracking)

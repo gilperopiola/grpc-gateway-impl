@@ -11,6 +11,10 @@ import (
 	"gorm.io/gorm"
 )
 
+/* ----------------------------------- */
+/*             - Database -            */
+/* ----------------------------------- */
+
 // Database holds the connection to the database.
 type Database struct {
 	*gorm.DB
@@ -39,12 +43,14 @@ func (db *Database) Connect(c *cfg.DBConfig) {
 	db.InsertAdmin(c.AdminPassword)
 }
 
+// InsertAdmin inserts the admin user if it doesn't exist.
 func (db *Database) InsertAdmin(adminPwd string) {
 	if err := db.DB.Create(&User{Username: "admin", Password: adminPwd, Role: AdminRole}).Error; err != nil {
 		log.Printf("error inserting admin: %v\n", err)
 	}
 }
 
+// Close closes the database connection.
 func (db *Database) Close() {
 	sqlDB, err := db.DB.DB()
 	if err != nil {
