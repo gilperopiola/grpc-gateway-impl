@@ -27,7 +27,7 @@ type App struct {
 	Database   *db.DatabaseWrapper   // Database holds the DB connection.
 }
 
-// NewApp returns a new App with the given configuration.
+// NewApp returns a new App with the given configuration and components loaded.
 func NewApp(config *cfg.Config, components *components.Wrapper) *App {
 	app := &App{Config: config, Wrapper: components}
 	app.Load()

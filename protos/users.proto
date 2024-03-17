@@ -3,15 +3,10 @@ syntax = "proto3";
 package users;
 option go_package = "github.com/gilperopiola/grpc-gateway-impl/pkg/users";
 
-/* ----------------------------------- */
-/*              - Users -              */
-/* ----------------------------------- */
-
-// T0D0 - These imports sometimes are marked as errors, fix.
-import "buf/validate/validate.proto";
-import "google/api/annotations.proto";
-import "google/api/field_behavior.proto";
-import "protoc-gen-openapiv2/options/annotations.proto";
+import "external/buf/validate/validate.proto";
+import "external/google/api/annotations.proto";
+import "external/google/api/field_behavior.proto";
+import "external/protoc-gen-openapiv2/options/annotations.proto";
 
 /* ----------------------------------- */
 /*         - Swagger Schema -          */
@@ -128,6 +123,8 @@ service UsersService {
     };
   }
 
+  // Gets a list of users, with optional pagination and filtering.
+  // Requires a JWT Token with admin privileges.
   rpc GetUsers (GetUsersRequest) returns (GetUsersResponse) {
     option (google.api.http) = {
       get: "/v1/users";
