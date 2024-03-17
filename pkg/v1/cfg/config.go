@@ -28,6 +28,7 @@ type MainConfig struct {
 	IsProd      bool
 	GRPCPort    string
 	HTTPPort    string
+	HashSalt    string
 }
 
 // DB configuration.
@@ -66,7 +67,7 @@ type RateLimiterConfig struct {
 	TokensPerSecond int // TokensPerSecond is the number of tokens reloaded per second.
 }
 
-// Load loads the configuration from the environment variables.
+// Load sets up the configuration from the environment variables.
 func Load() *Config {
 
 	// The project is either run from the root folder or the /cmd folder.
@@ -81,6 +82,7 @@ func Load() *Config {
 			IsProd:      envBool("IS_PROD", false),
 			GRPCPort:    envStr("GRPC_PORT", ":50053"),
 			HTTPPort:    envStr("HTTP_PORT", ":8083"),
+			HashSalt:    envStr("HASH_SALT", "s0m3_s4l7"), // This is used to hash passwords.
 		},
 		DBConfig: &DBConfig{
 			Username:      envStr("DB_USERNAME", "root"),

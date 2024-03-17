@@ -24,7 +24,7 @@ import (
 // InputValidator is the interface that wraps the ValidateInput method.
 // It is used to validate incoming gRPC requests. The rules are defined in the .proto files.
 type InputValidator interface {
-	ValidateInput() grpc.UnaryServerInterceptor
+	ValidateInput(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error)
 }
 
 // protoValidator is a wrapper around the protovalidate.Validator.
@@ -43,13 +43,11 @@ func NewInputValidator() *protoValidator {
 }
 
 // Validate returns an interceptor that validates incoming gRPC requests.
-func (v *protoValidator) ValidateInput() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if err := v.Validate(req.(protoreflect.ProtoMessage)); err != nil {
-			return nil, handleValidationErr(err)
-		}
-		return handler(ctx, req) // Next handler.
+func (v *protoValidator) ValidateInput(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	if err := v.Validate(req.(protoreflect.ProtoMessage)); err != nil {
+		return nil, handleValidationErr(err)
 	}
+	return handler(ctx, req) // Next handler.
 }
 
 // handleValidationErr takes a ValidationError and returns an InvalidArgument(3) gRPC error with its corresponding message.

@@ -6,7 +6,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/http"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"google.golang.org/grpc"
@@ -33,9 +32,7 @@ type Wrapper struct {
 	RateLimiter *rate.Limiter
 
 	// Logger is used to log every gRPC and HTTP request that comes in.
-	// LoggerOptions are the options we pass to the Logger.
-	Logger        *common.Logger
-	LoggerOptions []zap.Option
+	Logger *common.Logger
 
 	// PwdHasher is used to hash and compare passwords.
 	PwdHasher common.PwdHasher

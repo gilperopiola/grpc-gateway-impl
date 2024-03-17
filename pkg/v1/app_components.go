@@ -38,7 +38,7 @@ func (a *App) LoadRepositoryAndDB() {
 }
 
 func (a *App) LoadGRPC() {
-	a.GRPC.Interceptors = grpc.AllInterceptors(a.Wrapper, a.TLSConfig.Enabled)
+	a.GRPC.Interceptors = grpc.AllServerOptions(a.Wrapper, a.TLSConfig.Enabled)
 	a.GRPC.DialOptions = grpc.AllDialOptions(a.ClientCreds)
 	a.GRPC.Server = grpc.NewGRPCServer(a.Config.GRPCPort, a.Service, a.Interceptors)
 	a.GRPC.Server.Init()
@@ -68,12 +68,11 @@ func (a *App) LoadRateLimiter() {
 }
 
 func (a *App) LoadLogger() {
-	a.LoggerOptions = common.NewLoggerOptions()
-	a.Logger = common.NewLogger(a.IsProd, a.LoggerOptions...)
+	a.Logger = common.NewLogger(a.IsProd, common.NewLoggerOptions()...)
 }
 
 func (a *App) LoadPwdHasher() {
-	a.PwdHasher = common.NewPwdHasher(a.JWTConfig.Secret)
+	a.PwdHasher = common.NewPwdHasher(a.HashSalt)
 
 	// Hash the DB admin password.
 	a.DBConfig.AdminPassword = a.PwdHasher.Hash(a.DBConfig.AdminPassword)
@@ -82,7 +81,7 @@ func (a *App) LoadPwdHasher() {
 func (a *App) LoadTLS() {
 	if a.TLSConfig.Enabled {
 		a.ServerCert = common.NewTLSCertPool(a.TLSConfig.CertPath)
-		a.ServerCreds = common.NewServerTransportCredentials(a.TLSConfig.CertPath, a.TLSConfig.KeyPath)
+		a.ServerCreds = common.NewServerTransportCreds(a.TLSConfig.CertPath, a.TLSConfig.KeyPath)
 	}
-	a.ClientCreds = common.NewClientTransportCredentials(a.TLSConfig.Enabled, a.ServerCert)
+	a.ClientCreds = common.NewClientTransportCreds(a.TLSConfig.Enabled, a.ServerCert)
 }

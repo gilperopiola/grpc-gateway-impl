@@ -26,6 +26,8 @@ type UsersServiceClient interface {
 	// Gets a user by ID. Returns the user's information.
 	// Requires a JWT Token with a matching user's ID.
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	// Gets a list of users, with optional pagination and filtering.
+	// Requires a JWT Token with admin privileges.
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error)
 }
 
@@ -86,6 +88,8 @@ type UsersServiceServer interface {
 	// Gets a user by ID. Returns the user's information.
 	// Requires a JWT Token with a matching user's ID.
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	// Gets a list of users, with optional pagination and filtering.
+	// Requires a JWT Token with admin privileges.
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error)
 	mustEmbedUnimplementedUsersServiceServer()
 }

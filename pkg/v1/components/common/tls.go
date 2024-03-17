@@ -33,8 +33,8 @@ func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
 	return certPool
 }
 
-// NewServerTransportCredentials returns the Server's transport credentials.
-func NewServerTransportCredentials(certPath, keyPath string) credentials.TransportCredentials {
+// NewServerTransportCreds returns the Server's transport credentials.
+func NewServerTransportCreds(certPath, keyPath string) credentials.TransportCredentials {
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgLoadingTLSCreds, err)
@@ -42,8 +42,8 @@ func NewServerTransportCredentials(certPath, keyPath string) credentials.Transpo
 	return creds
 }
 
-// NewClientTransportCredentials returns the client's transport credentials, either secure or insecure.
-func NewClientTransportCredentials(tlsEnabled bool, serverCert *x509.CertPool) credentials.TransportCredentials {
+// NewClientTransportCreds returns the client's transport credentials, either secure or insecure.
+func NewClientTransportCreds(tlsEnabled bool, serverCert *x509.CertPool) credentials.TransportCredentials {
 	if tlsEnabled {
 		return credentials.NewClientTLSFromCert(serverCert, "")
 	}

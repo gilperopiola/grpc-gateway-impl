@@ -44,20 +44,18 @@ func NewLoggerOptions() []zap.Option {
 }
 
 // LogGRPC logs the gRPC Request's info when it finishes executing.
-func (l *Logger) LogGRPC() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		start := time.Now()
-		resp, err := handler(ctx, req)
-		duration := time.Since(start)
+func (l *Logger) LogGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	start := time.Now()
+	resp, err := handler(ctx, req)
+	duration := time.Since(start)
 
-		if err != nil {
-			l.sugar.Errorw("gRPC Error", endpointField(info.FullMethod), durationField(duration), errorField(err))
-		} else {
-			l.sugar.Infow("gRPC Request", endpointField(info.FullMethod), durationField(duration))
-		}
-
-		return resp, err
+	if err != nil {
+		l.sugar.Errorw("gRPC Error", endpointField(info.FullMethod), durationField(duration), errorField(err))
+	} else {
+		l.sugar.Infow("gRPC Request", endpointField(info.FullMethod), durationField(duration))
 	}
+
+	return resp, err
 }
 
 // LogHTTP logs the HTTP Request's info when it finishes executing.
