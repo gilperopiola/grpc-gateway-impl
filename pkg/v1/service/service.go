@@ -2,8 +2,8 @@ package service
 
 import (
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/db"
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/repository"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,20 +22,47 @@ type Service interface {
 // service is our concrete implementation of the Service interface.
 // It has an embedded Repository to interact with the database.
 type service struct {
-	DB             db.Repository
-	TokenGenerator deps.TokenGenerator
-	PwdHasher      deps.PwdHasher
+	Repo           repository.Repository
+	TokenGenerator common.TokenGenerator
+	PwdHasher      common.PwdHasher
 
 	*usersPB.UnimplementedUsersServiceServer
 }
 
 // NewService returns a new instance of the service.
-func NewService(db db.Repository, tokenGen deps.TokenGenerator, pwdHasher deps.PwdHasher) *service {
+func NewService(repo repository.Repository, tokenGenerator common.TokenGenerator, pwdHasher common.PwdHasher) *service {
 	return &service{
-		DB:             db,
-		TokenGenerator: tokenGen,
+		Repo:           repo,
+		TokenGenerator: tokenGenerator,
 		PwdHasher:      pwdHasher,
 	}
+}
+
+/* ----------------------------------- */
+/*           - Pagination -            */
+/* ----------------------------------- */
+
+// RequestWithPagination is an interface that lets us abstract .pb request types that have pagination methods.
+type RequestWithPagination interface {
+	GetPage() int32
+	GetPageSize() int32
+}
+
+// getPaginationValues returns the page and pageSize values from a gRPC Request with pagination methods.
+// It defaults to page 1 and pageSize 10 if the values are not set or are invalid.
+func getPaginationValues[r RequestWithPagination](req r) (int, int) {
+	page, pageSize := req.GetPage(), req.GetPageSize()
+	defaultPage, defaultPageSize := 1, 10
+
+	if page == 0 {
+		page = int32(defaultPage)
+	}
+
+	if pageSize == 0 {
+		pageSize = int32(defaultPageSize)
+	}
+
+	return int(page), int(pageSize)
 }
 
 /* ----------------------------------- */
@@ -60,43 +87,4 @@ var grpcUnauthenticatedErr = func(reason string) error {
 
 var grpcInvalidArgumentErr = func(entity string) error {
 	return status.Errorf(codes.InvalidArgument, "invalid %s.", entity)
-}
-
-/* ----------------------------------- */
-/*     - Pagination & Filtering -      */
-/* ----------------------------------- */
-
-// RequestWithPagination is an interface that lets us abstract .pb request types that have pagination methods.
-type RequestWithPagination interface {
-	GetPage() int32
-	GetPageSize() int32
-}
-
-// RequestWithFilter is an interface that lets us abstract .pb request types that have a filter field.
-type RequestWithFilter interface {
-	GetFilter() string
-}
-
-// getPaginationValues returns the page and pageSize values from a gRPC Request with pagination methods.
-// It defaults to page 1 and pageSize 10 if the values are not set or are invalid.
-func getPaginationValues[r RequestWithPagination](req r) (int, int) {
-	page := 1
-	pageSize := 10
-
-	if req.GetPage() > 0 {
-		page = int(req.GetPage())
-	}
-	if req.GetPageSize() > 0 {
-		pageSize = int(req.GetPageSize())
-	}
-
-	return page, pageSize
-}
-
-// getFilterOption returns a []db.QueryOption with a filtering option if the request has a filter.
-func getFilterOption[r RequestWithFilter](request r, fieldName string, opts ...db.QueryOption) []db.QueryOption {
-	if request.GetFilter() != "" {
-		return append(opts, db.WithField(fieldName, request.GetFilter()))
-	}
-	return opts
 }

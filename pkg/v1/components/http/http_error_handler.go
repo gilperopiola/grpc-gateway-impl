@@ -20,9 +20,9 @@ type httpErrResponseBody struct {
 	Error string `json:"error"`
 }
 
-// handleHTTPErr is a custom error handler for the HTTP Gateway. It's pretty simple.
+// handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
 // It converts the gRPC error to an HTTP error and writes it to the response.
-func handleHTTPErr(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
+func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
 
 	// First, get gRPC status from the error. Then, derive the HTTP Response info from that status.
 	var (
@@ -33,7 +33,7 @@ func handleHTTPErr(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marsh
 
 	// Marshal the error into a buffer. If it fails (unlikely), we return a generic 500 Internal Server Error.
 	var outBuffer []byte
-	if outBuffer, err = mar.Marshal(httpResponseBody); err != nil {
+	if outBuffer, err = m.Marshal(httpResponseBody); err != nil {
 		httpStatus = http.StatusInternalServerError
 	}
 
@@ -42,7 +42,7 @@ func handleHTTPErr(ctx context.Context, mux *runtime.ServeMux, mar runtime.Marsh
 	httpStatus, outBuffer = handle4xxOr5xxError(httpStatus, outBuffer, w)
 
 	// Write the response.
-	setHTTPResponseHeadersWrapper(w)
+	setHTTPRespHeaders(ctx, w, nil)
 	w.WriteHeader(httpStatus)
 	w.Write(outBuffer)
 }
@@ -75,6 +75,5 @@ func handle4xxOr5xxError(httpStatus int, buffer []byte, w http.ResponseWriter) (
 		return http.StatusInternalServerError, []byte(errs.HTTPServiceUnavailErrBody) // 503
 	}
 
-	// If not, return as is.
-	return httpStatus, buffer
+	return httpStatus, buffer // If not, return as is.
 }

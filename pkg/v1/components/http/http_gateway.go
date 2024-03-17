@@ -21,10 +21,11 @@ import (
 // HTTPGateway is a wrapper around the actual HTTP Server.
 type HTTPGateway struct {
 	*http.Server
+
 	port              string
+	grpcPort          string
 	middleware        []runtime.ServeMuxOption
 	middlewareWrapper MuxWrapperFunc
-	grpcPort          string
 	grpcOptions       []grpc.DialOption
 }
 
@@ -32,9 +33,9 @@ type HTTPGateway struct {
 func NewHTTPGateway(c *cfg.MainConfig, middleware []runtime.ServeMuxOption, muxWrapper MuxWrapperFunc, grpcOpts []grpc.DialOption) *HTTPGateway {
 	return &HTTPGateway{
 		port:              c.HTTPPort,
+		grpcPort:          c.GRPCPort,
 		middleware:        middleware,
 		middlewareWrapper: muxWrapper,
-		grpcPort:          c.GRPCPort,
 		grpcOptions:       grpcOpts,
 	}
 }

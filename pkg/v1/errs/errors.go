@@ -21,6 +21,10 @@ const (
 	FatalErrMsgShuttingDownHTTP  = "Failed to shutdown HTTP server: %v"
 	FatalErrMsgConnectingDB      = "Failed to connect to the database: %v"
 
+	// Non-fatal initialization error messages.
+	ErrMsgInsertingAdmin = "Failed to insert admin user to the database: %v"
+	ErrMsgGettingDBConn  = "Failed to get database connection: %v"
+
 	// Request lifecycle error messages.
 	ErrMsgInValidation           = "validation error: %v."
 	ErrMsgInValidationRuntime    = "runtime validation error: %v."

@@ -2,10 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/db"
 
 	"gorm.io/gorm"
 )
@@ -21,9 +19,7 @@ const (
 
 // Signup is the entrypoint of the Signup API method.
 func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*usersPB.SignupResponse, error) {
-	queryOptions := []db.QueryOption{db.WithField("username", in.Username)}
-
-	user, err := s.DB.GetUser(queryOptions...)
+	user, err := s.Repo.GetUser(signupQueryOptions(in.Username)...)
 	if (err != nil && err != gorm.ErrRecordNotFound) || user == nil {
 		return nil, grpcUnknownErr(errGettingUser, err)
 	}
@@ -32,7 +28,7 @@ func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*users
 		return nil, grpcAlreadyExistsErr("user")
 	}
 
-	if user, err = s.DB.CreateUser(in.Username, s.PwdHasher.Hash(in.Password)); err != nil {
+	if user, err = s.Repo.CreateUser(in.Username, s.PwdHasher.Hash(in.Password)); err != nil {
 		return nil, grpcUnknownErr(errCreatingUser, err)
 	}
 
@@ -41,9 +37,7 @@ func (s *service) Signup(ctx context.Context, in *usersPB.SignupRequest) (*users
 
 // Login is the entrypoint of the Login API method.
 func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB.LoginResponse, error) {
-	queryOptions := []db.QueryOption{db.WithField("username", in.Username)}
-
-	user, err := s.DB.GetUser(queryOptions...)
+	user, err := s.Repo.GetUser(loginQueryOptions(in.Username)...)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, grpcUnknownErr(errGettingUser, err)
 	}
@@ -62,9 +56,7 @@ func (s *service) Login(ctx context.Context, in *usersPB.LoginRequest) (*usersPB
 
 // GetUser is the entrypoint of the GetUser API method.
 func (s *service) GetUser(ctx context.Context, in *usersPB.GetUserRequest) (*usersPB.GetUserResponse, error) {
-	queryOptions := []db.QueryOption{db.WithField("id", fmt.Sprint(in.UserId))}
-
-	user, err := s.DB.GetUser(queryOptions...)
+	user, err := s.Repo.GetUser(getUserQueryOptions(in.UserId)...)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, grpcNotFoundErr("user")
@@ -78,12 +70,12 @@ func (s *service) GetUser(ctx context.Context, in *usersPB.GetUserRequest) (*use
 // GetUsers is the entrypoint of the GetUsers API method.
 func (s *service) GetUsers(ctx context.Context, in *usersPB.GetUsersRequest) (*usersPB.GetUsersResponse, error) {
 
-	// We get page and pageSize from the request. We also get an option to filter by username.
+	// We get page and pageSize from the request.
 	page, pageSize := getPaginationValues(in)
-	queryOptions := getFilterOption(in, "username")
 
 	// DB is 0-indexed, our API is 1-indexed.
-	users, totalPages, err := s.DB.GetUsers(page-1, pageSize, queryOptions...)
+	// We filter by username field.
+	users, totalPages, err := s.Repo.GetUsers(page-1, pageSize, getUsersQueryOptions(in, "username")...)
 	if err != nil {
 		return nil, grpcUnknownErr("error getting users", err)
 	}
@@ -94,7 +86,7 @@ func (s *service) GetUsers(ctx context.Context, in *usersPB.GetUsersRequest) (*u
 	}
 
 	return &usersPB.GetUsersResponse{
-		Users:      db.Users(users).ToUserInfo(),
+		Users:      users.ToUserInfo(),
 		Pagination: &usersPB.PaginationInfo{Current: int32(page), Total: int32(totalPages)},
 	}, nil
 }

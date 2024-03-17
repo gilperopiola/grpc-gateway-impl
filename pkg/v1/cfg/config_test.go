@@ -41,8 +41,8 @@ func TestGetVar(t *testing.T) {
 	os.Setenv(testKey, testValue)
 	defer os.Unsetenv(testKey)
 
-	assert.Equal(t, testValue, getEnvStr(testKey, "fallback"))
-	assert.Equal(t, "fallback", getEnvStr("NON_EXISTING_VAR", "fallback"))
+	assert.Equal(t, testValue, envStr(testKey, "fallback"))
+	assert.Equal(t, "fallback", envStr("NON_EXISTING_VAR", "fallback"))
 }
 
 func TestGetVarBool(t *testing.T) {
@@ -53,8 +53,8 @@ func TestGetVarBool(t *testing.T) {
 		os.Unsetenv("FALSE_VAR")
 	}()
 
-	assert.True(t, getEnvBool("TRUE_VAR", false))
-	assert.False(t, getEnvBool("FALSE_VAR", true))
-	assert.True(t, getEnvBool("NON_EXISTING_VAR", true))
-	assert.False(t, getEnvBool("NON_EXISTING_VAR", false))
+	assert.True(t, envBool("TRUE_VAR", false))
+	assert.False(t, envBool("FALSE_VAR", true))
+	assert.True(t, envBool("NON_EXISTING_VAR", true))
+	assert.False(t, envBool("NON_EXISTING_VAR", false))
 }

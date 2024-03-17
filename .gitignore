@@ -1,19 +1,24 @@
-# Binaries for programs and plugins
+## Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Env
+## Environment files
 .env
 .env_local
 .env_docker
 
-# Etc
+## Go
+*.out
 *.test
+coverage.txt
+
+## Etc
 .DS_Store
 .vscode/
+.idea/
 *.key
 *.crt
 *.crt~

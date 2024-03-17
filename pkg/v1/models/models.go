@@ -1,4 +1,4 @@
-package db
+package models
 
 import (
 	"time"
@@ -10,7 +10,8 @@ import (
 /*              - Models -             */
 /* ----------------------------------- */
 
-var allModels = []interface{}{
+// AllModels is used to migrate all models at once.
+var AllModels = []interface{}{
 	User{},
 }
 
@@ -36,6 +37,14 @@ const (
 /*          - Model Methods -          */
 /* ----------------------------------- */
 
+func (us Users) ToUserInfo() []*usersPB.UserInfo {
+	usersInfo := make([]*usersPB.UserInfo, 0, len(us))
+	for _, user := range us {
+		usersInfo = append(usersInfo, user.ToUserInfo())
+	}
+	return usersInfo
+}
+
 func (u User) ToUserInfo() *usersPB.UserInfo {
 	return &usersPB.UserInfo{
 		Id:        int32(u.ID),
@@ -43,12 +52,4 @@ func (u User) ToUserInfo() *usersPB.UserInfo {
 		CreatedAt: u.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: u.UpdatedAt.Format(time.RFC3339),
 	}
-}
-
-func (u Users) ToUserInfo() []*usersPB.UserInfo {
-	usersInfo := make([]*usersPB.UserInfo, 0, len(u))
-	for _, user := range u {
-		usersInfo = append(usersInfo, user.ToUserInfo())
-	}
-	return usersInfo
 }

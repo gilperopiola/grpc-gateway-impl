@@ -1,4 +1,4 @@
-package deps
+package common
 
 import (
 	"crypto/x509"
@@ -19,25 +19,21 @@ import (
 // It's a SSL/TLS certificate used to secure the communication between the HTTP Gateway and the gRPC server.
 // It must be in a .crt format.
 func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
+	certPool := x509.NewCertPool() // Create certificate pool.
 
-	// Create certificate pool.
-	out := x509.NewCertPool()
-
-	// Read certificate.
-	cert, err := os.ReadFile(tlsCertPath)
+	cert, err := os.ReadFile(tlsCertPath) // Read certificate.
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgReadingTLSCert, err)
 	}
 
-	// Append encoded certificate.
-	if !out.AppendCertsFromPEM(cert) {
+	if !certPool.AppendCertsFromPEM(cert) { // Append encoded certificate.
 		log.Fatalf(errs.FatalErrMsgAppendingTLSCert)
 	}
 
-	return out
+	return certPool
 }
 
-// NewServerTransportCredentials returns the server's transport credentials.
+// NewServerTransportCredentials returns the Server's transport credentials.
 func NewServerTransportCredentials(certPath, keyPath string) credentials.TransportCredentials {
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 	if err != nil {
@@ -46,7 +42,7 @@ func NewServerTransportCredentials(certPath, keyPath string) credentials.Transpo
 	return creds
 }
 
-// NewClientTransportCredentials returns the client's transport credentials.
+// NewClientTransportCredentials returns the client's transport credentials, either secure or insecure.
 func NewClientTransportCredentials(tlsEnabled bool, serverCert *x509.CertPool) credentials.TransportCredentials {
 	if tlsEnabled {
 		return credentials.NewClientTLSFromCert(serverCert, "")

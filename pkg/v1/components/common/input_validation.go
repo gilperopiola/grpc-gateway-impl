@@ -1,4 +1,4 @@
-package deps
+package common
 
 import (
 	"context"
@@ -18,30 +18,34 @@ import (
 )
 
 /* ----------------------------------- */
-/*         - Proto Validator -         */
+/*         - Input Validator -         */
 /* ----------------------------------- */
 
-type Validator struct {
+// InputValidator is the interface that wraps the ValidateInput method.
+// It is used to validate incoming gRPC requests. The rules are defined in the .proto files.
+type InputValidator interface {
+	ValidateInput() grpc.UnaryServerInterceptor
+}
+
+// protoValidator is a wrapper around the protovalidate.Validator.
+type protoValidator struct {
 	*protovalidate.Validator
 }
 
-func (v *Validator) Validate() grpc.UnaryServerInterceptor {
-	return validateRequest(v.Validator)
-}
-
-// NewValidator returns a new instance of *protovalidate.Validator.
+// NewInputValidator returns a new instance of *protoValidator.
 // It panics on failure.
-func NewValidator() *Validator {
+func NewInputValidator() *protoValidator {
 	validator, err := protovalidate.New()
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgCreatingValidator, err)
 	}
-	return &Validator{Validator: validator}
+	return &protoValidator{Validator: validator}
 }
 
-func validateRequest(validator *protovalidate.Validator) grpc.UnaryServerInterceptor {
+// Validate returns an interceptor that validates incoming gRPC requests.
+func (v *protoValidator) ValidateInput() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if err := validator.Validate(req.(protoreflect.ProtoMessage)); err != nil {
+		if err := v.Validate(req.(protoreflect.ProtoMessage)); err != nil {
 			return nil, handleValidationErr(err)
 		}
 		return handler(ctx, req) // Next handler.
@@ -52,20 +56,18 @@ func validateRequest(validator *protovalidate.Validator) grpc.UnaryServerInterce
 // Validation errors are always returned as InvalidArgument.
 // They get translated to 400 Bad Request on the HTTP error handler.
 func handleValidationErr(err error) error {
-	errMsg := fmt.Sprintf(errs.ErrMsgInValidationUnexpected, err)
-
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
 		violations := validationErr.ToProto().GetViolations()
-		errMsg = fmt.Sprintf(errs.ErrMsgInValidation, parseViolations(violations))
+		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ErrMsgInValidation, parseViolations(violations)))
 	}
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
-		errMsg = fmt.Sprintf(errs.ErrMsgInValidationRuntime, runtimeErr)
+		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ErrMsgInValidationRuntime, runtimeErr))
 	}
 
-	return status.Error(codes.InvalidArgument, errMsg)
+	return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ErrMsgInValidationUnexpected, err))
 }
 
 // parseViolations returns a string detailing the validations violations.

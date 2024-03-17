@@ -1,4 +1,4 @@
-package deps
+package common
 
 import (
 	"crypto/sha256"

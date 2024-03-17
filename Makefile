@@ -1,47 +1,79 @@
-# gRPC Gateway Implementation ;)
+###---------------------------------------------###
+###                                             ###
+###       - gRPC Gateway Implementation -       ###
+###                                             ###
+###--------------------------- by @gilperopiola ###
 
-# General Variables
+#------------------------------#
+#          Variables           #
+#------------------------------#
+
+# Get the current git tag or commit hash.
+VERSION := $(shell git describe --tags --always --dirty) 
+
+# Set the path to the .proto's dir, the output dir for the generated code and the output dir for the Swagger documentation.
 PROTOS_DIR := ./protos
 PBS_OUT_BASE_DIR := ./pkg
 DOCS_OUT_DIR := ./docs
 
-# Users Variables
+# Users Service Variables
 USERS := users
 USERS_PROTO_FILE := $(PROTOS_DIR)/$(USERS).proto
 USERS_PBS_OUT_DIR := $(PBS_OUT_BASE_DIR)/$(USERS)
 
-# Default target
-# 
-# Generates the gRPC and gRPC Gateway code from the .proto files.
-# Also generates the Swagger documentation.
-# Also runs the gRPC Server and the gRPC Gateway.
-all: clean generate test run
+# Don't print unnecessary output.
+MAKEFLAGS += --no-print-directory
 
-# Generates code and runs Servers.
-all-fast: generate run
+#------------------------------#
+#         Main Targets         #
+#------------------------------#
 
-# Generates the gRPC and gRPC Gateway files, as well as the Swagger documentation.
-generate: generate-pbs generate-swagger
+help:
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# Runs both the gRPC server and the gRPC Gateway.
-# The gRPC Server usually listens on port :50051 and the gRPC Gateway on port :8080.
-run:
+.DEFAULT_GOAL := help
+
+#------------------------------#
+
+all: ## Cleans env, generates code and Swagger, runs tests, starts the application. Add fast=1 to skip cleaning and testing.
+ifeq ($(fast),)
+	@'$(MAKE)' clean generate test run
+else 
+	@'$(MAKE)' generate run
+endif
+
+#------------------------------#
+
+run: ## Updates dependencies and starts the application.
+	@echo ''
 	go mod tidy
 	go run cmd/main.go
 
-# Generates the gRPC and gRPC Gateway code from the .proto files.
-generate-pbs:
+#------------------------------#
+
+version: ## Shows version.
+	@echo $(VERSION)
+
+#------------------------------#
+#      Secondary Targets       #
+#------------------------------#
+
+generate: ## Generates gRPC and gRPC Gateway code + the Swagger documentation. 
+	@'$(MAKE)' generate-pbs generate-swagger
+
+generate-pbs: ## Generates gRPC and gRPC Gateway code.
+	@echo ''
 	protoc -I=$(PROTOS_DIR) --go_out=$(USERS_PBS_OUT_DIR) --go-grpc_out=$(USERS_PBS_OUT_DIR) --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative $(USERS_PROTO_FILE)
 	protoc -I=$(PROTOS_DIR) --grpc-gateway_out=$(USERS_PBS_OUT_DIR) --grpc-gateway_opt=paths=source_relative $(USERS_PROTO_FILE)
-
-# Generates the Swagger documentation.
-generate-swagger:
+ 
+generate-swagger: ## Generates the Swagger documentation.
+	@echo ''
 	protoc -I=$(PROTOS_DIR) --openapiv2_out=$(DOCS_OUT_DIR) $(USERS_PROTO_FILE)
 
-# Clean cache.
-clean:
+clean: ## Cleans the environment.
+	@echo ''
 	go clean -cache -modcache -testcache
 
-# Test the app.
-test:
+test: ## Runs the tests.
+	@echo ''
 	go test ./... -cover

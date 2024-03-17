@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/deps"
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -54,7 +54,7 @@ func TestHandleHTTPError(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.com", nil)
 
-			handleHTTPErr(context.Background(), mux, marshaller, recorder, request, tt.err)
+			handleHTTPError(context.Background(), mux, marshaller, recorder, request, tt.err)
 
 			if status := recorder.Code; status != tt.expectedStatus {
 				t.Errorf("handleHTTPError() status = %v, want %v", status, tt.expectedStatus)
@@ -73,7 +73,7 @@ func TestHandleHTTPError(t *testing.T) {
 
 func TestLogHTTP(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	middleware := AllMiddlewareWrapper(&deps.Logger{Logger: logger})
+	middleware := MiddlewareWrapper(&common.Logger{Logger: logger})
 
 	called := false
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +100,7 @@ func TestSetHTTPResponseHeaders(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	ctx := context.Background()
 
-	err := setHTTPResponseHeaders(ctx, recorder, nil)
+	err := setHTTPRespHeaders(ctx, recorder, nil)
 	if err != nil {
 		t.Errorf("modifyHTTPResponseHeaders returned an error: %v", err)
 	}
