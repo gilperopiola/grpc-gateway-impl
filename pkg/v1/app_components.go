@@ -38,9 +38,9 @@ func (a *App) LoadRepositoryAndDB() {
 }
 
 func (a *App) LoadGRPC() {
-	a.GRPC.Interceptors = grpc.AllServerOptions(a.Wrapper, a.TLSConfig.Enabled)
+	a.GRPC.ServerOptions = grpc.AllServerOptions(a.Wrapper, a.TLSConfig.Enabled)
 	a.GRPC.DialOptions = grpc.AllDialOptions(a.ClientCreds)
-	a.GRPC.Server = grpc.NewGRPCServer(a.Config.GRPCPort, a.Service, a.Interceptors)
+	a.GRPC.Server = grpc.NewGRPCServer(a.Config.GRPCPort, a.Service, a.ServerOptions)
 	a.GRPC.Server.Init()
 }
 

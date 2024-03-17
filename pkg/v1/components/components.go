@@ -49,16 +49,16 @@ func NewWrapper() *Wrapper {
 
 // GRPC holds the gRPC Server, interceptors and dial options.
 type GRPC struct {
-	Server       Server              // GRPCServer is, surprisingly, our gRPC Server.
-	Interceptors []grpc.ServerOption // GRPCInterceptors run before or after gRPC calls.
-	DialOptions  []grpc.DialOption   // GRPCDialOptions configure the communication between the HTTP and gRPC.
+	Server        Server              // Server is, surprisingly, our gRPC Server.
+	ServerOptions []grpc.ServerOption // ServerOptions configure the gRPC Server.
+	DialOptions   []grpc.DialOption   // DialOptions configure the communication between HTTP and gRPC.
 }
 
 // HTTP holds the HTTP Gateway, middleware and Mux wrapper.
 type HTTP struct {
-	Gateway           Server                   // HTTPGateway is our HTTP Gateway (it's also a Server).
-	Middleware        []runtime.ServeMuxOption // HTTPMiddleware are the ServeMuxOptions that run before or after HTTP calls.
-	MiddlewareWrapper http.MuxWrapperFunc      // HTTPMiddlewareWrapper are the middleware that wrap around the HTTP Gateway.
+	Gateway           Server                   // Gateway is our HTTP Gateway (it's also a Server).
+	Middleware        []runtime.ServeMuxOption // Middleware configure the HTTP Gateway.
+	MiddlewareWrapper http.MuxWrapperFunc      // MiddlewareWrapper are the middleware that wrap around the HTTP Gateway.
 }
 
 // TLS holds the TLS components to guarantee secure communication.
