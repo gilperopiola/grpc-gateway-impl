@@ -3,6 +3,7 @@ package errs
 /* ----------------------------------- */
 /*              - Errors -             */
 /* ----------------------------------- */
+
 // Note these are just strings and not actual errors.
 
 const (
@@ -24,6 +25,9 @@ const (
 	// Non-fatal initialization error messages.
 	ErrMsgInsertingAdmin = "Failed to insert admin user to the database: %v"
 	ErrMsgGettingDBConn  = "Failed to get database connection: %v"
+
+	// Non-fatal shutdown error messages.
+	ErrMsgGettingSQLDB = "Failed to get SQL database connection: %v"
 
 	// Request lifecycle error messages.
 	ErrMsgInValidation           = "validation error: %v."

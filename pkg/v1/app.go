@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +10,8 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/repository"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/repository/db"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
+
+	"go.uber.org/zap"
 )
 
 /* ----------------------------------- */
@@ -24,7 +25,7 @@ type App struct {
 
 	Service    service.Service       // Service Layer holds all business logic.
 	Repository repository.Repository // Repository Layer manages communication with the database.
-	Database   *db.DatabaseWrapper   // Database holds the DB connection.
+	Database   *db.DBWrapper         // Database holds the DB connection.
 }
 
 // NewApp returns a new App with the given configuration and components loaded.
@@ -59,5 +60,6 @@ func (a *App) WaitForGracefulShutdown() {
 	a.Server.Shutdown()
 	a.Gateway.Shutdown()
 
-	log.Println("Servers stopped! Bye bye~")
+	zap.S().Infoln("Servers stopped! Bye bye~")
+	zap.L().Sync()
 }

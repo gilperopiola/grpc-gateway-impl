@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
@@ -27,12 +28,12 @@ import (
 // These Interceptors are then chained together and added to the gRPC Server as a ServerOption.
 func getUnaryInterceptors(components *components.Wrapper) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
-		rateLimiterInterceptor(components.RateLimiter, components.Logger),
-		loggerInterceptor(components.Logger),
+		rateLimiterInterceptor(components.RateLimiter),
+		loggerInterceptor(),
 		tokenValidationInterceptor(components.Authenticator),
 		inputValidationInterceptor(components.InputValidator),
 		contextCancelledInterceptor(),
-		recoveryInterceptor(components.Logger),
+		recoveryInterceptor(),
 	}
 }
 
@@ -48,16 +49,28 @@ func inputValidationInterceptor(validator common.InputValidator) grpc.UnaryServe
 }
 
 // loggerInterceptor returns a gRPC interceptor that logs every gRPC request that comes in through the gRPC server.
-func loggerInterceptor(logger *common.Logger) grpc.UnaryServerInterceptor {
-	return logger.LogGRPC
+func loggerInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		start := time.Now()
+		resp, err := handler(ctx, req)
+		duration := time.Since(start)
+
+		if err != nil {
+			zap.S().Errorw("gRPC Error", common.ZapEndpoint(info.FullMethod), common.ZapDuration(duration), common.ZapError(err))
+		} else {
+			zap.S().Infow("gRPC Request", common.ZapEndpoint(info.FullMethod), common.ZapDuration(duration))
+		}
+
+		return resp, err
+	}
 }
 
 // rateLimiterInterceptor returns a gRPC interceptor that limits the rate of requests that the server can process.
 // Returns a gRPC ResourceExhausted error if the rate limit is exceeded.
-func rateLimiterInterceptor(limiter *rate.Limiter, logger *common.Logger) grpc.UnaryServerInterceptor {
+func rateLimiterInterceptor(limiter *rate.Limiter) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if !limiter.Allow() {
-			logger.Error("Rate limit exceeded!")
+			zap.S().Error("Rate limit exceeded!")
 			return nil, status.Errorf(codes.ResourceExhausted, errs.ErrMsgRateLimitExceeded)
 		}
 		return handler(ctx, req)
@@ -75,10 +88,10 @@ func contextCancelledInterceptor() grpc.UnaryServerInterceptor {
 }
 
 // recoveryInterceptor returns a gRPC interceptor that recovers from panics.
-func recoveryInterceptor(logger *common.Logger) grpc.UnaryServerInterceptor {
+func recoveryInterceptor() grpc.UnaryServerInterceptor {
 	return grpc_recovery.UnaryServerInterceptor(
 		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
-			logger.Error("gRPC Panic!", zap.Any("info", p))
+			zap.S().Error("gRPC Panic!", zap.Any("info", p))
 			return status.Errorf(codes.Internal, errs.ErrMsgPanic)
 		}),
 	)

@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -46,7 +46,7 @@ func (h *HTTPGateway) Init() {
 	mux := runtime.NewServeMux(h.middleware...)
 
 	if err := usersPB.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.grpcPort, h.grpcOptions); err != nil {
-		log.Fatalf(errs.FatalErrMsgStartingHTTP, err)
+		zap.S().Fatalf(errs.FatalErrMsgStartingHTTP, err)
 	}
 
 	h.Server = &http.Server{Addr: h.port, Handler: h.middlewareWrapper(mux)}
@@ -54,11 +54,11 @@ func (h *HTTPGateway) Init() {
 
 // Run runs the HTTP Gateway.
 func (h *HTTPGateway) Run() {
-	log.Printf("Running HTTP on port %s!\n", h.port)
+	zap.S().Infof("Running HTTP on port %s!\n", h.port)
 
 	go func() {
 		if err := h.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf(errs.FatalErrMsgServingHTTP, err)
+			zap.S().Fatalf(errs.FatalErrMsgServingHTTP, err)
 		}
 	}()
 }
@@ -66,13 +66,13 @@ func (h *HTTPGateway) Run() {
 // Shutdown gracefully shuts down the HTTP Server.
 // It waits for all connections to be closed before shutting down.
 func (h *HTTPGateway) Shutdown() {
-	log.Println("Shutting down HTTP server...")
+	zap.S().Info("Shutting down HTTP server...")
 	shutdownTimeout := 4 * time.Second
 
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	if err := h.Server.Shutdown(ctx); err != nil {
-		log.Fatalf(errs.FatalErrMsgShuttingDownHTTP, err)
+		zap.S().Fatalf(errs.FatalErrMsgShuttingDownHTTP, err)
 	}
 }

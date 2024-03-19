@@ -1,87 +1,87 @@
 package common
 
 import (
-	"context"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
+	"go.uber.org/zap/zapcore"
 )
 
 /* ----------------------------------- */
 /*             - Logger -              */
 /* ----------------------------------- */
 
-type Logger struct {
-	*zap.Logger
-	sugar *zap.SugaredLogger
-}
+// We use zap as our logger. It's fast and has a nice API.
+// We don't even need to wrap it in a struct, we just use it globally on the zap pkg.
 
-// NewLogger returns a new instance of Logger.
-func NewLogger(isProd bool, opts ...zap.Option) *Logger {
-	newLoggerFunc := zap.NewDevelopment
-	if isProd {
-		newLoggerFunc = zap.NewProduction
-	}
-
-	logger, err := newLoggerFunc(opts...)
+// InitGlobalLogger replaces the global logger in the zap package with a new one.
+// It uses a default zap.Config and allows for additional options to be passed.
+func InitGlobalLogger(isProd bool, opts ...zap.Option) {
+	zapLogger, err := getZapConfig(isProd).Build(opts...)
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgCreatingLogger, err)
 	}
 
-	return &Logger{Logger: logger, sugar: logger.Sugar()}
+	zap.ReplaceGlobals(zapLogger)
 }
 
 // NewLoggerOptions returns the default options for the Logger.
 func NewLoggerOptions() []zap.Option {
 	return []zap.Option{
-		zap.AddStacktrace(zap.DPanicLevel),
+		zap.AddStacktrace(zap.DPanicLevel),  // T0D0 -> Config var.
+		zap.WithClock(zapcore.DefaultClock), // T0D0 -> Config var.
 	}
 }
 
-// LogGRPC logs the gRPC Request's info when it finishes executing.
-func (l *Logger) LogGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	start := time.Now()
-	resp, err := handler(ctx, req)
-	duration := time.Since(start)
-
-	if err != nil {
-		l.sugar.Errorw("gRPC Error", endpointField(info.FullMethod), durationField(duration), errorField(err))
-	} else {
-		l.sugar.Infow("gRPC Request", endpointField(info.FullMethod), durationField(duration))
+// getZapConfig returns a new zap.Config with the default options.
+func getZapConfig(isProd bool) zap.Config {
+	zapConfigFunc := zap.NewDevelopmentConfig
+	if isProd {
+		zapConfigFunc = zap.NewProductionConfig
 	}
 
-	return resp, err
+	zapConfig := zapConfigFunc()
+	zapConfig.DisableCaller = true                         // T0D0 -> Config var.
+	zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel) // T0D0 -> Config var.
+	zapConfig.EncoderConfig.EncodeTime = myTimeEncoder     // T0D0 -> Config var.
+
+	return zapConfig
 }
 
-// LogHTTP logs the HTTP Request's info when it finishes executing.
-func (l *Logger) LogHTTP(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, r)
-		duration := time.Since(start)
-
-		l.sugar.Infow("HTTP Request", endpointField(r.Method+" "+r.URL.Path), durationField(duration))
-
-		// Most HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
-		// As such, we add a new line to separate the logs and easily identify different requests.
-		// The only exception would be if there was an error before calling the gRPC handlers.
-		l.sugar.Infoln("")
-	})
-}
-
-func endpointField(value string) zap.Field {
+// ZapEndpoint unifies both HTTP and gRPC paths:
+//
+//   - In HTTP, we join Method and Path -> 'GET /users'.
+//   - In gRPC, it's only the Method 		-> '/users.UsersService/GetUsers'.
+//
+// -
+func ZapEndpoint(value string) zap.Field {
 	return zap.String("endpoint", value)
 }
 
-func durationField(value time.Duration) zap.Field {
+func ZapDuration(value time.Duration) zap.Field {
 	return zap.Duration("duration", value)
 }
 
-func errorField(err error) zap.Field {
+func ZapError(err error) zap.Field {
 	return zap.Error(err)
+}
+
+func encodeTimeLayout(t time.Time, layout string, enc zapcore.PrimitiveArrayEncoder) {
+	type appendTimeEncoder interface {
+		AppendTimeLayout(time.Time, string)
+	}
+
+	if enc, ok := enc.(appendTimeEncoder); ok {
+		enc.AppendTimeLayout(t, layout)
+		return
+	}
+
+	enc.AppendString(t.Format(layout))
+}
+
+func myTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	encodeTimeLayout(t, "02/01/06 15:04:05", enc)
 }

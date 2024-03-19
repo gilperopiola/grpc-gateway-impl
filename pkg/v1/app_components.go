@@ -8,6 +8,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/repository"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/repository/db"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/service"
+
 	"golang.org/x/time/rate"
 )
 
@@ -17,15 +18,6 @@ import (
 
 func (a *App) LoadConfig() {
 	a.Config = cfg.Load()
-}
-
-func (a *App) LoadCommonComponents() {
-	a.LoadRateLimiter()
-	a.LoadPwdHasher()
-	a.LoadLogger()
-	a.LoadTLS()
-	a.LoadInputValidator()
-	a.LoadAuthenticator()
 }
 
 func (a *App) LoadService() {
@@ -46,7 +38,7 @@ func (a *App) LoadGRPC() {
 
 func (a *App) LoadHTTP() {
 	a.HTTP.Middleware = http.AllMiddleware()
-	a.HTTP.MiddlewareWrapper = http.MiddlewareWrapper(a.Logger)
+	a.HTTP.MiddlewareWrapper = http.MiddlewareWrapper()
 	a.HTTP.Gateway = http.NewHTTPGateway(a.MainConfig, a.Middleware, a.MiddlewareWrapper, a.DialOptions)
 	a.HTTP.Gateway.Init()
 }
@@ -54,6 +46,20 @@ func (a *App) LoadHTTP() {
 /* ----------------------------------- */
 /*        - Common Components -        */
 /* ----------------------------------- */
+
+func (a *App) LoadCommonComponents() {
+	a.InitGlobalLogger()
+	a.LoadRateLimiter()
+	a.LoadPwdHasher()
+	a.LoadTLS()
+	a.LoadInputValidator()
+	a.LoadAuthenticator()
+}
+
+// InitGlobalLogger sets a new *zap.Logger as global on the zap package.
+func (a *App) InitGlobalLogger() {
+	common.InitGlobalLogger(a.IsProd, common.NewLoggerOptions()...)
+}
 
 func (a *App) LoadInputValidator() {
 	a.InputValidator = common.NewInputValidator()
@@ -65,10 +71,6 @@ func (a *App) LoadAuthenticator() {
 
 func (a *App) LoadRateLimiter() {
 	a.RateLimiter = rate.NewLimiter(rate.Limit(a.RateLimiterConfig.TokensPerSecond), a.RateLimiterConfig.MaxTokens)
-}
-
-func (a *App) LoadLogger() {
-	a.Logger = common.NewLogger(a.IsProd, common.NewLoggerOptions()...)
 }
 
 func (a *App) LoadPwdHasher() {

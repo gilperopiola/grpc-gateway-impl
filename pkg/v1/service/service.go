@@ -65,6 +65,16 @@ func getPaginationValues[r RequestWithPagination](req r) (int, int) {
 	return int(page), int(pageSize)
 }
 
+// makeResponsePagination returns a PaginationInfo object with the current and total pages.
+func makeResponsePagination(page, pageSize, totalMatchingRecords int) *usersPB.PaginationInfo {
+	totalPages := totalMatchingRecords / pageSize
+
+	if totalMatchingRecords%pageSize > 0 {
+		totalPages++
+	}
+	return &usersPB.PaginationInfo{Current: int32(page), Total: int32(totalPages)}
+}
+
 /* ----------------------------------- */
 /*         - Service Errors -          */
 /* ----------------------------------- */

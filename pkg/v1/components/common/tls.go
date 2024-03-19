@@ -2,11 +2,11 @@ package common
 
 import (
 	"crypto/x509"
-	"log"
 	"os"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -23,11 +23,11 @@ func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
 
 	cert, err := os.ReadFile(tlsCertPath) // Read certificate.
 	if err != nil {
-		log.Fatalf(errs.FatalErrMsgReadingTLSCert, err)
+		zap.S().Fatalf(errs.FatalErrMsgReadingTLSCert, err)
 	}
 
 	if !certPool.AppendCertsFromPEM(cert) { // Append encoded certificate.
-		log.Fatalf(errs.FatalErrMsgAppendingTLSCert)
+		zap.S().Fatalf(errs.FatalErrMsgAppendingTLSCert)
 	}
 
 	return certPool
@@ -37,7 +37,7 @@ func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
 func NewServerTransportCreds(certPath, keyPath string) credentials.TransportCredentials {
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 	if err != nil {
-		log.Fatalf(errs.FatalErrMsgLoadingTLSCreds, err)
+		zap.S().Fatalf(errs.FatalErrMsgLoadingTLSCreds, err)
 	}
 	return creds
 }

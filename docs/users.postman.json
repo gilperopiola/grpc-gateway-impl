@@ -1,7 +1,8 @@
 {
 	"info": {
 		"_postman_id": "36b1cc57-9f4e-44f6-a383-7e4cfd2b5348",
-		"name": "GRPC Gateway Implementation",
+		"name": "🐿️ GRPC Gateway Impl.",
+		"description": "Pre-request Scripts and Tests are used across the Collection to set environment variables and other necessary stuff.\n\nThe BaseURL, for example, is configured on the Pre-Request Script of this Collection.\n\n🚀",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "5310198",
 		"_collection_link": "https://warped-escape-42133.postman.co/workspace/NotSpoton~8743d5aa-98de-435e-839b-e4188f191c81/collection/5310198-36b1cc57-9f4e-44f6-a383-7e4cfd2b5348?action=share&source=collection_link&creator=5310198"
@@ -17,7 +18,7 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"let username = \"user_\" + utils.generateRandomString(4)\r",
+									"let username = \"user_\" + utils.generateRandomString(6)\r",
 									"postman.setEnvironmentVariable(\"username\", username);\r",
 									""
 								],
@@ -29,17 +30,15 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
+									"pm.test(\"Status code is 200\", () => { pm.response.to.have.status(200) });\r",
+									"\r",
+									"var response = pm.response.json();\r",
+									"pm.test(\"Response has a field 'id' with a numeric value\", () => {\r",
+									"    pm.expect(response).to.have.property(\"id\");\r",
+									"    pm.expect(response.id).to.be.a(\"number\");\r",
+									"\tpm.environment.set(\"user_id\", response.id);\r",
 									"});\r",
 									"\r",
-									"var responseData = pm.response.json();\r",
-									"pm.test(\"Response has a field 'id' with a numeric value\", function () {\r",
-									"    pm.expect(responseData).to.have.property(\"id\");\r",
-									"    pm.expect(responseData.id).to.be.a(\"number\");\r",
-									"});\r",
-									"\r",
-									"pm.environment.set(\"user_id\", responseData.id);\r",
 									""
 								],
 								"type": "text/javascript",
@@ -74,20 +73,19 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
+									"pm.test(\"Status code is 200\", function () {pm.response.to.have.status(200);});\r",
 									"\r",
 									"var responseData = pm.response.json();\r",
 									"pm.test(\"Response has a field 'token' with a string\", function () {\r",
 									"    pm.expect(responseData).to.have.property(\"token\");\r",
 									"    pm.expect(responseData.token).to.be.a(\"string\");\r",
+									"\tpm.environment.set(\"token\", responseData.token);\r",
 									"});\r",
 									"\r",
-									"pm.environment.set(\"token\", responseData.token);\r",
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -118,9 +116,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
+									"pm.test(\"Status code is 200\", function () {pm.response.to.have.status(200);});\r",
 									"\r",
 									"var responseData = pm.response.json();\r",
 									"pm.test(\"Response has a field 'user'\", function () {\r",
@@ -129,7 +125,8 @@
 									"\r",
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -170,17 +167,15 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
+									"pm.test(\"Status code is 200\", function () {pm.response.to.have.status(200);});\r",
 									"\r",
 									"var responseData = pm.response.json();\r",
 									"pm.test(\"Response has a field 'token' with a string\", function () {\r",
 									"    pm.expect(responseData).to.have.property(\"token\");\r",
 									"    pm.expect(responseData.token).to.be.a(\"string\");\r",
+									"\tpm.environment.set(\"token_admin\", responseData.token);\r",
 									"});\r",
 									"\r",
-									"pm.environment.set(\"token_admin\", responseData.token);\r",
 									""
 								],
 								"type": "text/javascript",
@@ -193,7 +188,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"username\": \"admin\",\r\n    \"password\": \"change_me\"\r\n}"
+							"raw": "{\r\n    \"username\": \"admin\",\r\n    \"password\": \"please_set_the_env_var\"\r\n}"
 						},
 						"url": {
 							"raw": "{{baseURL}}/v1/login",
@@ -215,9 +210,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
+									"pm.test(\"Status code is 200\", function () {pm.response.to.have.status(200);});\r",
 									"\r",
 									"var responseData = pm.response.json();\r",
 									"pm.test(\"Response has a field 'users'\", function () {\r",
@@ -267,9 +260,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
+									"pm.test(\"Status code is 200\", function () {pm.response.to.have.status(200);});\r",
 									"\r",
 									"var responseData = pm.response.json();\r",
 									"pm.test(\"Response has a field 'users'\", function () {\r",
@@ -542,8 +533,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 401\", function () {\r",
-									"    pm.response.to.have.status(401);\r",
+									"pm.test(\"Status code is 404\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
 									"});\r",
 									"\r",
 									"var responseData = pm.response.json();\r",
@@ -1000,13 +991,17 @@
 			"script": {
 				"type": "text/javascript",
 				"exec": [
+					"postman.setEnvironmentVariable(\"baseURL\", \"localhost:8083\")",
+					"",
 					"utils = {",
 					"    generateRandomString: function (length){",
-					"        const characters = 'abcdef';",
+					"        const characters = 'abcdefghijklmnopqrstuvwxyz';",
 					"        let result = '';",
+					"\t\t",
 					"        for (let i = 0; i < length; i++) {",
 					"            result += characters.charAt(Math.floor(Math.random() * characters.length));",
 					"        }",
+					"",
 					"        return result;",
 					"    },",
 					"}",
@@ -1023,12 +1018,6 @@
 					""
 				]
 			}
-		}
-	],
-	"variable": [
-		{
-			"key": "baseURL",
-			"value": "localhost:8083"
 		}
 	]
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components"
+	"go.uber.org/zap"
 )
 
 /* ----------------------------------- */
@@ -27,7 +27,7 @@ func main() {
 	// Run app.
 	app.Run()
 	time.Sleep(1 * time.Second)
-	log.Println("Servers OK")
+	zap.S().Info("Servers OK")
 
 	// Quit app.
 	app.WaitForGracefulShutdown()

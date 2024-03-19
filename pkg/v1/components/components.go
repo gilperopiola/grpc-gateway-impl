@@ -5,9 +5,9 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/http"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/time/rate"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -30,9 +30,6 @@ type Wrapper struct {
 
 	// RateLimiter is used to limit the number of requests that get processed.
 	RateLimiter *rate.Limiter
-
-	// Logger is used to log every gRPC and HTTP request that comes in.
-	Logger *common.Logger
 
 	// PwdHasher is used to hash and compare passwords.
 	PwdHasher common.PwdHasher
@@ -61,7 +58,7 @@ type HTTP struct {
 	MiddlewareWrapper http.MuxWrapperFunc      // MiddlewareWrapper are the middleware that wrap around the HTTP Gateway.
 }
 
-// TLS holds the TLS components to guarantee secure communication.
+// TLS holds the Transport Layer Security components, such as certificates and credentials.
 type TLS struct {
 	// ServerCert is a pool of certificates.
 	ServerCert *x509.CertPool

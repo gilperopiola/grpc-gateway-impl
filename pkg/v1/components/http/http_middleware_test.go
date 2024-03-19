@@ -10,7 +10,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -72,8 +71,8 @@ func TestHandleHTTPError(t *testing.T) {
 /* ----------------------------------- */
 
 func TestLogHTTP(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	middleware := MiddlewareWrapper(&common.Logger{Logger: logger})
+	common.InitGlobalLogger(false)
+	middleware := MiddlewareWrapper()
 
 	called := false
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +99,7 @@ func TestSetHTTPResponseHeaders(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	ctx := context.Background()
 
-	err := setHTTPRespHeaders(ctx, recorder, nil)
+	err := responseHeadersMiddleware(ctx, recorder, nil)
 	if err != nil {
 		t.Errorf("modifyHTTPResponseHeaders returned an error: %v", err)
 	}

@@ -42,7 +42,7 @@ type DBConfig struct {
 
 	Migrate       bool
 	InsertAdmin   bool
-	AdminPassword string // T0D0 - This doesn't feel right.
+	AdminPassword string // T0D0 - This doesn't feel right. Hash it beforehand.
 }
 
 // JWT Auth configuration.
@@ -53,18 +53,15 @@ type JWTConfig struct {
 
 // TLS configuration.
 type TLSConfig struct {
-	// Enabled defines the use of SSL/TLS for the communication between the servers.
-	Enabled bool
-
-	// CertPath & KeyPath are the paths to the SSL/TLS certificate and key files.
+	Enabled  bool // If enabled, use TLS between HTTP and gRPC.
 	CertPath string
 	KeyPath  string
 }
 
 // Rate Limiter configuration.
 type RateLimiterConfig struct {
-	MaxTokens       int // MaxTokens is the maximum number of tokens the bucket can hold.
-	TokensPerSecond int // TokensPerSecond is the number of tokens reloaded per second.
+	MaxTokens       int // Max tokens the bucket can hold.
+	TokensPerSecond int // Tokens reloaded per second.
 }
 
 // Load sets up the configuration from the environment variables.
@@ -92,7 +89,7 @@ func Load() *Config {
 			Schema:        envStr("DB_SCHEMA", "grpc-gateway-impl"),
 			Params:        envStr("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
 			Migrate:       envBool("DB_MIGRATE", true),
-			InsertAdmin:   envBool("DB_INSERT_ADMIN", false),
+			InsertAdmin:   envBool("DB_INSERT_ADMIN", true),
 			AdminPassword: envStr("DB_ADMIN_PASSWORD", "please_set_the_env_var"), // This gets hashed before being used.
 		},
 		JWTConfig: &JWTConfig{
@@ -152,7 +149,7 @@ func getPathPrefix(projectName string) string {
 func isWorkingDirRootFolder(projectName string) bool {
 	workingDir, err := os.Getwd()
 	if err != nil {
-		log.Fatalf(errs.FatalErrMsgGettingWorkingDir, err)
+		log.Fatalf(errs.FatalErrMsgGettingWorkingDir, err) // Our logger is not initialized yet.
 	}
 	return strings.HasSuffix(workingDir, projectName)
 }

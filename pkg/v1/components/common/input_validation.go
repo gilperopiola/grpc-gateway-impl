@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/bufbuild/protovalidate-go"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,7 +37,7 @@ type protoValidator struct {
 func NewInputValidator() *protoValidator {
 	validator, err := protovalidate.New()
 	if err != nil {
-		log.Fatalf(errs.FatalErrMsgCreatingValidator, err)
+		zap.S().Fatalf(errs.FatalErrMsgCreatingValidator, err)
 	}
 	return &protoValidator{Validator: validator}
 }
