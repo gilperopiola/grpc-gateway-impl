@@ -30,8 +30,8 @@ func AllMiddleware() []runtime.ServeMuxOption {
 	}
 }
 
-// MiddlewareWrapper returns the middleware to be wrapped around the HTTP Gateway's Mux.
-func MiddlewareWrapper() MuxWrapperFunc {
+// MuxWrapper returns the middleware to be wrapped around the HTTP Gateway's Mux.
+func MuxWrapper() MuxWrapperFunc {
 	return func(next http.Handler) http.Handler {
 		return corsMiddleware(
 			loggerMiddleware(next),

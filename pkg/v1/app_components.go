@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/grpc"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/http"
@@ -13,53 +12,42 @@ import (
 )
 
 /* ----------------------------------- */
-/*      - App Components Loader -      */
+/*         - Main Components -         */
 /* ----------------------------------- */
 
-func (a *App) LoadConfig() {
-	a.Config = cfg.Load()
-}
-
 func (a *App) LoadService() {
-	a.Service = service.NewService(a.Repository, a.Authenticator, a.PwdHasher)
+	a.Service = service.NewService(a.Repository, a.Authenticator, a.PwdHasher) // -> Init Service.
 }
 
 func (a *App) LoadRepositoryAndDB() {
-	a.Database = db.NewDatabaseWrapper(a.DBConfig)
-	a.Repository = repository.NewRepository(a.Database)
+	a.Database = db.NewDatabaseWrapper(a.DBConfig)      // -> Init Database Wrapper.
+	a.Repository = repository.NewRepository(a.Database) // -> Init Repository.
 }
 
-func (a *App) LoadGRPC() {
-	a.GRPC.ServerOptions = grpc.AllServerOptions(a.Wrapper, a.TLSConfig.Enabled)
-	a.GRPC.DialOptions = grpc.AllDialOptions(a.ClientCreds)
-	a.GRPC.Server = grpc.NewGRPCServer(a.Config.GRPCPort, a.Service, a.ServerOptions)
+func (a *App) LoadAllGRPC() {
+	a.GRPC.ServerOptions = grpc.AllServerOptions(a.Wrapper, a.TLSConfig.Enabled) // -> Init gRPC Server Options.
+	a.GRPC.DialOptions = grpc.AllDialOptions(a.ClientCreds)                      // -> Init gRPC Dial Options.
+	a.GRPC.Server = grpc.NewGRPCServer(a.GRPCPort, a.Service, a.ServerOptions)   // -> Init gRPC Server.
+
 	a.GRPC.Server.Init()
 }
 
-func (a *App) LoadHTTP() {
-	a.HTTP.Middleware = http.AllMiddleware()
-	a.HTTP.MiddlewareWrapper = http.MiddlewareWrapper()
-	a.HTTP.Gateway = http.NewHTTPGateway(a.MainConfig, a.Middleware, a.MiddlewareWrapper, a.DialOptions)
+func (a *App) LoadAllHTTP() {
+	a.HTTP.Middleware = http.AllMiddleware()                                                      // -> Init HTTP Middleware.
+	a.HTTP.MuxWrapper = http.MuxWrapper()                                                         // -> Init HTTP Mux Wrapper.
+	a.HTTP.Gateway = http.NewHTTPGateway(a.MainConfig, a.Middleware, a.MuxWrapper, a.DialOptions) // -> Init HTTP Gateway.
+
 	a.HTTP.Gateway.Init()
-}
-
-/* ----------------------------------- */
-/*        - Common Components -        */
-/* ----------------------------------- */
-
-func (a *App) LoadCommonComponents() {
-	a.InitGlobalLogger()
-	a.LoadRateLimiter()
-	a.LoadPwdHasher()
-	a.LoadTLS()
-	a.LoadInputValidator()
-	a.LoadAuthenticator()
 }
 
 // InitGlobalLogger sets a new *zap.Logger as global on the zap package.
 func (a *App) InitGlobalLogger() {
 	common.InitGlobalLogger(a.IsProd, common.NewLoggerOptions()...)
 }
+
+/* ----------------------------------- */
+/*        - Common Components -        */
+/* ----------------------------------- */
 
 func (a *App) LoadInputValidator() {
 	a.InputValidator = common.NewInputValidator()
@@ -80,7 +68,7 @@ func (a *App) LoadPwdHasher() {
 	a.DBConfig.AdminPassword = a.PwdHasher.Hash(a.DBConfig.AdminPassword)
 }
 
-func (a *App) LoadTLS() {
+func (a *App) LoadAllTLS() {
 	if a.TLSConfig.Enabled {
 		a.ServerCert = common.NewTLSCertPool(a.TLSConfig.CertPath)
 		a.ServerCreds = common.NewServerTransportCreds(a.TLSConfig.CertPath, a.TLSConfig.KeyPath)

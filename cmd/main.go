@@ -6,6 +6,7 @@ import (
 	v1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components"
+
 	"go.uber.org/zap"
 )
 
@@ -14,14 +15,15 @@ import (
 /* ----------------------------------- */
 
 /* This is the entrypoint of our app.
-/* Here we start the gRPC server and point the HTTP Gateway towards it. */
+/* The app runs a gRPC Server and points an HTTP Gateway towards it.
+/* It has a Service Layer that connects to a Repository Layer, which in turn connects to a SQL Database. */
 
 func main() {
 
 	// Init app.
 	app := v1.NewApp(
-		cfg.Load(),
-		components.NewWrapper(),
+		loadConfig(),
+		loadComponentsWrapper(),
 	)
 
 	// Run app.
@@ -33,8 +35,17 @@ func main() {
 	app.WaitForGracefulShutdown()
 }
 
+func loadConfig() *cfg.Config {
+	return cfg.Load()
+}
+
+func loadComponentsWrapper() *components.Wrapper {
+	return components.NewWrapper()
+}
+
 /* ----------------------------------- */
 /*              - T0D0 -               */
 /* ----------------------------------- */
-/* Buf file / Dockerfile / Docker-compose / Kubernetes / CI-CD /
-/* Metrics / Tracing / Caching / Tests */
+
+/* Buf file / Dockerfile / Docker-compose / Kubernetes /
+/* CI-CD / Metrics / Tracing / Caching / Tests */

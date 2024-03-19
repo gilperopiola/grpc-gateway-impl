@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

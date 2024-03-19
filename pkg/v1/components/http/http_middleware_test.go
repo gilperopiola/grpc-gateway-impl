@@ -72,7 +72,7 @@ func TestHandleHTTPError(t *testing.T) {
 
 func TestLogHTTP(t *testing.T) {
 	common.InitGlobalLogger(false)
-	middleware := MiddlewareWrapper()
+	middleware := MuxWrapper()
 
 	called := false
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

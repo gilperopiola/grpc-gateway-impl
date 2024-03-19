@@ -53,9 +53,9 @@ type GRPC struct {
 
 // HTTP holds the HTTP Gateway, middleware and Mux wrapper.
 type HTTP struct {
-	Gateway           Server                   // Gateway is our HTTP Gateway (it's also a Server).
-	Middleware        []runtime.ServeMuxOption // Middleware configure the HTTP Gateway.
-	MiddlewareWrapper http.MuxWrapperFunc      // MiddlewareWrapper are the middleware that wrap around the HTTP Gateway.
+	Gateway    Server                   // Gateway is our HTTP Gateway (it's also a Server).
+	Middleware []runtime.ServeMuxOption // Middleware configure the HTTP Gateway.
+	MuxWrapper http.MuxWrapperFunc      // MiddlewareWrapper are the middleware that wrap around the HTTP Gateway.
 }
 
 // TLS holds the Transport Layer Security components, such as certificates and credentials.
