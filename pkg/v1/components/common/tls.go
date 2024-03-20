@@ -16,7 +16,7 @@ import (
 // The certificate must be in the root directory of the project.
 
 // NewTLSCertPool loads the server's certificate from a file and returns a certificate pool.
-// It's a SSL/TLS certificate used to secure the communication between the HTTP Gateway and the gRPC server.
+// It's a SSL/TLS certificate used to secure the communication between the HTTP Gateway and the gRPC Server.
 // It must be in a .crt format.
 func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
 	certPool := x509.NewCertPool() // Create certificate pool.

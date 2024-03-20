@@ -9,8 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// openGormConnection calls gorm.Open and wraps the returned *gorm.DB with our concrete type that implements GormAdapter.
+func openGormConnection(dialector gorm.Dialector, opts ...gorm.Option) (GormAdapter, error) {
+	gormDB, err := gorm.Open(dialector, opts...)
+	return newGormAdapter(gormDB), err
+}
+
+// newGormAdapter wraps *gorm.DB and returns a new concrete *gormAdapter as a GormAdapter interface.
+func newGormAdapter(gormDB *gorm.DB) GormAdapter {
+	return &gormAdapter{gormDB}
+}
+
 // GormAdapter is our adapter interface for GORM. We have a concrete gormAdapter that implements it.
-// With this we can mock the *gorm.DB in our tests.
+// With this we can mock *gorm.DB in our tests.
 type GormAdapter interface {
 	AutoMigrate(dst ...interface{}) error
 	GetSQLDB() *sql.DB
@@ -58,20 +69,9 @@ type GormAdapter interface {
 	Error() error
 }
 
+// gormAdapter is our concrete type that implements the GormAdapter interface.
 type gormAdapter struct {
 	*gorm.DB
-}
-
-// openGormAdapter calls gorm.Open and wraps the returned gorm.DB with our concrete type that implements the GormAdapter interface.
-// This way we can mock the GormAdapter in our tests.
-func openGormAdapter(dialector gorm.Dialector, opts ...gorm.Option) (GormAdapter, error) {
-	gormDB, err := gorm.Open(dialector, opts...)
-	return newGormAdapter(gormDB), err
-}
-
-// newGormAdapter wraps *gorm.DB and returns a new concrete *gormAdapter as a GormAdapter interface.
-func newGormAdapter(gormDB *gorm.DB) GormAdapter {
-	return &gormAdapter{gormDB}
 }
 
 func (ga *gormAdapter) GetSQLDB() *sql.DB {

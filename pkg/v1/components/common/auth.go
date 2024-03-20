@@ -16,6 +16,22 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// PublicMethods are the methods that do not require authentication.
+var PublicMethods = []string{
+	"/users.UsersService/Signup",
+	"/users.UsersService/Login",
+}
+
+// SelfAuthMethods are the methods that only allow the user to access their own data.
+var SelfAuthMethods = []string{
+	"/users.UsersService/GetUser",
+}
+
+// AdminMethods are the methods that only allow admins to access them.
+var AdminMethods = []string{
+	"/users.UsersService/GetUsers",
+}
+
 /* ----------------------------------- */
 /*            - JWT Auth -             */
 /* ----------------------------------- */
@@ -119,22 +135,6 @@ func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo
 	ctx = a.addInfoToCtx(ctx, claims)
 
 	return handler(ctx, req)
-}
-
-// PublicMethods are the methods that do not require authentication.
-var PublicMethods = []string{
-	"/users.UsersService/Signup",
-	"/users.UsersService/Login",
-}
-
-// SelfAuthMethods are the methods that only allow the user to access their own data.
-var SelfAuthMethods = []string{
-	"/users.UsersService/GetUser",
-}
-
-// AdminMethods are the methods that only allow admins to access them.
-var AdminMethods = []string{
-	"/users.UsersService/GetUsers",
 }
 
 // UserIDKey and UsernameKey are used to store the user id and username in the context.

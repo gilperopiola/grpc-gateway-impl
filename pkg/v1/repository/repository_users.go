@@ -30,7 +30,7 @@ func (r *repository) GetUser(opts ...options.QueryOption) (*models.User, error) 
 	}
 
 	if err := query.First(&user).Error(); err != nil {
-		return nil, fmt.Errorf("error getting user: %w", err)
+		return nil, ErrGettingUser(err)
 	}
 
 	return &user, nil
@@ -51,7 +51,7 @@ func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOption) (
 	}
 
 	if err := query.Offset(page * pageSize).Limit(pageSize).Find(&users).Error(); err != nil {
-		return nil, 0, fmt.Errorf("error getting users: %w", err)
+		return nil, 0, ErrGettingUsers(err)
 	}
 
 	return users, int(totalMatchingUsers), nil
@@ -64,5 +64,11 @@ func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOption) (
 var (
 	ErrCreatingUser = func(err error) error {
 		return fmt.Errorf("repository error -> creating user -> %w", err)
+	}
+	ErrGettingUser = func(err error) error {
+		return fmt.Errorf("repository error -> getting user -> %w", err)
+	}
+	ErrGettingUsers = func(err error) error {
+		return fmt.Errorf("repository error -> getting users -> %w", err)
 	}
 )

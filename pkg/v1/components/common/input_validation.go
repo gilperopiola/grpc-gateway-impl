@@ -32,8 +32,7 @@ type protoValidator struct {
 	*protovalidate.Validator
 }
 
-// NewInputValidator returns a new instance of *protoValidator.
-// It panics on failure.
+// NewInputValidator returns a new instance of *protoValidator. It panics on failure.
 func NewInputValidator() *protoValidator {
 	validator, err := protovalidate.New()
 	if err != nil {
@@ -47,7 +46,7 @@ func (v *protoValidator) ValidateInput(ctx context.Context, req interface{}, _ *
 	if err := v.Validate(req.(protoreflect.ProtoMessage)); err != nil {
 		return nil, handleValidationErr(err)
 	}
-	return handler(ctx, req) // Next handler.
+	return handler(ctx, req)
 }
 
 // handleValidationErr takes a ValidationError and returns an InvalidArgument(3) gRPC error with its corresponding message.

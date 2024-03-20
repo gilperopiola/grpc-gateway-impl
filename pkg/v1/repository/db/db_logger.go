@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// gormLoggerAdapter is an adapter for the Gorm Logger. It wraps our zap Logger and implements the Gorm Logger interface.
+// gormLoggerAdapter is an adapter for the Gorm Logger. It wraps our *zap.Logger and implements the Gorm Logger interface.
 type gormLoggerAdapter struct {
 	*zap.Logger
 	logger.LogLevel
@@ -19,7 +19,7 @@ type gormLoggerAdapter struct {
 
 // newGormLoggerAdapter returns a new instance of *gormLoggerAdapter. We set the Log Level to Warn to avoid logging failed queries.
 func newGormLoggerAdapter(l *zap.Logger) *gormLoggerAdapter {
-	return &gormLoggerAdapter{l, logger.Info}
+	return &gormLoggerAdapter{l, logger.Warn}
 }
 
 // LogMode sets the log level for the logger.
@@ -65,8 +65,8 @@ func (g *gormLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func(
 		return
 	}
 
-	// Log the query info.
-	if g.LogLevel >= logger.Info {
+	// Log the query if the log level is set to Info or if it took more than 1 second.
+	if g.LogLevel >= logger.Info || elapsed > 1000*time.Millisecond {
 		zap.S().Infof(getQueryInfo(elapsed.Nanoseconds(), rows, sql))
 	}
 }

@@ -40,7 +40,7 @@ func (dbw *DBWrapper) Connect(c *cfg.DBConfig) {
 		}
 	)
 
-	if dbw.DB, connErr = openGormAdapter(mysql.Open(connStr), connConfig); connErr != nil {
+	if dbw.DB, connErr = openGormConnection(mysql.Open(connStr), connConfig); connErr != nil {
 		zap.S().Fatalf(errs.FatalErrMsgConnectingDB, connErr)
 	}
 

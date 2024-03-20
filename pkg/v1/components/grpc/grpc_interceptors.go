@@ -20,9 +20,8 @@ import (
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
 
-/* Interceptors are used to intervene gRPC requests and responses.
-/* They apply features across the entire API, not only gRPC but also HTTP.
-/* Even though we only use Unary Interceptors, Stream Interceptors also exist. */
+/* Interceptors are used to intervene GRPC Requests and Responses.
+/* Even though we only use Unary Interceptors, Stream Interceptors are also available. */
 
 // getUnaryInterceptors returns the gRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the gRPC Server as a ServerOption.

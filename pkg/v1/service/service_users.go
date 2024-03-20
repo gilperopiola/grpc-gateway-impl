@@ -12,6 +12,7 @@ import (
 
 const (
 	errGettingUser  = "error getting user"
+	errGettingUsers = "error getting users"
 	errCreatingUser = "error creating user"
 )
 
@@ -91,7 +92,7 @@ func (s *service) GetUsers(ctx context.Context, req *usersPB.GetUsersRequest) (*
 	// While our page is 0-based, gorm offsets are 1-based. That's why we subtract 1.
 	users, totalMatchingUsers, err := s.Repo.GetUsers(page-1, pageSize, filter)
 	if err != nil {
-		return nil, grpcUnknownErr("error getting users", err)
+		return nil, grpcUnknownErr(errGettingUser, err)
 	}
 
 	return &usersPB.GetUsersResponse{
