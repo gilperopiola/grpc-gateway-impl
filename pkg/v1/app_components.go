@@ -20,7 +20,7 @@ func (a *App) LoadService() {
 }
 
 func (a *App) LoadRepositoryAndDB() {
-	a.Database = db.NewDatabaseWrapper(a.DBConfig)      // -> Init Database Wrapper.
+	a.Database = db.NewDatabaseWrapper(a.DBConfig, nil) // -> Init Database Wrapper.
 	a.Repository = repository.NewRepository(a.Database) // -> Init Repository.
 }
 
