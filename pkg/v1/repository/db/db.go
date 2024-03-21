@@ -23,8 +23,13 @@ type DBWrapper struct {
 	DB GormAdapter
 }
 
-// NewDatabaseWrapper returns a new instance of the Database.
-func NewDatabaseWrapper(c *cfg.DBConfig) *DBWrapper {
+// NewDatabaseWrapper returns a new instance of the Database, either by connecting with a given configuration
+// or by using an already configured database. This is useful for testing.
+func NewDatabaseWrapper(c *cfg.DBConfig, alreadyConfiguredDB GormAdapter) *DBWrapper {
+	if alreadyConfiguredDB != nil {
+		return &DBWrapper{DB: alreadyConfiguredDB}
+	}
+
 	database := &DBWrapper{}
 	database.Connect(c)
 	return database
@@ -48,13 +53,13 @@ func (dbw *DBWrapper) Connect(c *cfg.DBConfig) {
 	dbw.DB.AutoMigrate(models.AllModels...)
 
 	// Insert the admin user if it doesn't exist.
-	dbw.InsertAdmin(c.AdminPassword)
+	dbw.InsertAdmin("admin", c.AdminPassword)
 }
 
 // InsertAdmin inserts the admin user if it doesn't exist.
-func (dbw *DBWrapper) InsertAdmin(adminPwd string) {
+func (dbw *DBWrapper) InsertAdmin(adminUsername, adminPwd string) {
 	admin := models.User{
-		Username: "admin",
+		Username: adminUsername,
 		Password: adminPwd,
 		Role:     models.AdminRole,
 	}
