@@ -7,6 +7,42 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func GetTestingConfig() *Config {
+	return &Config{
+		MainConfig: &MainConfig{
+			ProjectName: "grpc-gateway-impl-test",
+			IsProd:      false,
+			GRPCPort:    ":50053",
+			HTTPPort:    ":8083",
+			HashSalt:    "t3s7_s4l7",
+		},
+		DBConfig: &DBConfig{
+			Username:      "",
+			Password:      "",
+			Hostname:      "",
+			Port:          "",
+			Schema:        "",
+			Params:        "",
+			Migrate:       true,
+			InsertAdmin:   true,
+			AdminPassword: "test_admin_pwd",
+		},
+		JWTConfig: &JWTConfig{
+			Secret:      "test_jwt_secret",
+			SessionDays: 1,
+		},
+		TLSConfig: &TLSConfig{
+			Enabled:  true,
+			CertPath: "",
+			KeyPath:  "",
+		},
+		RateLimiterConfig: &RateLimiterConfig{
+			MaxTokens:       5,
+			TokensPerSecond: 2,
+		},
+	}
+}
+
 func TestLoadConfig(t *testing.T) {
 	os.Setenv("IS_PROD", "true")
 	os.Setenv("GRPC_PORT", ":9999")

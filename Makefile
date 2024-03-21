@@ -77,3 +77,9 @@ clean: ## Cleans the environment.
 test: ## Runs the tests.
 	@echo ''
 	go test ./... -race -cover
+
+push: ## Pushes the code to master. Dangerous, I know.
+	@echo ''
+	git add .
+	git commit -m "[@gilperopiola] - General improvements."
+	git push origin master
