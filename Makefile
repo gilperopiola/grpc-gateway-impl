@@ -76,4 +76,4 @@ clean: ## Cleans the environment.
 
 test: ## Runs the tests.
 	@echo ''
-	go test ./... -cover
+	go test ./... -race -cover
