@@ -18,10 +18,10 @@ import (
 // NewTLSCertPool loads the server's certificate from a file and returns a certificate pool.
 // It's a SSL/TLS certificate used to secure the communication between the HTTP Gateway and the gRPC Server.
 // It must be in a .crt format.
-func NewTLSCertPool(tlsCertPath string) *x509.CertPool {
+func NewTLSCertPool(certPath string) *x509.CertPool {
 	certPool := x509.NewCertPool() // Create certificate pool.
 
-	cert, err := os.ReadFile(tlsCertPath) // Read certificate.
+	cert, err := os.ReadFile(certPath) // Read certificate.
 	if err != nil {
 		zap.S().Fatalf(errs.FatalErrMsgReadingTLSCert, err)
 	}
@@ -43,9 +43,9 @@ func NewServerTransportCreds(certPath, keyPath string) credentials.TransportCred
 }
 
 // NewClientTransportCreds returns the client's transport credentials, either secure or insecure.
-func NewClientTransportCreds(tlsEnabled bool, serverCert *x509.CertPool) credentials.TransportCredentials {
+func NewClientTransportCreds(tlsEnabled bool, svCert *x509.CertPool) credentials.TransportCredentials {
 	if tlsEnabled {
-		return credentials.NewClientTLSFromCert(serverCert, "")
+		return credentials.NewClientTLSFromCert(svCert, "")
 	}
 	return insecure.NewCredentials()
 }

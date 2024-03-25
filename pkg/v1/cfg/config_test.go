@@ -17,15 +17,15 @@ func GetTestingConfig() *Config {
 			HashSalt:    "t3s7_s4l7",
 		},
 		DBConfig: &DBConfig{
-			Username:      "",
-			Password:      "",
-			Hostname:      "",
-			Port:          "",
-			Schema:        "",
-			Params:        "",
-			Migrate:       true,
-			InsertAdmin:   true,
-			AdminPassword: "test_admin_pwd",
+			Username:    "",
+			Password:    "",
+			Hostname:    "",
+			Port:        "",
+			Schema:      "",
+			Params:      "",
+			Migrate:     true,
+			InsertAdmin: true,
+			AdminPwd:    "test_admin_pwd",
 		},
 		JWTConfig: &JWTConfig{
 			Secret:      "test_jwt_secret",
@@ -77,8 +77,8 @@ func TestGetVar(t *testing.T) {
 	os.Setenv(testKey, testValue)
 	defer os.Unsetenv(testKey)
 
-	assert.Equal(t, testValue, envStr(testKey, "fallback"))
-	assert.Equal(t, "fallback", envStr("NON_EXISTING_VAR", "fallback"))
+	assert.Equal(t, testValue, envString(testKey, "fallback"))
+	assert.Equal(t, "fallback", envString("NON_EXISTING_VAR", "fallback"))
 }
 
 func TestGetVarBool(t *testing.T) {
@@ -89,8 +89,8 @@ func TestGetVarBool(t *testing.T) {
 		os.Unsetenv("FALSE_VAR")
 	}()
 
-	assert.True(t, envBool("TRUE_VAR", false))
-	assert.False(t, envBool("FALSE_VAR", true))
-	assert.True(t, envBool("NON_EXISTING_VAR", true))
-	assert.False(t, envBool("NON_EXISTING_VAR", false))
+	assert.True(t, envBulean("TRUE_VAR", false))
+	assert.False(t, envBulean("FALSE_VAR", true))
+	assert.True(t, envBulean("NON_EXISTING_VAR", true))
+	assert.False(t, envBulean("NON_EXISTING_VAR", false))
 }

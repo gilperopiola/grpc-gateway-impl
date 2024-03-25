@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/grpc"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/http"
@@ -20,7 +22,7 @@ func (a *App) LoadService() {
 }
 
 func (a *App) LoadRepositoryAndDB() {
-	a.Database = db.NewDatabaseWrapper(a.DBConfig, nil) // -> Init Database Wrapper.
+	a.Database = db.NewDB(a.DBConfig)                   // -> Init DB.
 	a.Repository = repository.NewRepository(a.Database) // -> Init Repository.
 }
 
@@ -42,7 +44,7 @@ func (a *App) LoadAllHTTP() {
 
 // InitGlobalLogger sets a new *zap.Logger as global on the zap package.
 func (a *App) InitGlobalLogger() {
-	common.InitGlobalLogger(a.IsProd, common.NewLoggerOptions()...)
+	common.InitGlobalLogger(a.Config, common.NewLoggerOptions(a.StacktraceLevel)...)
 }
 
 /* ----------------------------------- */
@@ -65,10 +67,11 @@ func (a *App) LoadPwdHasher() {
 	a.PwdHasher = common.NewPwdHasher(a.HashSalt)
 
 	// Hash the DB admin password.
-	a.DBConfig.AdminPassword = a.PwdHasher.Hash(a.DBConfig.AdminPassword)
+	a.DBConfig.AdminPwd = a.PwdHasher.Hash(a.DBConfig.AdminPwd)
+	fmt.Println("Hashed Admin Password:", a.DBConfig.AdminPwd)
 }
 
-func (a *App) LoadAllTLS() {
+func (a *App) LoadTLSComponents() {
 	if a.TLSConfig.Enabled {
 		a.ServerCert = common.NewTLSCertPool(a.TLSConfig.CertPath)
 		a.ServerCreds = common.NewServerTransportCreds(a.TLSConfig.CertPath, a.TLSConfig.KeyPath)

@@ -10,20 +10,20 @@ import (
 /*          - v1 Repository -          */
 /* ----------------------------------- */
 
-// Repository is the interface that wraps the basic methods to interact with the database.
-// App -> Service -> Repository -> Database.
+// Repository is the interface that wraps the basic methods to interact with the Database.
+// App -> Service -> Repository -> DB.
 type Repository interface {
 	CreateUser(username, hashedPwd string) (*models.User, error)
-	GetUser(opts ...options.QueryOption) (*models.User, error)
-	GetUsers(page, pageSize int, opts ...options.QueryOption) (models.Users, int, error)
+	GetUser(opts ...options.QueryOpt) (*models.User, error)
+	GetUsers(page, pageSize int, opts ...options.QueryOpt) (models.Users, int, error)
 }
 
 // repository is our concrete implementation of the Repository interface.
 type repository struct {
-	*db.DBWrapper
+	DB db.GormAdapter
 }
 
 // NewRepository returns a new instance of the repository.
-func NewRepository(database *db.DBWrapper) *repository {
-	return &repository{DBWrapper: database}
+func NewRepository(db db.GormAdapter) *repository {
+	return &repository{db}
 }

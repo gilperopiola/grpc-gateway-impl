@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
@@ -71,7 +72,7 @@ func TestHandleHTTPError(t *testing.T) {
 /* ----------------------------------- */
 
 func TestLogHTTP(t *testing.T) {
-	common.InitGlobalLogger(false)
+	common.InitGlobalLogger(&cfg.Config{})
 	middleware := MuxWrapper()
 
 	called := false

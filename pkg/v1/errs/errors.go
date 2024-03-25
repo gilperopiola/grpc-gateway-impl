@@ -1,5 +1,7 @@
 package errs
 
+import "fmt"
+
 /* ----------------------------------- */
 /*              - Errors -             */
 /* ----------------------------------- */
@@ -27,7 +29,7 @@ const (
 	ErrMsgGettingDBConn  = "Failed to get database connection: %v"
 
 	// Non-fatal shutdown error messages.
-	ErrMsgGettingSQLDB = "Failed to get SQL database connection: %v"
+	ErrMsgGettingSqlDB = "Failed to get SQL database connection: %v"
 
 	// Request lifecycle error messages.
 	ErrMsgInValidation           = "validation error: %v."
@@ -35,6 +37,13 @@ const (
 	ErrMsgInValidationUnexpected = "unexpected validation error: %v."
 	ErrMsgPanic                  = "unexpected panic, something went wrong."
 	ErrMsgRateLimitExceeded      = "too many requests in a very short time, try again later."
+
+	// Repository Layer error messages.
+	ErrMsgRepoCreatingUser  = "repository error -> creating user"
+	ErrMsgRepoGettingUser   = "repository error -> getting user"
+	ErrMsgRepoNoQueryOpts   = "repository error -> getting user -> no query options"
+	ErrMsgRepoGettingUsers  = "repository error -> getting users"
+	ErrMsgRepoCountingUsers = "repository error -> counting users"
 
 	// HTTP error response bodies.
 	// They are what gets sent as the HTTP Response's body when an error occurs.
@@ -45,3 +54,23 @@ const (
 	HTTPInternalErrBody       = `{"error": "internal server error, something failed on our end."}`
 	HTTPServiceUnavailErrBody = `{"error": "service unavailable, try again later."}`
 )
+
+type DBError struct {
+	Context string
+	Err     error
+}
+
+func (e *DBError) Error() string {
+	return fmt.Sprintf("%s: %v", e.Context, e.Err)
+}
+func (e *DBError) Unwrap() error {
+	return e.Err
+}
+
+type RepositoryError struct {
+	Err error
+}
+
+type ServiceError struct {
+	Err error
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"time"
 
 	"go.uber.org/zap"
@@ -17,57 +18,65 @@ type gormLoggerAdapter struct {
 	logger.LogLevel
 }
 
-// newGormLoggerAdapter returns a new instance of *gormLoggerAdapter. We set the Log Level to Warn to avoid logging failed queries.
-func newGormLoggerAdapter(l *zap.Logger) *gormLoggerAdapter {
-	return &gormLoggerAdapter{l, logger.Warn}
+// newGormLoggerAdapter returns a new instance of *gormLoggerAdapter.
+// We set the Log Level according to the configuration.
+func newGormLoggerAdapter(l *zap.Logger, logLevel int) *gormLoggerAdapter {
+	return &gormLoggerAdapter{l, logger.LogLevel(logLevel)}
 }
 
-// LogMode sets the log level for the logger.
-func (g *gormLoggerAdapter) LogMode(level logger.LogLevel) logger.Interface {
-	newLogger := *g
+// LogMode sets the Log Level.
+func (gl *gormLoggerAdapter) LogMode(level logger.LogLevel) logger.Interface {
+	newLogger := *gl
 	newLogger.LogLevel = level
 	return &newLogger
 }
 
 // Info logs info level logs.
-func (g *gormLoggerAdapter) Info(ctx context.Context, msg string, data ...interface{}) {
-	if g.LogLevel >= logger.Info {
+func (gl *gormLoggerAdapter) Info(ctx context.Context, msg string, data ...interface{}) {
+	if gl.LogLevel >= logger.Info {
 		zap.S().Infof(msg, data...)
 	}
 }
 
 // Warn logs warning level logs.
-func (g *gormLoggerAdapter) Warn(ctx context.Context, msg string, data ...interface{}) {
-	if g.LogLevel >= logger.Warn {
+func (gl *gormLoggerAdapter) Warn(ctx context.Context, msg string, data ...interface{}) {
+	if gl.LogLevel >= logger.Warn {
 		zap.S().Warnf(msg, data...)
 	}
 }
 
 // Error logs error level logs.
-func (g *gormLoggerAdapter) Error(ctx context.Context, msg string, data ...interface{}) {
-	if g.LogLevel >= logger.Error {
+func (gl *gormLoggerAdapter) Error(ctx context.Context, msg string, data ...interface{}) {
+	if gl.LogLevel >= logger.Error {
 		zap.S().Errorf(msg, data...)
 	}
 }
 
 // Trace logs trace level logs including the time taken for the operation, affected rows, and error if any.
-func (g *gormLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	if g.LogLevel <= logger.Silent {
+func (gl *gormLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	if gl.LogLevel <= logger.Silent {
 		return
 	}
 
 	elapsed := time.Since(begin)
-	sql, rows := fc()
+	query, rows := fc()
 
 	// If there's an error other than gorm.ErrRecordNotFound, log it.
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		zap.S().Errorf(getQueryInfo(elapsed.Nanoseconds(), rows, sql), zap.Error(err))
+		// For some errors, we don't want to log the query.
+		var netError *net.OpError
+		if errors.As(err, &netError) {
+			query = "DB Network Error"
+			return
+		}
+
+		zap.S().Errorf(getQueryInfo(elapsed.Nanoseconds(), rows, query), zap.Error(err))
 		return
 	}
 
 	// Log the query if the log level is set to Info or if it took more than 1 second.
-	if g.LogLevel >= logger.Info || elapsed > 1000*time.Millisecond {
-		zap.S().Infof(getQueryInfo(elapsed.Nanoseconds(), rows, sql))
+	if gl.LogLevel >= logger.Info || elapsed > 1000*time.Millisecond {
+		zap.S().Infof(getQueryInfo(elapsed.Nanoseconds(), rows, query))
 	}
 }
 
@@ -79,13 +88,13 @@ func (g *gormLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func(
 // [25.14ms] [row:1] INSERT INTO `table` (`field1`,`field2`) VALUES ('gorm','sucks')
 func getQueryInfo(nsElapsed, rowsAffected int64, query string) string {
 	msElapsed := float64(nsElapsed) / 1e6
-	rowOrRows := "row" + getPluralPrefix(rowsAffected)
+	rowOrRows := "row" + pluralPrefix(rowsAffected)
 
 	return fmt.Sprintf("[%v %s in %0.fms] -> %s", rowsAffected, rowOrRows, msElapsed, query)
 }
 
-// getPluralPrefix returns the 's' necessary for the plural form of a word, namely 'row', if the rows affected are not 1.
-func getPluralPrefix(rowsAffected int64) string {
+// pluralPrefix returns the 's' necessary for the plural form of a word, namely 'row', if the rows affected are not 1.
+func pluralPrefix(rowsAffected int64) string {
 	if rowsAffected == 1 {
 		return ""
 	}

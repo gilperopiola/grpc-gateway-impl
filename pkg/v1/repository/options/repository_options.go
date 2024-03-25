@@ -10,33 +10,33 @@ import (
 /*    - Repository Query Options -     */
 /* ----------------------------------- */
 
-// QueryOption defines a function which takes a *gorm.DB and modifies it.
+// QueryOpt defines a function which takes a *gorm.DB and modifies it.
 // We use it to apply different options to our database queries.
-type QueryOption func(db.GormAdapter)
+type QueryOpt func(db.GormAdapter)
 
 /* ----------------------------------- */
 /*         - General Options -         */
 /* ----------------------------------- */
 
 // WithField returns a QueryOption which filters by the given field and value.
-func WithField(fieldName, fieldValue string) QueryOption {
+func WithField(fieldName, fieldValue string) QueryOpt {
 	return func(db db.GormAdapter) {
-		db.Where(fieldName+" = ?", fieldValue)
+		db.Where(fmt.Sprintf("%s = ?", fieldName), fieldValue)
 	}
 }
 
 // WithOr returns a QueryOption which filters by the given field and value using OR.
-func WithOr(fieldName, fieldValue string) QueryOption {
+func WithOr(fieldName, fieldValue string) QueryOpt {
 	return func(db db.GormAdapter) {
-		db.Or(fieldName+" = ?", fieldValue)
+		db.Or(fmt.Sprintf("%s = ?", fieldName), fieldValue)
 	}
 }
 
 // WithFilter returns a QueryOption which fuzzy-matches the given field with the given filter.
-func WithFilter(fieldName, filter string) QueryOption {
+func WithFilter(fieldName, filter string) QueryOpt {
 	return func(db db.GormAdapter) {
 		if filter != "" {
-			db.Where(fieldName+" LIKE ?", "%"+filter+"%")
+			db.Where(fmt.Sprintf("%s LIKE ?", fieldName), "%"+filter+"%")
 		}
 	}
 }
@@ -45,10 +45,10 @@ func WithFilter(fieldName, filter string) QueryOption {
 /*          - Users Options -          */
 /* ----------------------------------- */
 
-func WithUsername(username string) QueryOption {
+func WithUsername(username string) QueryOpt {
 	return WithField("username", username)
 }
 
-func WithUserID(userID int) QueryOption {
+func WithUserID(userID int) QueryOpt {
 	return WithField("id", fmt.Sprint(userID))
 }

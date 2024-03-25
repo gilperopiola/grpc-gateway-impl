@@ -1,8 +1,7 @@
 package repository
 
 import (
-	"fmt"
-
+	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/models"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/repository/options"
 )
@@ -14,44 +13,51 @@ import (
 // CreateUser creates a new user in the database.
 func (r *repository) CreateUser(username, hashedPwd string) (*models.User, error) {
 	user := models.User{Username: username, Password: hashedPwd}
-	if err := r.DBWrapper.DB.Create(&user).Error(); err != nil {
-		return nil, ErrCreatingUser(err)
+	if err := r.DB.Create(&user).Error(); err != nil {
+		return nil, &errs.DBError{errCreate, err}
 	}
 	return &user, nil
 }
 
 // GetUser returns a user from the database.
-func (r *repository) GetUser(opts ...options.QueryOption) (*models.User, error) {
-	var user models.User
+// At least one option must be provided, otherwise an error will be returned.
+func (r *repository) GetUser(opts ...options.QueryOpt) (*models.User, error) {
+	if len(opts) == 0 {
+		return nil, &errs.DBError{ErrNoOpts, nil}
+	}
 
-	query := r.DBWrapper.DB.Model(&models.User{})
+	query := r.DB.Model(&models.User{})
 	for _, opt := range opts {
 		opt(query)
 	}
 
+	var user models.User
 	if err := query.First(&user).Error(); err != nil {
-		return nil, ErrGettingUser(err)
+		return nil, &errs.DBError{errGet, err}
 	}
 
 	return &user, nil
 }
 
 // GetUsers returns a list of users from the database.
-func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOption) (models.Users, int, error) {
-	var users models.Users
-	var totalMatchingUsers int64
-
-	query := r.DBWrapper.DB.Model(&models.User{})
+func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOpt) (models.Users, int, error) {
+	query := r.DB.Model(&models.User{})
 	for _, opt := range opts {
 		opt(query)
 	}
 
-	if err := query.Count(&totalMatchingUsers).Error(); err != nil || totalMatchingUsers == 0 {
-		return nil, 0, err
+	var totalMatchingUsers int64
+	if err := query.Count(&totalMatchingUsers).Error(); err != nil {
+		return nil, 0, &errs.DBError{errCount, err}
 	}
 
+	if totalMatchingUsers == 0 {
+		return nil, 0, nil
+	}
+
+	var users models.Users
 	if err := query.Offset(page * pageSize).Limit(pageSize).Find(&users).Error(); err != nil {
-		return nil, 0, ErrGettingUsers(err)
+		return nil, 0, &errs.DBError{errGetMany, err}
 	}
 
 	return users, int(totalMatchingUsers), nil
@@ -62,13 +68,9 @@ func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOption) (
 /* ----------------------------------- */
 
 var (
-	ErrCreatingUser = func(err error) error {
-		return fmt.Errorf("repository error -> creating user -> %w", err)
-	}
-	ErrGettingUser = func(err error) error {
-		return fmt.Errorf("repository error -> getting user -> %w", err)
-	}
-	ErrGettingUsers = func(err error) error {
-		return fmt.Errorf("repository error -> getting users -> %w", err)
-	}
+	errCreate  = errs.ErrMsgRepoCreatingUser
+	errGet     = errs.ErrMsgRepoGettingUser
+	errGetMany = errs.ErrMsgRepoGettingUsers
+	errCount   = errs.ErrMsgRepoCountingUsers
+	ErrNoOpts  = errs.ErrMsgRepoNoQueryOpts
 )

@@ -23,7 +23,7 @@ type App struct {
 	*cfg.Config                               // Holds the App configuration.
 	Service             service.Service       // Service Layer 		-> holds all business logic.
 	Repository          repository.Repository // Repository Layer 	-> manages communication with the database.
-	Database            *db.DBWrapper         // Database 					-> actual database connection.
+	Database            db.GormAdapter        // Database 					-> actual database connection.
 	*components.Wrapper                       // Holds all other dependencies.
 }
 
@@ -48,7 +48,7 @@ func (a *App) Load() {
 func (a *App) LoadCommonComponents() {
 	a.LoadRateLimiter()
 	a.LoadPwdHasher()
-	a.LoadAllTLS()
+	a.LoadTLSComponents()
 	a.LoadInputValidator()
 	a.LoadAuthenticator()
 }
@@ -65,7 +65,7 @@ func (a *App) WaitForGracefulShutdown() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	a.Database.Close()
+	a.Database.GetSQL().Close()
 	a.Server.Shutdown()
 	a.Gateway.Shutdown()
 
