@@ -14,6 +14,14 @@ import (
 // We use it to apply different options to our database queries.
 type QueryOpt func(db.GormAdapter)
 
+// Slice returns a slice of QueryOpts.
+func Slice(opt QueryOpt) []QueryOpt {
+	if opt == nil {
+		return nil
+	}
+	return []QueryOpt{opt}
+}
+
 /* ----------------------------------- */
 /*         - General Options -         */
 /* ----------------------------------- */

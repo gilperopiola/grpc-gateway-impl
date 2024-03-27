@@ -4,7 +4,17 @@ import (
 	"time"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+type PBResponse interface {
+	Descriptor() ([]byte, []int)
+	ProtoMessage()
+	ProtoReflect() protoreflect.Message
+	Reset()
+	String() string
+}
 
 /* ----------------------------------- */
 /*              - Models -             */

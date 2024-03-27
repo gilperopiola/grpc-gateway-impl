@@ -44,17 +44,13 @@ func TestRepositoryCreateUser(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Prepare ⬇️
-			repository, mock := NewTestRepository(tc.setupMock)
+			repository, mock := newTestRepository(tc.setupMock) // Prepare
+			expectedUser, expectedErr := tc.getExpected()
 
-			// Act ⬇️
-			result, err := repository.CreateUser(username, password)
+			user, err := repository.CreateUser(username, password) // Act
 
-			// Assert ⬇️
-			expResult, expErr := tc.getExpected()
-
-			assert.Equal(t, expResult, result)
-			assert.ErrorIs(t, err, expErr)
+			assert.Equal(t, expectedUser, user) // Assert
+			assertDBError(t, expectedErr, err)
 			mock.AssertExpectations(t)
 		})
 	}

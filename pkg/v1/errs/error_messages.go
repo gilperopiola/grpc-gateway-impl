@@ -1,12 +1,10 @@
 package errs
 
-import "fmt"
-
 /* ----------------------------------- */
 /*              - Errors -             */
 /* ----------------------------------- */
 
-// Note these are just strings and not actual errors.
+// -> Note these are just strings and not actual errors.
 
 const (
 
@@ -54,23 +52,3 @@ const (
 	HTTPInternalErrBody       = `{"error": "internal server error, something failed on our end."}`
 	HTTPServiceUnavailErrBody = `{"error": "service unavailable, try again later."}`
 )
-
-type DBError struct {
-	Context string
-	Err     error
-}
-
-func (e *DBError) Error() string {
-	return fmt.Sprintf("%s: %v", e.Context, e.Err)
-}
-func (e *DBError) Unwrap() error {
-	return e.Err
-}
-
-type RepositoryError struct {
-	Err error
-}
-
-type ServiceError struct {
-	Err error
-}

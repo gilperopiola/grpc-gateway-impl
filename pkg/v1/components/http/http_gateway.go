@@ -30,7 +30,7 @@ type HTTPGateway struct {
 }
 
 // NewHTTPGateway returns a new instance of HTTPGateway.
-func NewHTTPGateway(c *cfg.MainConfig, middleware []runtime.ServeMuxOption, muxWrapper MuxWrapperFunc, grpcOpts []grpc.DialOption) *HTTPGateway {
+func NewHTTPGateway(c *cfg.MainCfg, middleware []runtime.ServeMuxOption, muxWrapper MuxWrapperFunc, grpcOpts []grpc.DialOption) *HTTPGateway {
 	return &HTTPGateway{
 		port:              c.HTTPPort,
 		grpcPort:          c.GRPCPort,

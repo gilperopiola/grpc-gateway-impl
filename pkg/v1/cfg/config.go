@@ -18,12 +18,12 @@ import (
 
 // Config holds the configuration of the entire API.
 type Config struct {
-	*MainConfig
-	*DBConfig
-	*JWTConfig
-	*TLSConfig
-	*LoggerConfig
-	*RateLimiterConfig
+	MainCfg
+	DBCfg
+	JWTCfg
+	TLSCfg
+	LoggerCfg
+	RLimiterCfg
 }
 
 // Load sets up the configuration from the environment variables.
@@ -38,17 +38,15 @@ func Load() *Config {
 	developmentDBAdminPass := "n8zAyv96oAtfQoNof-_ulH4pS0Dqf61VThTZbbOLXCU=" // T0D0 remove.
 
 	return &Config{
-		MainConfig: &MainConfig{
+		MainCfg: MainCfg{
 			ProjectName: projectName,
-
-			IsProd: envBulean("IS_PROD", false),
-			IsDev:  !envBulean("IS_PROD", false),
-
-			GRPCPort: envString("GRPC_PORT", ":50053"),
-			HTTPPort: envString("HTTP_PORT", ":8083"),
-			HashSalt: envString("HASH_SALT", "s0m3_s4l7"), // Used to hash passwords.
+			IsProd:      envBool__("IS_PROD", false),
+			IsDev:       !envBool__("IS_PROD", false),
+			GRPCPort:    envString("GRPC_PORT", ":50053"),
+			HTTPPort:    envString("HTTP_PORT", ":8083"),
+			HashSalt:    envString("HASH_SALT", "s0m3_s4l7"), // Used to hash passwords.
 		},
-		DBConfig: &DBConfig{
+		DBCfg: DBCfg{
 			Username: envString("DB_USERNAME", "root"),
 			Password: envString("DB_PASSWORD", ""),
 			Hostname: envString("DB_HOSTNAME", "localhost"),
@@ -56,48 +54,44 @@ func Load() *Config {
 			Schema:   envString("DB_SCHEMA", "grpc-gateway-impl"),
 			Params:   envString("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
 
-			Migrate:     envBulean("DB_MIGRATE", true),
-			InsertAdmin: envBulean("DB_INSERT_ADMIN", true),
-			AdminPwd:    envString("DB_ADMIN_PASSWORD", developmentDBAdminPass), // Should already be hashed with our salt.
-
 			GormLogLevel: gormLevelMap[envString("DB_LOG_LEVEL", "error")],
+			Migrate:      envBool__("DB_MIGRATE", true),
+			InsertAdmin:  envBool__("DB_INSERT_ADMIN", true),
+			AdminPwd:     envString("DB_ADMIN_PASSWORD", developmentDBAdminPass), // Should already be hashed with our salt.
 		},
-		JWTConfig: &JWTConfig{
+		JWTCfg: JWTCfg{
 			Secret:      envString("JWT_SECRET", "please_set_the_env_var"),
-			SessionDays: envNumber("JWT_SESSION_DAYS", 7),
+			SessionDays: envInt___("JWT_SESSION_DAYS", 7),
 		},
-		TLSConfig: &TLSConfig{
-			Enabled:  envBulean("TLS_ENABLED", false),
+		TLSCfg: TLSCfg{
+			Enabled:  envBool__("TLS_ENABLED", false),
 			CertPath: envString("TLS_CERT_PATH", wdPrefix+"/server.crt"),
 			KeyPath:  envString("TLS_KEY_PATH", wdPrefix+"/server.key"),
 		},
-		LoggerConfig: &LoggerConfig{
+		LoggerCfg: LoggerCfg{
 			Level:           zapLevelMap[envString("LOG_LEVEL", "info")],
 			StacktraceLevel: zapLevelMap[envString("LOG_STACKTRACE_LEVEL", "dpanic")],
-			LogCaller:       envBulean("LOG_CALLER", false),
+			LogCaller:       envBool__("LOG_CALLER", false),
 		},
-		RateLimiterConfig: &RateLimiterConfig{
-			MaxTokens:       envNumber("RATE_LIMITER_MAX_TOKENS", 40),
-			TokensPerSecond: envNumber("RATE_LIMITER_TOKENS_PER_SECOND", 10),
+		RLimiterCfg: RLimiterCfg{
+			MaxTokens:       envInt___("RATE_LIMITER_MAX_TOKENS", 40),
+			TokensPerSecond: envInt___("RATE_LIMITER_TOKENS_PER_SECOND", 10),
 		},
 	}
 }
 
-// Main configuration.
-type MainConfig struct {
+// Project configuration
+type MainCfg struct {
 	ProjectName string
-
-	IsProd bool
-	IsDev  bool
-
-	GRPCPort string
-	HTTPPort string
-
-	HashSalt string
+	IsProd      bool
+	IsDev       bool
+	GRPCPort    string
+	HTTPPort    string
+	HashSalt    string
 }
 
-// DB configuration.
-type DBConfig struct {
+// DB configuration
+type DBCfg struct {
 	Username string
 	Password string
 	Hostname string
@@ -105,11 +99,10 @@ type DBConfig struct {
 	Schema   string
 	Params   string
 
-	Migrate     bool
-	InsertAdmin bool
-	AdminPwd    string // Should already be hashed with our salt.
-
-	GormLogLevel int // options are in the gormLevelMap var.
+	GormLogLevel int // options are in the gormLevelMap var
+	Migrate      bool
+	InsertAdmin  bool
+	AdminPwd     string // Should already be hashed with our salt
 }
 
 var gormLevelMap = map[string]int{
@@ -120,20 +113,20 @@ var gormLevelMap = map[string]int{
 }
 
 // JWT Auth configuration.
-type JWTConfig struct {
+type JWTCfg struct {
 	Secret      string
 	SessionDays int
 }
 
 // TLS configuration.
-type TLSConfig struct {
+type TLSCfg struct {
 	Enabled  bool // If enabled, use TLS between HTTP and gRPC.
 	CertPath string
 	KeyPath  string
 }
 
 // Logger configuration.
-type LoggerConfig struct {
+type LoggerCfg struct {
 	Level           int // options are in the zapLevelMap var.
 	StacktraceLevel int // options are in the zapLevelMap var.
 	LogCaller       bool
@@ -150,7 +143,7 @@ var zapLevelMap = map[string]int{
 }
 
 // Rate Limiter configuration.
-type RateLimiterConfig struct {
+type RLimiterCfg struct {
 	MaxTokens       int // Max tokens the bucket can hold.
 	TokensPerSecond int // Tokens reloaded per second.
 }
@@ -167,16 +160,16 @@ func envString(key, fallback string) string {
 	return fallback
 }
 
-// envBulean returns the value of an env var as a boolean or a fallback value if it doesn't exist.
-func envBulean(key string, fallback bool) bool {
+// envBool__ returns the value of an env var as a boolean or a fallback value if it doesn't exist.
+func envBool__(key string, fallback bool) bool {
 	if value, exists := os.LookupEnv(key); exists {
 		return value == "true" || value == "TRUE" || value == "1"
 	}
 	return fallback
 }
 
-// envNumber returns the value of an env var as an int or a fallback value if it doesn't exist.
-func envNumber(key string, fallback int) int {
+// envInt___ returns the value of an env var as an int or a fallback value if it doesn't exist.
+func envInt___(key string, fallback int) int {
 	if value, err := strconv.Atoi(envString(key, "")); err == nil {
 		return value
 	}

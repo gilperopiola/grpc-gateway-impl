@@ -14,7 +14,7 @@ import (
 func (r *repository) CreateUser(username, hashedPwd string) (*models.User, error) {
 	user := models.User{Username: username, Password: hashedPwd}
 	if err := r.DB.Create(&user).Error(); err != nil {
-		return nil, &errs.DBError{errCreate, err}
+		return nil, &errs.DBError{err, CreateUserErr}
 	}
 	return &user, nil
 }
@@ -23,7 +23,7 @@ func (r *repository) CreateUser(username, hashedPwd string) (*models.User, error
 // At least one option must be provided, otherwise an error will be returned.
 func (r *repository) GetUser(opts ...options.QueryOpt) (*models.User, error) {
 	if len(opts) == 0 {
-		return nil, &errs.DBError{ErrNoOpts, nil}
+		return nil, &errs.DBError{nil, ErrNoOptions}
 	}
 
 	query := r.DB.Model(&models.User{})
@@ -33,7 +33,7 @@ func (r *repository) GetUser(opts ...options.QueryOpt) (*models.User, error) {
 
 	var user models.User
 	if err := query.First(&user).Error(); err != nil {
-		return nil, &errs.DBError{errGet, err}
+		return nil, &errs.DBError{err, GetUserErr}
 	}
 
 	return &user, nil
@@ -48,7 +48,7 @@ func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOpt) (mod
 
 	var totalMatchingUsers int64
 	if err := query.Count(&totalMatchingUsers).Error(); err != nil {
-		return nil, 0, &errs.DBError{errCount, err}
+		return nil, 0, &errs.DBError{err, CountUsersErr}
 	}
 
 	if totalMatchingUsers == 0 {
@@ -57,7 +57,7 @@ func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOpt) (mod
 
 	var users models.Users
 	if err := query.Offset(page * pageSize).Limit(pageSize).Find(&users).Error(); err != nil {
-		return nil, 0, &errs.DBError{errGetMany, err}
+		return nil, 0, &errs.DBError{err, GetUsersErr}
 	}
 
 	return users, int(totalMatchingUsers), nil
@@ -68,9 +68,10 @@ func (r *repository) GetUsers(page, pageSize int, opts ...options.QueryOpt) (mod
 /* ----------------------------------- */
 
 var (
-	errCreate  = errs.ErrMsgRepoCreatingUser
-	errGet     = errs.ErrMsgRepoGettingUser
-	errGetMany = errs.ErrMsgRepoGettingUsers
-	errCount   = errs.ErrMsgRepoCountingUsers
-	ErrNoOpts  = errs.ErrMsgRepoNoQueryOpts
+	CreateUserErr = errs.ErrMsgRepoCreatingUser
+	GetUserErr    = errs.ErrMsgRepoGettingUser
+	GetUsersErr   = errs.ErrMsgRepoGettingUsers
+	CountUsersErr = errs.ErrMsgRepoCountingUsers
+
+	ErrNoOptions = errs.ErrMsgRepoNoQueryOpts
 )

@@ -12,15 +12,11 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// Wrapper holds all the components that are used in the API.
-type Wrapper struct {
-
-	// GRPC and HTTP hold the gRPC and HTTP Servers, their dependencies and configuration.
-	*GRPC
-	*HTTP
-
-	// TLS holds the server certificate and server & client credentials.
-	*TLS
+// Components holds all the components that are used in the App.
+type Components struct {
+	*GRPC // GRPC Server and its dependencies.
+	*HTTP // HTTP Gateway and its dependencies.
+	*TLS  // Server certificate and server & client credentials.
 
 	// InputValidator is used to validate the incoming gRPC requests (also HTTP as they are converted to gRPC).
 	InputValidator common.InputValidator
@@ -35,9 +31,9 @@ type Wrapper struct {
 	PwdHasher common.PwdHasher
 }
 
-// NewWrapper returns a new empty Wrapper to hold all components.
-func NewWrapper() *Wrapper {
-	return &Wrapper{
+// NewComponents returns a new empty Wrapper to hold all components.
+func NewComponents() *Components {
+	return &Components{
 		GRPC: &GRPC{},
 		HTTP: &HTTP{},
 		TLS:  &TLS{},
@@ -58,10 +54,9 @@ type HTTP struct {
 	MuxWrapper http.MuxWrapperFunc      // MiddlewareWrapper are the middleware that wrap around the HTTP Gateway.
 }
 
-// TLS holds the Transport Layer Security components, such as certificates and credentials.
+// TLS holds the Transport Layer Security certificates and credentials.
 type TLS struct {
-	// ServerCert is a pool of certificates.
-	ServerCert *x509.CertPool
+	ServerCert *x509.CertPool // Pool of certificates.
 
 	// ServerCreds and ClientCreds are used to secure the connection between the HTTP Gateway and the gRPC Server.
 	ServerCreds credentials.TransportCredentials

@@ -18,7 +18,7 @@ import (
 // We use zap as our Logger. It's fast and has a nice API.
 // We don't even need to wrap it in a struct, we just use it globally on the zap pkg.
 
-const timeLayout = "02/01/06 15:04:05"
+const TimeLayout = "02/01/06 15:04:05"
 
 // InitGlobalLogger replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
@@ -47,9 +47,12 @@ func newZapConfig(cfg *cfg.Config) zap.Config {
 	}
 
 	zapConfig := zapConfigFunc()
+
 	zapConfig.DisableCaller = !cfg.LogCaller
 	zapConfig.Level = zap.NewAtomicLevelAt(zapcore.Level(cfg.Level))
-	zapConfig.EncoderConfig.EncodeTime = encodeTimeFunc
+	zapConfig.EncoderConfig.EncodeTime = func(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
+		encoder.AppendString(t.Format(TimeLayout))
+	}
 
 	return zapConfig
 }
@@ -68,8 +71,4 @@ func ZapDuration(value time.Duration) zap.Field {
 
 func ZapError(err error) zap.Field {
 	return zap.Error(err)
-}
-
-func encodeTimeFunc(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-	encoder.AppendString(t.Format(timeLayout))
 }

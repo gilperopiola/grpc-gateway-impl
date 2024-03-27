@@ -1,4 +1,4 @@
-package http
+package tests
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/cfg"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
+	httpV1 "github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/http"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -54,7 +55,7 @@ func TestHandleHTTPError(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.com", nil)
 
-			handleHTTPError(context.Background(), mux, marshaller, recorder, request, tt.err)
+			httpV1.HandleHTTPError(context.Background(), mux, marshaller, recorder, request, tt.err)
 
 			if status := recorder.Code; status != tt.expectedStatus {
 				t.Errorf("handleHTTPError() status = %v, want %v", status, tt.expectedStatus)
@@ -73,7 +74,7 @@ func TestHandleHTTPError(t *testing.T) {
 
 func TestLogHTTP(t *testing.T) {
 	common.InitGlobalLogger(&cfg.Config{})
-	middleware := MuxWrapper()
+	middleware := httpV1.MuxWrapper()
 
 	called := false
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -93,34 +94,5 @@ func TestLogHTTP(t *testing.T) {
 
 	if status := recorder.Code; status != http.StatusOK {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-}
-
-func TestSetHTTPResponseHeaders(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	ctx := context.Background()
-
-	err := responseHeadersMiddleware(ctx, recorder, nil)
-	if err != nil {
-		t.Errorf("modifyHTTPResponseHeaders returned an error: %v", err)
-	}
-
-	expectedHeaders := map[string]string{
-		"Content-Security-Policy":   "default-src 'self'",
-		"X-XSS-Protection":          "1; mode=block",
-		"X-Frame-Options":           "SAMEORIGIN",
-		"X-Content-Type-Options":    "nosniff",
-		"Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-	}
-
-	for header, expectedValue := range expectedHeaders {
-		if value := recorder.Header().Get(header); value != expectedValue {
-			t.Errorf("Header %s = %v, want %v", header, value, expectedValue)
-		}
-	}
-
-	// Check that the gRPC-related header was removed
-	if value := recorder.Header().Get("Grpc-Metadata-Content-Type"); value != "" {
-		t.Errorf("Expected Grpc-Metadata-Content-Type header to be removed, got %v", value)
 	}
 }

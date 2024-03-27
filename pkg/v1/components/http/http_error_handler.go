@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/errs"
-	"go.uber.org/zap"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/status"
 )
 
@@ -15,11 +15,11 @@ import (
 /*        - HTTP Error Handler -       */
 /* ----------------------------------- */
 
-// handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
+// HandleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
 // It converts the gRPC error to an HTTP error and writes it to the response.
-func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
-	grpcStatus := status.Convert(err)                           // err 					-> gRPC Status.
-	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code()) // gRPC Status 	-> HTTP Status.
+func HandleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
+	grpcStatus := status.Convert(err)                           // err 			-> gRPC Status.
+	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code()) // gRPC Status -> HTTP Status.
 
 	// This function stops the execution chain, so we manually call the forwardResponseOptions to set the headers.
 	for _, fn := range mux.GetForwardResponseOptions() {

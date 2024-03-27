@@ -23,7 +23,7 @@ func main() {
 	// Init app.
 	app := v1.NewApp(
 		loadConfig(),
-		loadComponentsWrapper(),
+		loadComponents(),
 	)
 
 	// Run app.
@@ -39,8 +39,8 @@ func loadConfig() *cfg.Config {
 	return cfg.Load()
 }
 
-func loadComponentsWrapper() *components.Wrapper {
-	return components.NewWrapper()
+func loadComponents() *components.Components {
+	return components.NewComponents()
 }
 
 /* ----------------------------------- */

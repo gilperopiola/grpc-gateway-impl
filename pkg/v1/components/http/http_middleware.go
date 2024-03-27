@@ -16,8 +16,8 @@ import (
 /*         - HTTP Middleware -         */
 /* ----------------------------------- */
 
-/* Some middleware are passed as ServeMuxOptions when the mux is created.
-/* Some are wrapped around the Mux afterwards. */
+// Some middleware are passed as ServeMuxOptions when the mux is created.
+// Some are wrapped around the Mux afterwards.
 
 // MuxWrapperFunc is a middleware that wraps around the HTTP Gateway's mux.
 type MuxWrapperFunc func(next http.Handler) http.Handler
@@ -25,8 +25,8 @@ type MuxWrapperFunc func(next http.Handler) http.Handler
 // AllMiddleware returns all the HTTP middleware that are used as ServeMuxOptions.
 func AllMiddleware() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
-		runtime.WithErrorHandler(handleHTTPError),
-		runtime.WithForwardResponseOption(responseHeadersMiddleware),
+		runtime.WithErrorHandler(HandleHTTPError),
+		runtime.WithForwardResponseOption(handleHeadersMiddleware),
 	}
 }
 
@@ -50,13 +50,13 @@ func loggerMiddleware(next http.Handler) http.Handler {
 		// Most HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
 		// As such, we add a new line to separate the logs and easily identify different requests.
 		// The only exception would be if there was an error before calling the gRPC handlers.
-		zap.L().Info("\n")
+		zap.L().Info("\n") // T0D0 . Is this ok?
 	})
 }
 
-// responseHeadersMiddleware executes before the response is written to the client.
+// handleHeadersMiddleware executes before the response is written to the client.
 // It's also called from the HTTP Error Handler.
-func responseHeadersMiddleware(_ context.Context, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
+func handleHeadersMiddleware(_ context.Context, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
 	for _, value := range responseHeadersToDelete {
 		rw.Header().Del(value)
 	}
@@ -83,12 +83,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 		for key, value := range corsHeadersToAdd { // Add headers.
 			w.Header().Set(key, value)
 		}
-
 		if r.Method == "OPTIONS" { // Handle preflight requests.
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-
 		next.ServeHTTP(w, r) // Pass down the chain to next handler if not OPTIONS.
 	})
 }

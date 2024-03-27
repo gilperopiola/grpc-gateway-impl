@@ -20,16 +20,17 @@ import (
 
 // App holds our entire application.
 type App struct {
-	*cfg.Config                               // Holds the App configuration.
-	Service             service.Service       // Service Layer 		-> holds all business logic.
-	Repository          repository.Repository // Repository Layer 	-> manages communication with the database.
-	Database            db.GormAdapter        // Database 					-> actual database connection.
-	*components.Wrapper                       // Holds all other dependencies.
+	*cfg.Config            // Holds the configuration.
+	*components.Components // Holds all other dependencies.
+
+	Service    service.Service       // Service Layer 		-> holds all business logic.
+	Repository repository.Repository // Repository Layer 	-> manages communication with the database.
+	Database   db.GormAdapter        // Database 			-> actual database connection.
 }
 
 // NewApp returns a new App with the given configuration and components.
-func NewApp(config *cfg.Config, components *components.Wrapper) *App {
-	app := &App{Config: config, Wrapper: components}
+func NewApp(config *cfg.Config, components *components.Components) *App {
+	app := &App{Config: config, Components: components}
 	app.Load()
 	return app
 }
@@ -38,19 +39,19 @@ func NewApp(config *cfg.Config, components *components.Wrapper) *App {
 func (a *App) Load() {
 	a.InitGlobalLogger()
 	a.LoadCommonComponents()
-	a.LoadRepositoryAndDB()
-	a.LoadService()
-	a.LoadAllGRPC()
-	a.LoadAllHTTP()
+	a.InitDBAndRepository()
+	a.InitService()
+	a.InitGRPCComponents()
+	a.InitHTTPComponents()
 }
 
 // LoadCommonComponents initializes all common components.
 func (a *App) LoadCommonComponents() {
-	a.LoadRateLimiter()
-	a.LoadPwdHasher()
-	a.LoadTLSComponents()
-	a.LoadInputValidator()
-	a.LoadAuthenticator()
+	a.InitRateLimiter()
+	a.InitPwdHasher()
+	a.InitTLSComponents()
+	a.InitInputValidator()
+	a.InitAuthenticator()
 }
 
 // Run runs the gRPC & HTTP Servers.
@@ -65,7 +66,12 @@ func (a *App) WaitForGracefulShutdown() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	a.Database.GetSQL().Close()
+	zap.S().Infoln("Shutting down servers...")
+
+	sqlDB := a.Database.GetSQL()
+	if sqlDB != nil {
+		sqlDB.Close()
+	}
 	a.Server.Shutdown()
 	a.Gateway.Shutdown()
 

@@ -20,12 +20,12 @@ import (
 /*        - gRPC Interceptors -        */
 /* ----------------------------------- */
 
-/* Interceptors are used to intervene GRPC Requests and Responses.
-/* Even though we only use Unary Interceptors, Stream Interceptors are also available. */
+// Interceptors are used to intervene GRPC Requests and Responses.
+// Even though we only use Unary Interceptors, Stream Interceptors are also available.
 
 // getUnaryInterceptors returns the gRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the gRPC Server as a ServerOption.
-func getUnaryInterceptors(components *components.Wrapper) []grpc.UnaryServerInterceptor {
+func getUnaryInterceptors(components *components.Components) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
 		rateLimiterInterceptor(components.RateLimiter),
 		loggerInterceptor(),
