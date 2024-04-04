@@ -11,19 +11,39 @@ import (
 /*          - Service Errors -         */
 /* ----------------------------------- */
 
-type ServiceError struct {
-	Err  error
-	Code codes.Code
-	Msg  string
-}
+var (
+	ErrSvcUserRelated = func(err error, methodName string) error {
+		return NewGRPC(codes.Unknown, err, methodName)
+	}
+	ErrSvcOnTokenGeneration = func(err error) error {
+		return NewGRPC(codes.Unknown, err)
+	}
+	ErrSvcUnauthenticated = func() error {
+		return NewGRPC(codes.Unauthenticated, nil)
+	}
+	ErrSvcNotFound = func(entity string) error {
+		err := fmt.Errorf("%s not found", entity)
+		return NewGRPC(codes.NotFound, err)
+	}
+	ErrSvcAlreadyExists = func(entity string) error {
+		err := fmt.Errorf("%s already exists", entity)
+		return NewGRPC(codes.AlreadyExists, err)
+	}
+)
 
 // NewGRPC returns a new ServiceError inside of a gRPC error.
-func NewGRPC(err error, code codes.Code, messages ...string) error {
+func NewGRPC(code codes.Code, err error, messages ...string) error {
 	msg := code.String()
 	if len(messages) > 0 {
 		msg = messages[0]
 	}
 	return status.Error(code, ServiceError{err, code, msg}.Error())
+}
+
+type ServiceError struct {
+	Err  error
+	Code codes.Code
+	Msg  string
 }
 
 func (e ServiceError) Error() string {

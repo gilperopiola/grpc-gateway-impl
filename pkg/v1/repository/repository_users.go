@@ -23,7 +23,7 @@ func (r *repository) CreateUser(username, hashedPwd string) (*models.User, error
 // At least one option must be provided, otherwise an error will be returned.
 func (r *repository) GetUser(opts ...options.QueryOpt) (*models.User, error) {
 	if len(opts) == 0 {
-		return nil, &errs.DBError{nil, ErrNoOptions}
+		return nil, &errs.DBError{nil, NoOptionsErr}
 	}
 
 	query := r.DB.Model(&models.User{})
@@ -72,6 +72,5 @@ var (
 	GetUserErr    = errs.ErrMsgRepoGettingUser
 	GetUsersErr   = errs.ErrMsgRepoGettingUsers
 	CountUsersErr = errs.ErrMsgRepoCountingUsers
-
-	ErrNoOptions = errs.ErrMsgRepoNoQueryOpts
+	NoOptionsErr  = errs.ErrMsgRepoNoQueryOpts
 )

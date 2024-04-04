@@ -4,17 +4,7 @@ import (
 	"time"
 
 	usersPB "github.com/gilperopiola/grpc-gateway-impl/pkg/users"
-
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
-
-type PBResponse interface {
-	Descriptor() ([]byte, []int)
-	ProtoMessage()
-	ProtoReflect() protoreflect.Message
-	Reset()
-	String() string
-}
 
 /* ----------------------------------- */
 /*              - Models -             */
@@ -25,8 +15,6 @@ var AllModels = []interface{}{
 	User{},
 }
 
-type Users []*User
-
 type User struct {
 	ID        int    `gorm:"primaryKey"`
 	Username  string `gorm:"unique;not null"`
@@ -35,6 +23,8 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type Users []*User
 
 type Role string
 
@@ -49,8 +39,8 @@ const (
 
 func (us Users) ToUserInfo() []*usersPB.UserInfo {
 	usersInfo := make([]*usersPB.UserInfo, 0, len(us))
-	for _, user := range us {
-		usersInfo = append(usersInfo, user.ToUserInfo())
+	for _, u := range us {
+		usersInfo = append(usersInfo, u.ToUserInfo())
 	}
 	return usersInfo
 }

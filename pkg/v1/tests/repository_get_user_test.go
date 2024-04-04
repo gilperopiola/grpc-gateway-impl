@@ -16,7 +16,7 @@ func TestRepositoryGetUser(t *testing.T) {
 
 	expect := func(user *models.User, err error) getExpectedFn {
 		return func() (*models.User, error) {
-			return copyUserPtr(user), err
+			return copyUser(user), err
 		}
 	}
 
@@ -24,7 +24,7 @@ func TestRepositoryGetUser(t *testing.T) {
 		return func(mock *mocks.Gorm) {
 			mock.OnModel(&models.User{})
 			mock.OnWhereUser(argUserID, argUsername)
-			mock.OnFirstUser(copyUserPtr(argUser), copyUserPtr(result)).ErrorWillBe(err)
+			mock.OnFirstUser(copyUser(argUser), copyUser(result)).ErrorWillBe(err)
 		}
 	}
 
@@ -49,7 +49,7 @@ func TestRepositoryGetUser(t *testing.T) {
 		{
 			name:        "tc_repository_get_user_no_options_error",
 			options:     options.Slice(nil),
-			setupMock:   emptyGormMockFn,
+			setupMock:   setupGormMockEmpty,
 			getExpected: expect(nil, errNoOpts),
 		},
 		{

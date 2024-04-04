@@ -94,5 +94,5 @@ SignupRequest / SignupResponse / LoginRequest / LoginResponse / UserInfo / Pagin
 <div>RegisterUsersServiceHandlerFromEndpoint(...)</div>
 
 
-## 🐿~_Y ya que estás acá..._
+## 🐿~Y ya que estás acá...
  [_@gilperopiola_](https://www.instagram.com/gilperopiola/) 🚀

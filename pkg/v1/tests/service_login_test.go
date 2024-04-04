@@ -8,21 +8,21 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/common"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/components/mocks"
 	"github.com/gilperopiola/grpc-gateway-impl/pkg/v1/models"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestServiceLogin(t *testing.T) {
 	expect := func(response *usersPB.LoginResponse, err error) (*usersPB.LoginResponse, error) {
-		return copyResponsePtr(response).(*usersPB.LoginResponse), err
+		return copyPB(response).(*usersPB.LoginResponse), err
 	}
 
 	setupMock := func(h common.PwdHasher, getResult *models.User, getErr error) setupRepoMockFn {
-		getResult = hashUser(h, getResult)
+		getResult.Password = hashPwd(h, getResult.Password)
 		return func(repoMock *mocks.Repository) {
-			repoMock.On("GetUser", mock.Anything, mock.Anything).Return(copyUserPtr(getResult), getErr).Once()
+			repoMock.On("GetUser", mock.Anything, mock.Anything).Return(copyUser(getResult), getErr).Once()
 		}
 	}
 
@@ -61,7 +61,7 @@ func TestServiceLogin(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			tokenGen, pwdHasher := newTestCommonComponents() // Prepare
+			tokenGen, pwdHasher := newTestServiceComponents() // Prepare
 			service, repoMock := newTestService(test.setupMock(pwdHasher), tokenGen, pwdHasher)
 			expectedResponse, expectedErr := test.getExpected(tokenGen)
 

@@ -78,8 +78,12 @@ test: ## Runs the tests.
 	@echo ''
 	go test ./... -race -cover
 
-push: ## Pushes the code to master. Dangerous, I know.
+push: ## Pushes the code to master ...Dangerous, I know.
 	@echo ''
 	git add .
 	git commit -m "[@gilperopiola] - General improvements."
 	git push origin master
+
+proinhanssr: ## Analyzes the project.
+	@echo ''
+	go run tools/proinhanssr/proinhanssr.go

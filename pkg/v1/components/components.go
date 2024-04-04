@@ -22,7 +22,7 @@ type Components struct {
 	InputValidator common.InputValidator
 
 	// Authenticator is used to generate and validate JWT Tokens.
-	Authenticator common.Authenticator
+	Authenticator common.TokenAuthenticator
 
 	// RateLimiter is used to limit the number of requests that get processed.
 	RateLimiter *rate.Limiter

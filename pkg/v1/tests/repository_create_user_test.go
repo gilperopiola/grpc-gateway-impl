@@ -15,13 +15,13 @@ func TestRepositoryCreateUser(t *testing.T) {
 
 	expect := func(user *models.User, err error) getExpectedFn {
 		return func() (*models.User, error) {
-			return copyUserPtr(user), err
+			return copyUser(user), err
 		}
 	}
 
 	setupMock := func(userBeforeCreate *models.User, userAfterCreate *models.User, err error) setupGormMockFn {
 		return func(mock *mocks.Gorm) {
-			mock.OnCreateUser(copyUserPtr(userBeforeCreate), copyUserPtr(userAfterCreate)).ErrorWillBe(err)
+			mock.OnCreateUser(copyUser(userBeforeCreate), copyUser(userAfterCreate)).ErrorWillBe(err)
 		}
 	}
 

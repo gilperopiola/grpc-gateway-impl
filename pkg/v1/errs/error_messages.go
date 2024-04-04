@@ -4,7 +4,9 @@ package errs
 /*              - Errors -             */
 /* ----------------------------------- */
 
-// -> Note these are just strings and not actual errors.
+// -> These are just strings, not actual errors <-
+
+// T0D0 put Err at the end of the vars name. Also perfect the service/db errors thingy.
 
 const (
 
@@ -37,9 +39,10 @@ const (
 	ErrMsgRateLimitExceeded      = "too many requests in a very short time, try again later."
 
 	// Repository Layer error messages.
+	ErrMsgRepoNoQueryOpts = "repository error -> no query options"
+
 	ErrMsgRepoCreatingUser  = "repository error -> creating user"
 	ErrMsgRepoGettingUser   = "repository error -> getting user"
-	ErrMsgRepoNoQueryOpts   = "repository error -> getting user -> no query options"
 	ErrMsgRepoGettingUsers  = "repository error -> getting users"
 	ErrMsgRepoCountingUsers = "repository error -> counting users"
 
