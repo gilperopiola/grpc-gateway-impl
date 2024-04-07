@@ -1,0 +1,212 @@
+syntax = "proto3";
+
+package pbs;
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+
+import "external/buf/validate/validate.proto";
+import "external/google/api/annotations.proto";
+import "external/google/api/field_behavior.proto";
+import "external/protoc-gen-openapiv2/options/annotations.proto";
+
+/* ----------------------------------- */
+/*         - Swagger Schema -          */
+/* ----------------------------------- */
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "grpc-gateway-impl";
+    version: "1.0"; // T0D0 - Use version from go.mod
+    contact: { email: "" };
+  };
+  host: "localhost:8083";
+  base_path: "";
+  schemes: [HTTP, HTTPS];
+  consumes: "application/json";
+  produces: "application/json";
+  responses: {
+    key: "400";
+    value: { schema: { example: '{"error":"validation error: username value length must be at least 4 characters."}'; }};
+  }
+  responses: {
+    key: "401";
+    value: { schema: { example: '{"error":"unauthorized."}'; }};
+  }
+  responses: {
+    key: "403";
+    value: { schema: { example: '{"error": "forbidden error."}'; }};
+  }
+  responses: {
+    key: "404";
+    value: { schema: { example: '{"error": "not found: username not found."}'; }};
+  }
+  responses: {
+    key: "500";
+    value: { schema: { example: '{"error": "internal server error, something went wrong on our end."}'; }};
+  }
+};
+
+/* ----------------------------------- */
+/*          - Users Service -          */
+/* ----------------------------------- */
+
+// Service for user management.
+service UsersService {
+
+  // Creates a new user with username and password.
+  // Returns the created user's unique ID.
+  rpc Signup (SignupRequest) returns (SignupResponse) {
+    option (google.api.http) = { post: "/v1/signup"; body: "*"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "signup";
+      tags: ["Users"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".users.SignupResponse"} } };
+      };
+    };
+  }
+
+  // Logs in a user with username and password.
+  // Returns a JWT token string.
+  rpc Login (LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = { post: "/v1/login"; body: "*"; };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "login";
+      tags: ["Users"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".users.LoginResponse"} } };
+      };
+    };
+  }
+
+  // Gets a user by ID. Returns the user's information.
+  // Requires a JWT Token with a matching user's ID.
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = { get: "/v1/users/{user_id}"; };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "get_user";
+      tags: ["Users"];
+      responses: {
+        key: "200";
+        value: {schema: {json_schema: {ref: ".users.GetUserResponse"}}};
+      };
+    };
+  }
+
+  // Gets a list of users, with optional pagination and filtering.
+  // Requires a JWT Token with admin privileges.
+  rpc GetUsers (GetUsersRequest) returns (GetUsersResponse) {
+    option (google.api.http) = { get: "/v1/users"; };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "get_users";
+      tags: ["Users"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".users.GetUsersResponse"} } };
+      };
+    };
+  }
+}
+
+/* ----------------------------------- */
+/*       - Requests & Responses -      */
+/* ----------------------------------- */
+
+message SignupRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "SignupRequest" } };
+
+  string username = 1 [
+    json_name = "username",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Username of the user to sign up.", }
+  ];
+
+  string password = 3 [
+    json_name = "password",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 6, max_len: 30, pattern: "[A-Za-z0-9]{6,}"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Password of the user to sign up.", }
+  ];
+}
+
+message SignupResponse {
+  int32 id = 1;
+}
+
+message LoginRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "LoginRequest" } };
+
+  string username = 1 [
+    json_name = "username",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Username of the user.", }
+  ];
+
+  string password = 3 [
+    json_name = "password",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 6, max_len: 30, pattern: "[A-Za-z0-9]{6,}"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Password of the user.", }
+  ];
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message GetUserRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetUserRequest" } };
+
+  int32 user_id = 1;
+}
+
+message GetUserResponse {
+  UserInfo user = 1 [ json_name = "user", (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+message GetUsersRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetUsersRequest" } };
+
+  optional int32 page = 1 [
+    json_name = "page",
+    (buf.validate.field).int32.gt = 0,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Page number." default: "1" }
+  ];
+
+  optional int32 page_size = 3 [
+    json_name = "page_size",
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).int32.lte = 400,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Users per page." default: "10" }
+  ];
+
+  optional string filter = 5 [json_name = "filter", (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { 
+    description: "Username filter." 
+  }];
+}
+
+message GetUsersResponse {
+  repeated UserInfo users = 1   [ json_name = "users",      (google.api.field_behavior) = OUTPUT_ONLY ];
+  PaginationInfo pagination = 3 [ json_name = "pagination", (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+/* ----------------------------------- */
+/*         - Custom Messages -         */ 
+/* ----------------------------------- */
+
+message PaginationInfo {
+  int32 current = 1 [ json_name = "current",  (google.api.field_behavior) = OUTPUT_ONLY ];
+  int32 total = 3   [ json_name = "total",    (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+// Output only ⬇️
+
+message UserInfo {
+  int32 id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
+  string username = 3   [ json_name = "username",   (google.api.field_behavior) = OUTPUT_ONLY ];
+  string created_at = 5 [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+  string updated_at = 7 [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+}

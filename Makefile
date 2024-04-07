@@ -12,14 +12,14 @@
 VERSION := $(shell git describe --tags --always --dirty) 
 
 # Set the path to the .proto's dir, the output dir for the generated code and the output dir for the Swagger documentation.
-PROTOS_DIR := ./protos
-PBS_OUT_BASE_DIR := ./pkg
-DOCS_OUT_DIR := ./docs
+PROTOS_DIR := ./app/protos
+PBS_OUT_BASE_DIR := ./app
+DOCS_OUT_DIR := ./etc/docs
 
 # Users Service Variables
 USERS := users
 USERS_PROTO_FILE := $(PROTOS_DIR)/$(USERS).proto
-USERS_PBS_OUT_DIR := $(PBS_OUT_BASE_DIR)/$(USERS)
+USERS_PBS_OUT_DIR := $(PBS_OUT_BASE_DIR)/pbs
 
 # Don't print unnecessary output.
 MAKEFLAGS += --no-print-directory
@@ -47,7 +47,7 @@ endif
 run: ## Updates dependencies and starts the application.
 	@echo ''
 	go mod tidy
-	go run cmd/main.go
+	go run etc/cmd/main.go
 
 #------------------------------#
 
@@ -86,4 +86,4 @@ push: ## Pushes the code to master ...Dangerous, I know.
 
 proinhanssr: ## Analyzes the project.
 	@echo ''
-	go run tools/proinhanssr/proinhanssr.go
+	go run etc/tools/proinhanssr/proinhanssr.go
