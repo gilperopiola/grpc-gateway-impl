@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app"
-
 	"github.com/gilperopiola/grpc-gateway-impl/etc/tools/treyser"
 
 	"go.uber.org/zap"

@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+// T0D0 make all enum variables a diff color
+
 func main() {
 	workingDir, _ := os.Getwd()
 	fmt.Println("Working directory: " + workingDir)

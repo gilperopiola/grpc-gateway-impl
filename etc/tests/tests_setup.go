@@ -26,7 +26,7 @@ func newTestServiceQuick(setupMock setupRepoMockFn) (service.Service, *mocks.Sto
 	return newTestService(setupMock, newTestTokenAuthenticator(), newTestPwdHasher())
 }
 
-type setupRepoMockFn func(repo *mocks.Storage)
+type setupRepoMockFn func(storage *mocks.Storage)
 
 /* Storage tests setup */
 

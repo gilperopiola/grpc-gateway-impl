@@ -1,4 +1,4 @@
-package grpc
+package servers
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"

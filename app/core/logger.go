@@ -41,7 +41,7 @@ func NewLoggerOptions(stackTraceLevel int) []zap.Option {
 // newZapConfig returns a new zap.Config with the default options.
 func newZapConfig(cfg *Config) zap.Config {
 	newZapConfigFunc := zap.NewDevelopmentConfig
-	if cfg.IsProd {
+	if IsProd {
 		newZapConfigFunc = zap.NewProductionConfig
 	}
 

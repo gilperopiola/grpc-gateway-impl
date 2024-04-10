@@ -1,8 +1,9 @@
-package grpc
+package servers
 
 import (
 	"net"
 
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
@@ -19,15 +20,13 @@ type GRPCServer struct {
 	*grpc.Server
 
 	service pbs.UsersServiceServer
-	port    string
 	options []grpc.ServerOption
 }
 
 // NewGRPCServer returns a new instance of GRPCServer.
-func NewGRPCServer(port string, api pbs.UsersServiceServer, options []grpc.ServerOption) *GRPCServer {
+func NewGRPCServer(service pbs.UsersServiceServer, options []grpc.ServerOption) *GRPCServer {
 	return &GRPCServer{
-		port:    port,
-		service: api,
+		service: service,
 		options: options,
 	}
 }
@@ -40,9 +39,9 @@ func (g *GRPCServer) Init() {
 
 // Run makes the gRPC Server listen for incoming gRPC requests and serves them.
 func (g *GRPCServer) Run() {
-	zap.S().Infof("Running gRPC on port %s!\n", g.port)
+	zap.S().Infof("Running gRPC on port %s!\n", core.GRPCPort)
 
-	lis, err := net.Listen("tcp", g.port)
+	lis, err := net.Listen("tcp", core.GRPCPort)
 	if err != nil {
 		zap.S().Fatalf(errs.FatalErrMsgStartingGRPC, err)
 	}

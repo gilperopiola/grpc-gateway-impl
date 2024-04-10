@@ -12,8 +12,13 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
-const (
-	projectName = "grpc-gateway-impl"
+// Globals!!! Not sure about this but let's try it out.
+// These are the default values, LoadConfig() could override them.
+var (
+	AppName  = "grpc-gateway-impl"
+	IsProd   = false
+	GRPCPort = ":50053"
+	HTTPPort = ":8083"
 )
 
 /* ----------------------------------- */
@@ -22,7 +27,6 @@ const (
 
 // Config holds the configuration values of our app.
 type Config struct {
-	GeneralCfg
 	LoggerCfg
 	DatabaseCfg
 	PwdHasherCfg
@@ -33,15 +37,13 @@ type Config struct {
 
 // LoadConfig sets up the configuration from the environment variables.
 func LoadConfig() *Config {
-	return &Config{loadGeneralConfig(), loadLoggerConfig(), loadDatabaseConfig(), loadPwdHasherConfig(), loadRateLimiterConfig(), loadJWTConfig(), loadTLSConfig()}
-}
+	AppName = envVar("APP_NAME", AppName)
+	IsProd = envVar("IS_PROD", IsProd)
+	GRPCPort = envVar("GRPC_PORT", GRPCPort)
+	HTTPPort = envVar("HTTP_PORT", HTTPPort)
 
-func loadGeneralConfig() GeneralCfg {
-	return GeneralCfg{
-		ProjectName: projectName,
-		IsProd:      envVar("IS_PROD", false),
-		GRPCPort:    envVar("GRPC_PORT", ":50053"),
-		HTTPPort:    envVar("HTTP_PORT", ":8083"),
+	return &Config{
+		loadLoggerConfig(), loadDatabaseConfig(), loadPwdHasherConfig(), loadRateLimiterConfig(), loadJWTConfig(), loadTLSConfig(),
 	}
 }
 
@@ -94,7 +96,7 @@ func loadJWTConfig() JWTCfg {
 }
 
 func loadTLSConfig() TLSCfg {
-	rootPrefix := getRootPrefix(projectName) // "." or "../.." depending on where is the app being run from
+	rootPrefix := getRootPrefix(AppName) // "." or "../.." depending on where is the app being run from
 	return TLSCfg{
 		Enabled:  envVar("TLS_ENABLED", false),
 		CertPath: envVar("TLS_CERT_PATH", rootPrefix+"/server.crt"),
@@ -105,13 +107,6 @@ func loadTLSConfig() TLSCfg {
 /* ----------------------------------- */
 /*         - Config Structure -        */
 /* ----------------------------------- */
-
-type GeneralCfg struct {
-	ProjectName string
-	IsProd      bool
-	GRPCPort    string
-	HTTPPort    string
-}
 
 type LoggerCfg struct {
 	Level           int

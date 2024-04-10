@@ -3,8 +3,7 @@ package app
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
-	"github.com/gilperopiola/grpc-gateway-impl/app/modules/grpc"
-	"github.com/gilperopiola/grpc-gateway-impl/app/modules/http"
+	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/storage"
 	"github.com/gilperopiola/grpc-gateway-impl/app/storage/db"
@@ -40,9 +39,9 @@ func (app *App) SetupGlobalLogger() {
 
 func (app *App) InitGRPCModule() {
 	grpcTrayser := treyser.NewTreyser("grpc", 1)
-	app.GRPC.ServerOptions = grpc.AllServerOptions(&app.All, app.TLSCfg.Enabled)            // -> gRPC Server Options.
-	app.GRPC.DialOptions = grpc.AllDialOptions(app.ClientCreds)                             // -> gRPC Dial Options.
-	app.GRPC.Server = grpc.NewGRPCServer(app.GRPCPort, app.ServiceLayer, app.ServerOptions) // -> gRPC Server.
+	app.GRPC.ServerOptions = servers.AllServerOptions(&app.All, app.TLSCfg.Enabled) // -> gRPC Server Options.
+	app.GRPC.DialOptions = servers.AllDialOptions(app.ClientCreds)                  // -> gRPC Dial Options.
+	app.GRPC.Server = servers.NewGRPCServer(app.ServiceLayer, app.ServerOptions)    // -> gRPC Server.
 
 	app.GRPC.Server.Init()
 	grpcTrayser.Treys()
@@ -50,9 +49,9 @@ func (app *App) InitGRPCModule() {
 
 func (app *App) InitHTTPModule() {
 	httpTrayser := treyser.NewTreyser("http", 1)
-	app.HTTP.MuxOptionsMiddleware = http.MuxOptionsMiddleware()                                                                  // -> HTTP Middleware.
-	app.HTTP.MuxWrapperMiddleware = http.MuxWrapperMiddleware()                                                                  // -> HTTP Mux Wrapper.
-	app.HTTP.Gateway = http.NewHTTPGateway(&app.GeneralCfg, app.MuxOptionsMiddleware, app.MuxWrapperMiddleware, app.DialOptions) // -> HTTP Gateway.
+	app.HTTP.MuxOptionsMiddleware = servers.ServeMuxOpts()                                                         // -> HTTP Middleware.
+	app.HTTP.MuxWrapperMiddleware = servers.MiddlewareWrapper()                                                    // -> HTTP Mux Wrapper.
+	app.HTTP.Gateway = servers.NewHTTPGateway(app.MuxOptionsMiddleware, app.MuxWrapperMiddleware, app.DialOptions) // -> HTTP Gateway.
 
 	app.HTTP.Gateway.Init()
 	httpTrayser.Treys()
@@ -68,7 +67,7 @@ func (app *App) InitDBAndStorage() {
 	dbTrayser := treyser.NewTreyser("db", 1)
 	app.DatabaseLayer = db.NewGormDB(&app.DatabaseCfg) // -> DB.
 	dbTrayser.Treys()
-	repoTrayser := treyser.NewTreyser("repo", 1)
+	repoTrayser := treyser.NewTreyser("storage", 1)
 	app.StorageLayer = storage.NewStorage(app.DatabaseLayer) // -> Storage.
 	repoTrayser.Treys()
 }

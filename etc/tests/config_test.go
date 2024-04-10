@@ -28,9 +28,9 @@ func TestLoadConfig(t *testing.T) {
 
 	config := core.LoadConfig()
 
-	assert.True(t, config.IsProd)
-	assert.Equal(t, ":9999", config.GRPCPort)
-	assert.Equal(t, ":8888", config.HTTPPort)
+	assert.True(t, core.IsProd)
+	assert.Equal(t, ":9999", core.GRPCPort)
+	assert.Equal(t, ":8888", core.HTTPPort)
 	assert.False(t, config.TLSCfg.Enabled)
 	assert.Equal(t, "/path/to/cert", config.TLSCfg.CertPath)
 	assert.Equal(t, "/path/to/key", config.TLSCfg.KeyPath)

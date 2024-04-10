@@ -24,7 +24,7 @@ type Service interface {
 
 // service is our concrete implementation of the Service interface.
 type service struct {
-	Repo           storage.Storage
+	Storage        storage.Storage
 	TokenGenerator modules.TokenGenerator
 	PwdHasher      modules.PwdHasher
 
@@ -32,9 +32,9 @@ type service struct {
 }
 
 // NewService returns a new instance of the service.
-func NewService(repo storage.Storage, tokenGen modules.TokenGenerator, pwdHasher modules.PwdHasher) *service {
+func NewService(storage storage.Storage, tokenGen modules.TokenGenerator, pwdHasher modules.PwdHasher) *service {
 	return &service{
-		Repo:           repo,
+		Storage:        storage,
 		TokenGenerator: tokenGen,
 		PwdHasher:      pwdHasher,
 	}

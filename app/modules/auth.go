@@ -10,7 +10,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"github.com/golang-jwt/jwt/v4"
-	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -21,20 +20,21 @@ import (
 /*        - gRPC Methods Auth -        */
 /* ----------------------------------- */
 
-// These are the gRPC methods. Each one maps to an HTTP endpoint, defined in the .proto files.
-// I exported them so they could be accessed from outside, but idk.
-var (
-	DefaultPublicMethods = []string{ // DefaultPublicMethods are the methods that do not require authentication.
-		"/users.UsersService/Signup",
-		"/users.UsersService/Login",
-	}
-	DefaultSelfOnlyMethods = []string{ // DefaultSelfOnlyMethods are the methods that only allow each user to access their own data.
-		"/users.UsersService/GetUser",
-	}
-	DefaultAdminOnlyMethods = []string{ // DefaultAdminOnlyMethods are the methods that only allow admins to access them.
-		"/users.UsersService/GetUsers",
-	}
+type EndpointAuthType string
+
+const (
+	AuthTypePublic EndpointAuthType = "public"
+	AuthTypeSelf   EndpointAuthType = "self"
+	AuthTypeAdmin  EndpointAuthType = "admin"
 )
+
+var authTypePerGRPCMethod = map[string]EndpointAuthType{
+	"Signup": AuthTypePublic,
+	"Login":  AuthTypePublic,
+
+	"GetUser":  AuthTypeSelf,
+	"GetUsers": AuthTypeAdmin,
+}
 
 /* ----------------------------------- */
 /*            - JWT Auth -             */
@@ -64,10 +64,6 @@ type jwtAuthenticator struct {
 	jwtSignMethod    jwt.SigningMethod
 	jwtKeyFunc       func(_ *jwt.Token) (interface{}, error)
 	jwtExpiresAtFunc func(issuedAt time.Time) *jwt.NumericDate
-
-	publicMethods    []string // There 3 are loaded from defaults on the constructor.
-	selfOnlyMethods  []string
-	adminOnlyMethods []string
 }
 
 // jwtClaims are our custom claims that encompass the standard JWT RegisteredClaims and also our own.
@@ -91,7 +87,6 @@ func NewJWTAuthenticator(secret string, sessionDays int) *jwtAuthenticator {
 	return &jwtAuthenticator{
 		secret, sessionDays, signingMethod,
 		keyFunc, expiresAtFunc,
-		DefaultPublicMethods, DefaultSelfOnlyMethods, DefaultAdminOnlyMethods,
 	}
 }
 
@@ -118,7 +113,7 @@ func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo
 	grpcMethod := svInfo.FullMethod
 
 	bearer, err := a.GetBearer(ctx) // Get token from metadata
-	if errors.Is(err, errTokenMalformed) || (errors.Is(err, errTokenNotFound) && !slices.Contains(a.publicMethods, grpcMethod)) {
+	if errors.Is(err, errTokenMalformed) || (errors.Is(err, errTokenNotFound) && authTypePerGRPCMethod[grpcMethod] != AuthTypePublic) {
 		return nil, err
 	}
 
@@ -145,13 +140,19 @@ func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo
 func (a *jwtAuthenticator) IsMethodAllowed(grpcMethod, userID string, userRole models.Role, req interface{}) error {
 	type PBReqWithUserID interface{ GetUserId() int32 }
 
-	isSelfOnlyMethod := slices.Contains(a.selfOnlyMethods, grpcMethod)
-	if isSelfOnlyMethod && userID != fmt.Sprint(req.(PBReqWithUserID).GetUserId()) {
-		return status.Errorf(codes.PermissionDenied, "auth: user id invalid")
-	}
-	isAdminMethod := slices.Contains(a.adminOnlyMethods, grpcMethod)
-	if isAdminMethod && userRole != models.AdminRole {
-		return status.Errorf(codes.PermissionDenied, "auth: role invalid")
+	switch authTypePerGRPCMethod[grpcMethod] {
+	case AuthTypePublic:
+		return nil
+	case AuthTypeSelf:
+		if userID != fmt.Sprint(req.(PBReqWithUserID).GetUserId()) {
+			return status.Errorf(codes.PermissionDenied, "auth: user id invalid")
+		}
+	case AuthTypeAdmin:
+		if userRole != models.AdminRole {
+			return status.Errorf(codes.PermissionDenied, "auth: role invalid")
+		}
+	default:
+		return status.Errorf(codes.Unknown, "auth: method unknown")
 	}
 	return nil
 }

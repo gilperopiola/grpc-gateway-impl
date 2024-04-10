@@ -17,7 +17,7 @@ import (
 // If the query fails (without a gorm.ErrRecordNotFound), then we return an unknown error.
 // If the query fails (with a gorm.ErrRecordNotFound), it means everything is OK, so we create the user and return its ID.
 func (s *service) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
-	user, err := s.Repo.GetUser(options.WithUsername(req.Username))
+	user, err := s.Storage.GetUser(options.WithUsername(req.Username))
 	if err == nil && user != nil {
 		return nil, ErrAlreadyExists("user")
 	}
@@ -26,7 +26,7 @@ func (s *service) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs.Sign
 	}
 
 	// If we're here, we should have gotten a gorm.ErrRecordNotFound in the function above.
-	if user, err = s.Repo.CreateUser(req.Username, s.PwdHasher.Hash(req.Password)); err != nil {
+	if user, err = s.Storage.CreateUser(req.Username, s.PwdHasher.Hash(req.Password)); err != nil {
 		return nil, UsersDBError(ctx, err)
 	}
 
@@ -39,7 +39,7 @@ func (s *service) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs.Sign
 // Then we compare both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
 func (s *service) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
-	user, err := s.Repo.GetUser(options.WithUsername(req.Username))
+	user, err := s.Storage.GetUser(options.WithUsername(req.Username))
 	if errIsNotFound(err) {
 		return nil, ErrNotFound("user")
 	}
@@ -64,7 +64,7 @@ func (s *service) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.LoginR
 // If the query fails (for some other reason), then it returns an unknown error.
 // If everything is OK, it returns the user.
 func (s *service) GetUser(ctx context.Context, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
-	user, err := s.Repo.GetUser(options.WithUserID(int(req.UserId)))
+	user, err := s.Storage.GetUser(options.WithUserID(int(req.UserId)))
 	if errIsNotFound(err) {
 		return nil, ErrNotFound("user")
 	}
@@ -82,7 +82,7 @@ func (s *service) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (*pbs.
 	filter := options.WithFilter("username", req.GetFilter())
 
 	// While our page is 0-based, gorm offsets are 1-based. That's why we subtract 1.
-	users, totalMatchingUsers, err := s.Repo.GetUsers(page-1, pageSize, filter)
+	users, totalMatchingUsers, err := s.Storage.GetUsers(page-1, pageSize, filter)
 	if err != nil {
 		return nil, UsersDBError(ctx, err)
 	}
