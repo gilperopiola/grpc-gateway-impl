@@ -20,21 +20,21 @@ import (
 // Some middleware are passed as ServeMuxOptions when the mux is created.
 // Some are wrapped around the Mux afterwards.
 
-// ServeMuxOpts returns all the HTTP middleware that are used as ServeMuxOptions.
-func ServeMuxOpts() []runtime.ServeMuxOption {
-	return []runtime.ServeMuxOption{
-		runtime.WithErrorHandler(HandleHTTPError),
-	}
-}
-
 // MiddlewareWrapper returns the middleware to be wrapped around the HTTP Gateway's Mux.
 func MiddlewareWrapper() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return corsMiddleware(
 			loggerMiddleware(
-				modifyHeadersMiddleware(next),
+				setHeadersMiddleware(next),
 			),
 		)
+	}
+}
+
+// ServeMuxOpts returns all the HTTP middleware that are used as ServeMuxOptions.
+func ServeMuxOpts() []runtime.ServeMuxOption {
+	return []runtime.ServeMuxOption{
+		runtime.WithErrorHandler(HandleHTTPError),
 	}
 }
 
@@ -53,50 +53,52 @@ func loggerMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// modifyHeadersMiddleware executes before the response is written to the client.
+// setHeadersMiddleware executes before the response is written to the client.
 // It's also called from the HTTP Error Handler.
-func modifyHeadersMiddleware(next http.Handler) http.Handler {
+func setHeadersMiddleware(next http.Handler) http.Handler {
+	var (
+		headersToDelete = []string{"Grpc-Metadata-Content-Type"}
+		headersToAdd    = map[string]string{
+			"Content-Security-Policy":   "default-src 'self'",
+			"Content-Type":              "application/json",
+			"Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+			"X-Content-Type-Options":    "nosniff",
+			"X-Frame-Options":           "SAMEORIGIN",
+			"X-XSS-Protection":          "1; mode=block",
+		}
+	)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 
-		for _, value := range responseHeadersToDelete {
+		for _, value := range headersToDelete {
 			w.Header().Del(value)
 		}
-		for key, value := range responseHeadersToAdd {
+		for key, value := range headersToAdd {
 			w.Header().Set(key, value)
 		}
 	})
 }
-
-var responseHeadersToAdd = map[string]string{
-	"Content-Security-Policy":   "default-src 'self'",
-	"Content-Type":              "application/json",
-	"Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-	"X-Content-Type-Options":    "nosniff",
-	"X-Frame-Options":           "SAMEORIGIN",
-	"X-XSS-Protection":          "1; mode=block",
-}
-
-var responseHeadersToDelete = []string{"Grpc-Metadata-Content-Type"}
 
 // corsMiddleware adds CORS headers to the response and handles preflight requests.
 func corsMiddleware(next http.Handler) http.Handler {
+	var headersToAdd = map[string]string{
+		"Access-Control-Allow-Origin":  "*",
+		"Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+		"Access-Control-Allow-Headers": "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for key, value := range corsHeadersToAdd { // Add headers.
+		for key, value := range headersToAdd {
 			w.Header().Set(key, value)
 		}
-		if r.Method == "OPTIONS" { // Handle preflight requests.
+		if r.Method == "OPTIONS" {
+			// Preflight request
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		next.ServeHTTP(w, r) // Call next handler.
+		next.ServeHTTP(w, r)
 	})
-}
-
-var corsHeadersToAdd = map[string]string{
-	"Access-Control-Allow-Origin":  "*",
-	"Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-	"Access-Control-Allow-Headers": "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
 }
 
 /* ----------------------------------- */

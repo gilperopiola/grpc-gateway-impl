@@ -68,9 +68,9 @@ var (
 	loginRequest = &pbs.LoginRequest{Username: username, Password: password}
 
 	// gRPC
-	grpcMethodName         = modules.DefaultPublicMethods[0]
-	grpcSelfOnlyMethodName = modules.DefaultSelfOnlyMethods[0]
-	grpcAdminMethodName    = modules.DefaultAdminOnlyMethods[0]
+	grpcMethodName         = "modules.DefaultPublicMethods[0]"
+	grpcSelfOnlyMethodName = "modules.DefaultSelfOnlyMethods[0]"
+	grpcAdminMethodName    = "modules.DefaultAdminOnlyMethods[0]"
 )
 
 /* ----------------------------------- */

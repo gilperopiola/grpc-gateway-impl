@@ -1,72 +1,43 @@
 package flashada
 
-type KeyValueAPI[T any] interface {
-	Get(string) (*T, error)
-	Set(T) error
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"google.golang.org/grpc/metadata"
+)
+
+type KeyValStoreAccessor interface {
+	Get(string) (string, error)
 }
 
-type httpHeadersAPI struct {
+type httpHeadersAccessor struct {
 	headers http.Header
 }
 
-func NewHttpHeadersAPI(headers http.Header) *httpHeadersAPI {
-	return &httpHeadersAPI{headers: headers}
+type grpcMetadataAccessor struct {
+	ctx context.Context
 }
 
-func (api *httpHeadersAPI) Get(key string) (*string, error) {
-	value := api.headers.Get(key)
-	if value == "" {
-		return nil, fmt.Errorf("header not found")
+func NewHTTPHeadersAccessor(headers any) KeyValStoreAccessor {
+	return &httpHeadersAccessor{headers.(http.Header)}
+}
+
+func NewGRPCMetadataAccessor(ctx any) KeyValStoreAccessor {
+	return &grpcMetadataAccessor{ctx.(context.Context)}
+}
+
+func (a *httpHeadersAccessor) Get(key string) (string, error) {
+	if value := a.headers.Get(key); value != "" {
+		return value, nil
 	}
-	return &value, nil
+	return "", fmt.Errorf("header not found")
 }
 
-func (api *httpHeadersAPI) Set(key string, value string) error {
-	api.headers.Set(key, value)
-	return nil
-}type grpcMetadataAPI struct {
-	md metadata.MD
-}
-
-func NewGrpcMetadataAPI(md metadata.MD) *grpcMetadataAPI {
-	return &grpcMetadataAPI{md: md}
-}
-
-func (api *grpcMetadataAPI) Get(key string) (*string, error) {
-	values := api.md.Get(key)
-	if len(values) == 0 {
-		return nil, fmt.Errorf("metadata not found")
+func (a *grpcMetadataAccessor) Get(key string) (string, error) {
+	if md := metadata.ValueFromIncomingContext(a.ctx, key); len(md) > 0 {
+		return md[0], nil
 	}
-	return &values[0], nil
-}
-
-func (api *grpcMetadataAPI) Set(key string, value string) error {
-	// This operation is conceptually invalid for incoming metadata in a server-side context,
-	// as incoming metadata is immutable. For demonstration purposes only:
-	api.md.Set(key, value)
-	return nil
-}type redisAPI struct {
-	client *redis.Client
-}
-
-func NewRedisAPI(client *redis.Client) *redisAPI {
-	return &redisAPI{client: client}
-}
-
-func (api *redisAPI) Get(key string) (*string, error) {
-	val, err := api.client.Get(context.Background(), key).Result()
-	if err == redis.Nil {
-		return nil, fmt.Errorf("key does not exist")
-	} else if err != nil {
-		return nil, err
-	}
-	return &val, nil
-}
-
-func (api *redisAPI) Set(key string, value string) error {
-	err := api.client.Set(context.Background(), key, value, 0).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+	return "", fmt.Errorf("metadata not found")
 }

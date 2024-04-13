@@ -47,7 +47,7 @@ endif
 run: ## Updates dependencies and starts the application.
 	@echo ''
 	go mod tidy
-	go run etc/cmd/main.go
+	go run main.go
 
 #------------------------------#
 

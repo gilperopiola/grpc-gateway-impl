@@ -21,13 +21,14 @@ const LogsTimeLayout = "02/01/06 15:04:05"
 
 // SetupLogger replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
-func SetupLogger(c *Config, opts ...zap.Option) {
+func SetupLogger(c *Config, opts ...zap.Option) *zap.Logger {
 	zapLogger, err := newZapConfig(c).Build(opts...)
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgCreatingLogger, err)
 	}
 
 	zap.ReplaceGlobals(zapLogger)
+	return zapLogger
 }
 
 // NewLoggerOptions returns the default options for the Logger.

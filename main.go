@@ -21,14 +21,14 @@ import (
 //	(*app.App).SetupConfig(core.LoadConfig),
 //	(*app.App).SetupGlobalLogger,
 //	(*app.App).InitService,
-//	(*app.App).InitDBAndStorage,
+//	(*app.App).InitDatabaseAndStorage,
 //}
 
 func main() {
 	treyser := treyser.NewTreyser("main", 0)
 
 	// Init app.
-	app := app.NewAppV1()
+	app := app.NewApp()
 
 	treyser.Treys()
 

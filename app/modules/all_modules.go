@@ -10,16 +10,33 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// All holds all the modules that are used in the App.
 type All struct {
-	GRPC // GRPC Module.
-	HTTP // HTTP Module.
+	*GRPC
+	*HTTP
+	*TLS
 
 	InputValidator InputValidator     // Validates GRPC and HTTP requests.
 	Authenticator  TokenAuthenticator // Generate & Validate JWT Tokens.
 	RateLimiter    *rate.Limiter      // Limit rate of requests.
 	PwdHasher      PwdHasher          // Hash and compare passwords.
-	TLS                               // TLS Module.
+}
+
+type GRPC struct {
+	Server        Server
+	ServerOptions []grpc.ServerOption
+	DialOptions   []grpc.DialOption
+}
+
+type HTTP struct {
+	Gateway              Server
+	MuxOptionsMiddleware []runtime.ServeMuxOption
+	MuxWrapperMiddleware func(http.Handler) http.Handler
+}
+
+type TLS struct {
+	ServerCert  *x509.CertPool
+	ServerCreds credentials.TransportCredentials
+	ClientCreds credentials.TransportCredentials
 }
 
 // Server abstracts the gRPC Server & HTTP Gateway.
@@ -28,25 +45,4 @@ type Server interface {
 	Init()
 	Run()
 	Shutdown()
-}
-
-// GRPC Module.
-type GRPC struct {
-	Server        Server
-	ServerOptions []grpc.ServerOption
-	DialOptions   []grpc.DialOption
-}
-
-// HTTP Module.
-type HTTP struct {
-	Gateway              Server
-	MuxOptionsMiddleware []runtime.ServeMuxOption
-	MuxWrapperMiddleware func(http.Handler) http.Handler
-}
-
-// TLS Module.
-type TLS struct {
-	ServerCert  *x509.CertPool
-	ServerCreds credentials.TransportCredentials
-	ClientCreds credentials.TransportCredentials
 }

@@ -92,7 +92,7 @@ func TestAuthCtxWithUserInfo(t *testing.T) {
 	}
 }
 
-func TestAuthIsMethodAllowed(t *testing.T) {
+func TestAuthCanAccessRoute(t *testing.T) {
 	tests := []struct {
 		name          string
 		method        string
@@ -138,7 +138,7 @@ func TestAuthIsMethodAllowed(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := jwtAuthenticator.IsMethodAllowed(test.method, test.userID, test.userRole, test.req)
+			err := jwtAuthenticator.CanAccessRoute(test.method, test.userID, test.userRole, test.req)
 
 			if test.expectAllowed {
 				assert.NoError(t, err)
