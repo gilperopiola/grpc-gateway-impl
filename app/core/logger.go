@@ -8,6 +8,7 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 /* ----------------------------------- */
@@ -17,17 +18,16 @@ import (
 // We use zap as our Logger. It's fast and has a nice API.
 // We don't even need to wrap it in a struct, we just use it globally on the zap pkg.
 
-const LogsTimeLayout = "02/01/06 15:04:05"
-
 // SetupLogger replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
-func SetupLogger(c *Config, opts ...zap.Option) *zap.Logger {
+func SetupLogger(c *CoreCfg, opts ...zap.Option) *zap.Logger {
 	zapLogger, err := newZapConfig(c).Build(opts...)
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgCreatingLogger, err)
 	}
 
 	zap.ReplaceGlobals(zapLogger)
+
 	return zapLogger
 }
 
@@ -40,21 +40,40 @@ func NewLoggerOptions(stackTraceLevel int) []zap.Option {
 }
 
 // newZapConfig returns a new zap.Config with the default options.
-func newZapConfig(cfg *Config) zap.Config {
-	newZapConfigFunc := zap.NewDevelopmentConfig
+func newZapConfig(cfg *CoreCfg) zap.Config {
+	newZapConfigFn := zap.NewDevelopmentConfig
 	if IsProd {
-		newZapConfigFunc = zap.NewProductionConfig
+		newZapConfigFn = zap.NewProductionConfig
 	}
 
-	zapConfig := newZapConfigFunc()
+	zapConfig := newZapConfigFn()
 
 	zapConfig.DisableCaller = !cfg.LoggerCfg.LogCaller
 	zapConfig.Level = zap.NewAtomicLevelAt(zapcore.Level(cfg.LoggerCfg.Level))
 	zapConfig.EncoderConfig.EncodeTime = func(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-		encoder.AppendString(t.Format(LogsTimeLayout))
+		encoder.AppendString(t.Format(LogTimeLayout))
 	}
 
 	return zapConfig
+}
+
+const LogTimeLayout = "02/01/06 15:04:05"
+
+var LogLevels = map[string]int{
+	"debug":  int(zap.DebugLevel),
+	"info":   int(zap.InfoLevel),
+	"warn":   int(zap.WarnLevel),
+	"error":  int(zap.ErrorLevel),
+	"dpanic": int(zap.DPanicLevel),
+	"panic":  int(zap.PanicLevel),
+	"fatal":  int(zap.FatalLevel),
+}
+
+var DBLogLevels = map[string]int{
+	"silent": int(gormLogger.Silent),
+	"error":  int(gormLogger.Error),
+	"warn":   int(gormLogger.Warn),
+	"info":   int(gormLogger.Info),
 }
 
 // ZapEndpoint unifies both HTTP and gRPC paths:

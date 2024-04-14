@@ -6,6 +6,7 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
 
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -37,13 +38,13 @@ func getUnaryInterceptors(allModules *modules.All) []grpc.UnaryServerInterceptor
 }
 
 // tokenValidationInterceptor returns a gRPC interceptor that validates if the user is allowed to access the endpoint.
-func tokenValidationInterceptor(tokenValidator modules.TokenValidator) grpc.UnaryServerInterceptor {
+func tokenValidationInterceptor(tokenValidator interfaces.TokenValidator) grpc.UnaryServerInterceptor {
 	return tokenValidator.Validate
 }
 
 // inputValidationInterceptor takes a modules.InputValidator and returns a gRPC interceptor
 // that enforces the validation rules written in the .proto files.
-func inputValidationInterceptor(validator modules.InputValidator) grpc.UnaryServerInterceptor {
+func inputValidationInterceptor(validator interfaces.InputValidator) grpc.UnaryServerInterceptor {
 	return validator.ValidateInput
 }
 

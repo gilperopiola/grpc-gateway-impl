@@ -3,7 +3,7 @@ package storage
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/options"
 )
 
 /* ----------------------------------- */
@@ -11,7 +11,7 @@ import (
 /* ----------------------------------- */
 
 // CreateUser creates a new user in the database.
-func (r *storage) CreateUser(username, hashedPwd string) (*models.User, error) {
+func (r *Storage) CreateUser(username, hashedPwd string) (*models.User, error) {
 	user := models.User{Username: username, Password: hashedPwd}
 	if err := r.DB.Create(&user).Error(); err != nil {
 		return nil, &errs.DBError{err, CreateUserErr}
@@ -21,7 +21,7 @@ func (r *storage) CreateUser(username, hashedPwd string) (*models.User, error) {
 
 // GetUser returns a user from the database.
 // At least one option must be provided, otherwise an error will be returned.
-func (r *storage) GetUser(opts ...options.QueryOpt) (*models.User, error) {
+func (r *Storage) GetUser(opts ...options.QueryOpt) (*models.User, error) {
 	if len(opts) == 0 {
 		return nil, &errs.DBError{nil, NoOptionsErr}
 	}
@@ -40,7 +40,7 @@ func (r *storage) GetUser(opts ...options.QueryOpt) (*models.User, error) {
 }
 
 // GetUsers returns a list of users from the database.
-func (r *storage) GetUsers(page, pageSize int, opts ...options.QueryOpt) (models.Users, int, error) {
+func (r *Storage) GetUsers(page, pageSize int, opts ...options.QueryOpt) (models.Users, int, error) {
 	query := r.DB.Model(&models.User{})
 	for _, opt := range opts {
 		opt(query)

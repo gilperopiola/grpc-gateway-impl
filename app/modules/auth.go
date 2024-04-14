@@ -8,7 +8,6 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/flashada"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc"
@@ -27,19 +26,6 @@ type jwtClaims struct {
 /*            - JWT Auth -             */
 /* ----------------------------------- */
 
-type TokenAuthenticator interface {
-	TokenGenerator
-	TokenValidator
-}
-
-type TokenGenerator interface {
-	Generate(id int, username string, role models.Role) (string, error)
-}
-
-type TokenValidator interface {
-	Validate(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error)
-}
-
 // jwtAuthenticator implements TokenAuthenticator.
 type jwtAuthenticator struct {
 	secret          string
@@ -47,7 +33,7 @@ type jwtAuthenticator struct {
 	signingMethod   jwt.SigningMethod
 	keyFn           func(*jwt.Token) (any, error)
 	expiresAtFn     func(issuedAt time.Time) *jwt.NumericDate
-	headersAccessor func(any) flashada.KeyValStoreAccessor
+	headersAccessor func(any) KeyValStoreAccessor
 }
 
 // NewJWTAuthenticator returns a new JWT authenticator with the given secret and session days.
@@ -58,7 +44,7 @@ func NewJWTAuthenticator(secret string, sessDays int) *jwtAuthenticator {
 		signingMethod:   jwt.SigningMethodHS256,
 		keyFn:           defaultKeyFn(secret),
 		expiresAtFn:     defaultExpiresAtFn(sessDays),
-		headersAccessor: flashada.NewGRPCMetadataAccessor,
+		headersAccessor: NewGRPCMetadataAccessor,
 	}
 }
 

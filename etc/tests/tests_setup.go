@@ -1,9 +1,10 @@
 package tests
 
 import (
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
+	"github.com/gilperopiola/grpc-gateway-impl/app/external"
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
-	"github.com/gilperopiola/grpc-gateway-impl/app/storage"
 	"github.com/gilperopiola/grpc-gateway-impl/etc/tests/mocks"
 )
 
@@ -13,8 +14,8 @@ import (
 
 /* Service tests setup */
 
-// newTestService returns a test service and a storage mock. Takes a function to setup the mock, a tokenGen and a pwdHasher.
-func newTestService(setupMock setupRepoMockFn, tokenGen modules.TokenGenerator, pwdHasher modules.PwdHasher) (service.Service, *mocks.Storage) {
+// newTestService returns a test service and a external mock. Takes a function to setup the mock, a tokenGen and a pwdHasher.
+func newTestService(setupMock setupRepoMockFn, tokenGen interfaces.TokenGenerator, pwdHasher interfaces.PwdHasher) (interfaces.BusinessLayer, *mocks.Storage) {
 	repoMock := &mocks.Storage{}
 	setupMock(repoMock)
 	service := service.NewService(repoMock, tokenGen, pwdHasher)
@@ -22,20 +23,20 @@ func newTestService(setupMock setupRepoMockFn, tokenGen modules.TokenGenerator, 
 }
 
 // newTestServiceQuick is like newTestService but with a default tokenGen and pwdHasher.
-func newTestServiceQuick(setupMock setupRepoMockFn) (service.Service, *mocks.Storage) {
+func newTestServiceQuick(setupMock setupRepoMockFn) (interfaces.BusinessLayer, *mocks.Storage) {
 	return newTestService(setupMock, newTestTokenAuthenticator(), newTestPwdHasher())
 }
 
-type setupRepoMockFn func(storage *mocks.Storage)
+type setupRepoMockFn func(external *mocks.Storage)
 
 /* Storage tests setup */
 
-// newTestStorage returns a test storage and a gorm mock.
-func newTestStorage(setupMock setupGormMockFn) (storage.Storage, *mocks.Gorm) {
+// newTestStorage returns a test external and a gorm mock.
+func newTestStorage(setupMock setupGormMockFn) (interfaces.Storage, *mocks.Gorm) {
 	gormMock := &mocks.Gorm{}
 	setupMock(gormMock)
-	storage := storage.NewStorage(gormMock)
-	return storage, gormMock
+	external := external.NewExternalLayer(gormMock)
+	return external.GetStorage(), gormMock
 }
 
 type setupGormMockFn func(*mocks.Gorm)
@@ -44,14 +45,14 @@ var setupGormMockEmpty = func(*mocks.Gorm) { /* Use this when a test case doesn'
 
 /* Etc */
 
-func newTestServiceModules() (modules.TokenGenerator, modules.PwdHasher) {
+func newTestServiceinterfaces() (interfaces.TokenGenerator, interfaces.PwdHasher) {
 	return newTestTokenAuthenticator(), newTestPwdHasher()
 }
 
-func newTestTokenAuthenticator() modules.TokenAuthenticator {
+func newTestTokenAuthenticator() interfaces.TokenAuthenticator {
 	return modules.NewJWTAuthenticator(jwtSecret, 10)
 }
 
-func newTestPwdHasher() modules.PwdHasher {
+func newTestPwdHasher() interfaces.PwdHasher {
 	return modules.NewPwdHasher(hashSalt)
 }

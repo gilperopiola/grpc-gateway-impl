@@ -7,12 +7,10 @@ import (
 	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-
-	"go.uber.org/zap"
-	gormLogger "gorm.io/gorm/logger"
 )
 
 // Globals!!! Not sure about this but let's try it out.
+// If zap does it then I can too right.
 // These are the default values, LoadConfig() could override them.
 var (
 	AppName  = "grpc-gateway-impl"
@@ -26,7 +24,7 @@ var (
 /* ----------------------------------- */
 
 // Config holds the configuration values of our app.
-type Config struct {
+type CoreCfg struct {
 	LoggerCfg
 	DatabaseCfg
 	PwdHasherCfg
@@ -36,28 +34,28 @@ type Config struct {
 }
 
 // LoadConfig sets up the configuration from the environment variables.
-func LoadConfig() *Config {
+func LoadConfig() *CoreCfg {
 	AppName = envVar("APP_NAME", AppName)
 	IsProd = envVar("IS_PROD", IsProd)
 	GRPCPort = envVar("GRPC_PORT", GRPCPort)
 	HTTPPort = envVar("HTTP_PORT", HTTPPort)
 
-	return &Config{
-		loadLoggerConfig(), loadDatabaseConfig(), loadPwdHasherConfig(), loadRateLimiterConfig(), loadJWTConfig(), loadTLSConfig(),
+	return &CoreCfg{
+		loadLoggerConfig(),
+		loadDatabaseConfig(),
+		loadPwdHasherConfig(),
+		loadRateLimiterConfig(),
+		loadJWTConfig(),
+		loadTLSConfig(),
 	}
 }
 
 func loadLoggerConfig() LoggerCfg {
 	return LoggerCfg{
-		Level:           loggerLevels[envVar("LOG_LEVEL", "info")],
-		LevelStackTrace: loggerLevels[envVar("LOG_LEVEL_STACKTRACE", "dpanic")],
+		Level:           LogLevels[envVar("LOG_LEVEL", "info")],
+		LevelStackTrace: LogLevels[envVar("LOG_LEVEL_STACKTRACE", "dpanic")],
 		LogCaller:       envVar("LOG_CALLER", false),
 	}
-}
-
-var loggerLevels = map[string]int{
-	"debug": int(zap.DebugLevel), "info": int(zap.InfoLevel), "warn": int(zap.WarnLevel), "error": int(zap.ErrorLevel),
-	"dpanic": int(zap.DPanicLevel), "panic": int(zap.PanicLevel), "fatal": int(zap.FatalLevel),
 }
 
 func loadDatabaseConfig() DatabaseCfg {
@@ -66,11 +64,9 @@ func loadDatabaseConfig() DatabaseCfg {
 		MigrateModels:   envVar("DB_MIGRATE_MODELS", true),
 		InsertAdmin:     envVar("DB_INSERT_ADMIN", true),
 		AdminPwd:        envVar("DB_ADMIN_PWD", "n8zAyv96oAtfQoNof-_ulH4pS0Dqf61VThTZbbOLXCU="), // hashed, T0D0 change this unsafe!!!
-		LogLevel:        dbLogLevels[envVar("DB_LOG_LEVEL", "error")],
+		LogLevel:        LogLevels[envVar("DB_LOG_LEVEL", "error")],
 	}
 }
-
-var dbLogLevels = map[string]int{"silent": int(gormLogger.Silent), "error": int(gormLogger.Error), "warn": int(gormLogger.Warn), "info": int(gormLogger.Info)}
 
 func loadDatabaseConnectionCfg() DatabaseConnCfg {
 	return DatabaseConnCfg{
@@ -88,11 +84,17 @@ func loadPwdHasherConfig() PwdHasherCfg {
 }
 
 func loadRateLimiterConfig() RateLimiterCfg {
-	return RateLimiterCfg{MaxTokens: envVar("RATE_LIMITER_MAX_TOKENS", 40), TokensPerSecond: envVar("RATE_LIMITER_TOKENS_PER_SECOND", 10)}
+	return RateLimiterCfg{
+		MaxTokens:       envVar("RATE_LIMITER_MAX_TOKENS", 40),
+		TokensPerSecond: envVar("RATE_LIMITER_TOKENS_PER_SECOND", 10),
+	}
 }
 
 func loadJWTConfig() JWTCfg {
-	return JWTCfg{Secret: envVar("JWT_SECRET", "s0m3_s3cr37"), SessionDays: envVar("JWT_SESSION_DAYS", 7)}
+	return JWTCfg{
+		Secret:      envVar("JWT_SECRET", "s0m3_s3cr37"),
+		SessionDays: envVar("JWT_SESSION_DAYS", 7),
+	}
 }
 
 func loadTLSConfig() TLSCfg {
@@ -147,7 +149,7 @@ type JWTCfg struct {
 }
 
 type TLSCfg struct {
-	Enabled  bool // on the gRPC server
+	Enabled  bool
 	CertPath string
 	KeyPath  string
 }
@@ -161,7 +163,6 @@ func envVar[T string | bool | int](key string, fallback T) T {
 	if !exists {
 		return fallback
 	}
-
 	switch any(fallback).(type) {
 	case string:
 		return any(value).(T)

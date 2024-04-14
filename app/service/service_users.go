@@ -5,7 +5,7 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/options"
 )
 
 /* ----------------------------------- */

@@ -1,4 +1,4 @@
-package db
+package sqldb
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -16,7 +17,7 @@ import (
 /*           - SQL Database -          */
 /* ----------------------------------- */
 
-// NewGormDB returns a new configured instance of *gormAdapter, which implements DBAdapter.
+// NewGormDB returns a new configured instance of *gormAdapter, which implements SQLDB.
 func NewGormDB(cfg *core.DatabaseCfg) *gormAdapter {
 	gormDB, err := gormConnect(sqlConnString(cfg), gormConfig(zap.L(), cfg.LogLevel))
 	if err != nil {
@@ -34,7 +35,7 @@ func NewGormDB(cfg *core.DatabaseCfg) *gormAdapter {
 	return gormDB
 }
 
-// gormConnect calls gorm.Open and wraps the returned *gorm.DB with our concrete type that implements DBAdapter.
+// gormConnect calls gorm.Open and wraps the returned *gorm.DB with our concrete type that implements SQLDB.
 func gormConnect(dsn string, opts ...gorm.Option) (*gormAdapter, error) {
 	gormDB, err := gorm.Open(mysql.Open(dsn), opts...)
 	return newGormAdapter(gormDB), err
@@ -49,7 +50,7 @@ func gormConfig(l *zap.Logger, logLevel int) *gorm.Config {
 }
 
 // InsertAdmin inserts the admin user into the database if it doesn't exist.
-func InsertAdmin(db DBAdapter, adminPwd string) {
+func InsertAdmin(db special_types.SQLDB, adminPwd string) {
 	admin := models.User{Username: "admin", Password: adminPwd, Role: models.AdminRole}
 	if err := db.FirstOrCreate(&admin).Error(); err != nil {
 		zap.S().Warnf(errs.InsertingDBAdmin, err)

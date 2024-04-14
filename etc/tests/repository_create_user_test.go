@@ -44,10 +44,10 @@ func TestStorageCreateUser(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			storage, mock := newTestStorage(tc.setupMock) // Prepare
+			external, mock := newTestStorage(tc.setupMock) // Prepare
 			expectedUser, expectedErr := tc.getExpected()
 
-			user, err := storage.CreateUser(username, password) // Act
+			user, err := external.CreateUser(username, password) // Act
 
 			assert.Equal(t, expectedUser, user) // Assert
 			assertDBError(t, expectedErr, err)

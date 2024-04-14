@@ -21,12 +21,6 @@ import (
 /*         - Input Validator -         */
 /* ----------------------------------- */
 
-// InputValidator is the interface that wraps the ValidateInput method.
-// It is used to validate incoming gRPC requests. The rules are defined in the .proto files.
-type InputValidator interface {
-	ValidateInput(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error)
-}
-
 // protoValidator is a wrapper around the protovalidate.Validator.
 type protoValidator struct {
 	*protovalidate.Validator

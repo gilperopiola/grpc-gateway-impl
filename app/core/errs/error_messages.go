@@ -39,12 +39,12 @@ const (
 	ErrMsgRateLimitExceeded      = "too many requests in a very short time, try again later."
 
 	// Storage Layer error messages.
-	ErrMsgRepoNoQueryOpts = "storage error -> no query options"
+	ErrMsgRepoNoQueryOpts = "external error -> no query options"
 
-	ErrMsgRepoCreatingUser  = "storage error -> creating user"
-	ErrMsgRepoGettingUser   = "storage error -> getting user"
-	ErrMsgRepoGettingUsers  = "storage error -> getting users"
-	ErrMsgRepoCountingUsers = "storage error -> counting users"
+	ErrMsgRepoCreatingUser  = "external error -> creating user"
+	ErrMsgRepoGettingUser   = "external error -> getting user"
+	ErrMsgRepoGettingUsers  = "external error -> getting users"
+	ErrMsgRepoCountingUsers = "external error -> counting users"
 
 	// HTTP error response bodies.
 	// They are what gets sent as the HTTP Response's body when an error occurs.

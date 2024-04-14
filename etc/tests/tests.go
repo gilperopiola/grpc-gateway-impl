@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
-	"github.com/gilperopiola/grpc-gateway-impl/app/storage"
+	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
@@ -24,7 +24,7 @@ var (
 
 	// JWT Authenticator
 	jwtSecret     = "jwt_secret"
-	generateToken = func(g modules.TokenGenerator, id int, username, role string) string {
+	generateToken = func(g interfaces.TokenGenerator, id int, username, role string) string {
 		token, _ := g.Generate(id, username, models.Role(role))
 		return token
 	}
@@ -38,7 +38,7 @@ var (
 
 	// Pwd Hasher
 	hashSalt = "hash_salt"
-	hashPwd  = func(h modules.PwdHasher, pwd string) string {
+	hashPwd  = func(h interfaces.PwdHasher, pwd string) string {
 		return h.Hash(pwd)
 	}
 
@@ -68,9 +68,9 @@ var (
 	loginRequest = &pbs.LoginRequest{Username: username, Password: password}
 
 	// gRPC
-	grpcMethodName         = "modules.DefaultPublicMethods[0]"
-	grpcSelfOnlyMethodName = "modules.DefaultSelfOnlyMethods[0]"
-	grpcAdminMethodName    = "modules.DefaultAdminOnlyMethods[0]"
+	grpcMethodName         = "interfaces.DefaultPublicMethods[0]"
+	grpcSelfOnlyMethodName = "interfaces.DefaultSelfOnlyMethods[0]"
+	grpcAdminMethodName    = "interfaces.DefaultAdminOnlyMethods[0]"
 )
 
 /* ----------------------------------- */

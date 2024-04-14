@@ -1,4 +1,4 @@
-package flashada
+package modules
 
 import (
 	"context"

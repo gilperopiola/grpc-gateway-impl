@@ -5,12 +5,6 @@ import (
 	"encoding/base64"
 )
 
-// PwdHasher is the interface that wraps the Hash and Compare methods.
-type PwdHasher interface {
-	Hash(pwd string) string
-	Compare(plainPwd, hashedPwd string) bool
-}
-
 // pwdHasher is our concrete implementation of the PwdHasher interface.
 type pwdHasher struct {
 	salt string

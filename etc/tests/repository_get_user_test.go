@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/options"
 	"github.com/gilperopiola/grpc-gateway-impl/etc/tests/mocks"
 
 	"github.com/stretchr/testify/assert"
@@ -62,10 +62,10 @@ func TestStorageGetUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			storage, mock := newTestStorage(test.setupMock) // Prepare
+			external, mock := newTestStorage(test.setupMock) // Prepare
 			expectedUser, expectedErr := test.getExpected()
 
-			user, err := storage.GetUser(test.options...) // Act
+			user, err := external.GetUser(test.options...) // Act
 
 			assert.Equal(t, expectedUser, user) // Assert
 			assertDBError(t, expectedErr, err)
