@@ -16,6 +16,7 @@ import (
 type ExternalLayer interface {
 	GetStorage() *storage.Storage
 	GetDB() special_types.SQLDB
+	GetClients() *clients.Clients
 }
 
 type externalLayer struct {
@@ -33,6 +34,11 @@ func NewExternalLayer(db sqldb.Database) ExternalLayer {
 func (e *externalLayer) GetStorage() *storage.Storage {
 	return &e.Storage
 }
+
 func (e *externalLayer) GetDB() special_types.SQLDB {
 	return e.Storage.DB
+}
+
+func (e *externalLayer) GetClients() *clients.Clients {
+	return &e.Clients
 }

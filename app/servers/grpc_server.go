@@ -18,23 +18,13 @@ import (
 // GRPCServer is a wrapper around the actual gRPC Server.
 type GRPCServer struct {
 	*grpc.Server
-
-	service pbs.UsersServiceServer
-	options []grpc.ServerOption
 }
 
 // NewGRPCServer returns a new instance of GRPCServer.
 func NewGRPCServer(service pbs.UsersServiceServer, options []grpc.ServerOption) *GRPCServer {
-	return &GRPCServer{
-		service: service,
-		options: options,
-	}
-}
-
-// Init initializes the gRPC Server, adds the interceptors and registers the API methods.
-func (g *GRPCServer) Init() {
-	g.Server = grpc.NewServer(g.options...)
-	pbs.RegisterUsersServiceServer(g.Server, g.service)
+	grpcServer := &GRPCServer{Server: grpc.NewServer(options...)}
+	pbs.RegisterUsersServiceServer(grpcServer.Server, service)
+	return grpcServer
 }
 
 // Run makes the gRPC Server listen for incoming gRPC requests and serves them.

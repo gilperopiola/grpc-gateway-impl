@@ -32,7 +32,7 @@ func NewInputValidator() *protoValidator {
 	if err != nil {
 		zap.S().Fatalf(errs.FatalErrMsgCreatingValidator, err)
 	}
-	return &protoValidator{Validator: validator}
+	return &protoValidator{validator}
 }
 
 // Validate returns an interceptor that validates incoming gRPC requests.

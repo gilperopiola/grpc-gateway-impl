@@ -1,49 +1,33 @@
 package main
 
 import (
-	"time"
-
 	"github.com/gilperopiola/grpc-gateway-impl/app"
-	"github.com/gilperopiola/grpc-gateway-impl/etc/tools/treyser"
-
-	"go.uber.org/zap"
 )
 
 /* ----------------------------------- */
 /*            - Welcome~! -            */
 /* ----------------------------------- */
 
-/* This is the entrypoint of our app.
-/* The app runs a gRPC Server and points an HTTP Gateway towards it.
-/* It has a Service Layer that connects to a Storage Layer, which in turn connects to a SQL Database. */
-
-//var setupStructure = []func(*app.App){
-//	(*app.App).SetupConfig(core.LoadConfig),
-//	(*app.App).SetupGlobalLogger,
-//	(*app.App).InitService,
-//	(*app.App).InitDatabaseAndStorage,
-//}
+/* This is the entrypoint of our app */
+/* It runs a gRPC Server and points an HTTP Gateway towards it */
 
 func main() {
-	treyser := treyser.NewTreyser("main", 0)
 
-	// Init app.
+	// Init app
 	app := app.NewApp()
 
-	treyser.Treys()
-
-	// Run app.
+	// Run app
 	app.Run()
-	time.Sleep(1 * time.Second)
-	zap.S().Info("Servers OK")
 
-	// Exit app.
+	// Exit app
 	app.WaitForShutdown()
 }
 
 /* ----------------------------------- */
 /*              - T0D0 -               */
 /* ----------------------------------- */
+
+// Only log unexpected errors.
 
 /* Buf file / Dockerfile / Docker-compose / Kubernetes /
 /* CI-CD / Metrics / Tracing / Caching / Tests */

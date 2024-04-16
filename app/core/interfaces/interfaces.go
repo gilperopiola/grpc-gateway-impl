@@ -10,20 +10,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Server abstracts the gRPC Server & HTTP Gateway.
-// We used to need it to avoid import cycles, idk now.
-// I think it's still useful somehow, but I'm not sure how.
-type Server interface {
-	Init()
-	Run()
-	Shutdown()
-}
-
-type ServerLayer struct {
-	GRPCServer Server
-	HTTPServer Server
-}
-
 // BusinessLayer holds every gRPC method in pbs.UsersServiceServer. It handles all business logic.
 type BusinessLayer interface {
 	pbs.UsersServiceServer

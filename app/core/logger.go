@@ -20,7 +20,7 @@ import (
 
 // SetupLogger replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
-func SetupLogger(c *CoreCfg, opts ...zap.Option) *zap.Logger {
+func SetupLogger(c *Config, opts ...zap.Option) *zap.Logger {
 	zapLogger, err := newZapConfig(c).Build(opts...)
 	if err != nil {
 		log.Fatalf(errs.FatalErrMsgCreatingLogger, err)
@@ -40,7 +40,7 @@ func NewLoggerOptions(stackTraceLevel int) []zap.Option {
 }
 
 // newZapConfig returns a new zap.Config with the default options.
-func newZapConfig(cfg *CoreCfg) zap.Config {
+func newZapConfig(cfg *Config) zap.Config {
 	newZapConfigFn := zap.NewDevelopmentConfig
 	if IsProd {
 		newZapConfigFn = zap.NewProductionConfig

@@ -15,16 +15,16 @@ import (
 // Our interceptors are actually added here, chained together as a ServerOption.
 
 // AllServerOptions returns the gRPC Server Options.
-func AllServerOptions(allModules *modules.All, tlsEnabled bool) []grpc.ServerOption {
+func AllServerOptions(modules *modules.Active, tlsEnabled bool, tlsSvCreds credentials.TransportCredentials) []grpc.ServerOption {
 	serverOptions := []grpc.ServerOption{}
 
 	// Add TLS Option if enabled.
 	if tlsEnabled {
-		serverOptions = append(serverOptions, grpc.Creds(allModules.ServerCreds))
+		serverOptions = append(serverOptions, grpc.Creds(tlsSvCreds))
 	}
 
 	// Chain all Unary Interceptors into a single ServerOption and add it to the slice.
-	unaryInterceptorSvOpt := grpc.ChainUnaryInterceptor(getUnaryInterceptors(allModules)...)
+	unaryInterceptorSvOpt := grpc.ChainUnaryInterceptor(getUnaryInterceptors(modules)...)
 	serverOptions = append(serverOptions, unaryInterceptorSvOpt)
 
 	return serverOptions

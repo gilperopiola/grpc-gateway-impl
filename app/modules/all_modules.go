@@ -12,29 +12,38 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-type All struct {
+/* ----------------------------------- */
+/*   - App Modules (Passive/Active) -  */
+/* ----------------------------------- */
+
+// Passive Modules are mainly used to hold objects that are loaded at runtime and are not used to perform any actions.
+// They just hold stuff.
+type Passive struct {
 	*GRPC
 	*HTTP
 	*TLS
+}
 
+// Active Modules let us perform actions.
+type Active struct {
 	InputValidator interfaces.InputValidator     // Validates GRPC and HTTP requests.
 	Authenticator  interfaces.TokenAuthenticator // Generate & Validate JWT Tokens.
 	RateLimiter    *rate.Limiter                 // Limit rate of requests.
 	PwdHasher      interfaces.PwdHasher          // Hash and compare passwords.
 }
 
-type GRPC struct {
-	ServerOptions []grpc.ServerOption
-	DialOptions   []grpc.DialOption
-}
-
-type HTTP struct {
-	MuxOptionsMiddleware []runtime.ServeMuxOption
-	MuxWrapperMiddleware func(http.Handler) http.Handler
-}
-
-type TLS struct {
-	ServerCert  *x509.CertPool
-	ServerCreds credentials.TransportCredentials
-	ClientCreds credentials.TransportCredentials
-}
+type (
+	GRPC struct {
+		ServerOptions []grpc.ServerOption
+		DialOptions   []grpc.DialOption
+	}
+	HTTP struct {
+		MuxOptionsMiddleware []runtime.ServeMuxOption
+		MuxWrapperMiddleware func(http.Handler) http.Handler
+	}
+	TLS struct {
+		ServerCert  *x509.CertPool
+		ServerCreds credentials.TransportCredentials
+		ClientCreds credentials.TransportCredentials
+	}
+)

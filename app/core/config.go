@@ -24,7 +24,7 @@ var (
 /* ----------------------------------- */
 
 // Config holds the configuration values of our app.
-type CoreCfg struct {
+type Config struct {
 	LoggerCfg
 	DatabaseCfg
 	PwdHasherCfg
@@ -34,13 +34,13 @@ type CoreCfg struct {
 }
 
 // LoadConfig sets up the configuration from the environment variables.
-func LoadConfig() *CoreCfg {
+func LoadConfig() *Config {
 	AppName = envVar("APP_NAME", AppName)
 	IsProd = envVar("IS_PROD", IsProd)
 	GRPCPort = envVar("GRPC_PORT", GRPCPort)
 	HTTPPort = envVar("HTTP_PORT", HTTPPort)
 
-	return &CoreCfg{
+	return &Config{
 		loadLoggerConfig(),
 		loadDatabaseConfig(),
 		loadPwdHasherConfig(),

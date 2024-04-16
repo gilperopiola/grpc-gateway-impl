@@ -6,6 +6,19 @@ import (
 	"gorm.io/gorm"
 )
 
+type ServerLayer struct {
+	GRPCServer Server
+	HTTPServer Server
+}
+
+// Server abstracts the gRPC Server & HTTP Gateway.
+// We used to need it to avoid import cycles, idk now.
+// I think it's still useful somehow, but I'm not sure how.
+type Server interface {
+	Run()
+	Shutdown()
+}
+
 // SQLDB is our adapter interface for Gorm.
 // Concrete types gormAdapter and mocks.Gorm implement this.
 

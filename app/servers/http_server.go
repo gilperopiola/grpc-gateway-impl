@@ -21,42 +21,24 @@ import (
 // HTTPGateway is a wrapper around the actual HTTP Server.
 type HTTPGateway struct {
 	*http.Server
-
-	httpPort   string
-	grpcPort   string
-	middleware HTTPMiddlewareFn
-	serveOpts  []runtime.ServeMuxOption
-	dialOpts   []grpc.DialOption
 }
 
 // NewHTTPGateway returns a new instance of HTTPGateway.
-func NewHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware HTTPMiddlewareFn, dialOpts []grpc.DialOption) *HTTPGateway {
-	return &HTTPGateway{
-		httpPort:   core.HTTPPort,
-		grpcPort:   core.GRPCPort,
-		serveOpts:  serveOpts,
-		middleware: middleware,
-		dialOpts:   dialOpts,
-	}
-}
+func NewHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware func(next http.Handler) http.Handler, dialOpts []grpc.DialOption) *HTTPGateway {
+	mux := runtime.NewServeMux(serveOpts...)
 
-type HTTPMiddlewareFn func(next http.Handler) http.Handler
-
-// Init initializes the HTTP Gateway and registers the API endpoints. It will point towards the gRPC Server's port.
-// It also adds the HTTP middleware and wraps the mux.
-func (h *HTTPGateway) Init() {
-	mux := runtime.NewServeMux(h.serveOpts...)
-
-	if err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, h.grpcPort, h.dialOpts); err != nil {
+	if err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, core.GRPCPort, dialOpts); err != nil {
 		zap.S().Fatalf(errs.FatalErrMsgStartingHTTP, err)
 	}
 
-	h.Server = &http.Server{Addr: h.httpPort, Handler: h.middleware(mux)}
+	return &HTTPGateway{
+		Server: &http.Server{Addr: core.HTTPPort, Handler: middleware(mux)},
+	}
 }
 
 // Run runs the HTTP Gateway.
 func (h *HTTPGateway) Run() {
-	zap.S().Infof("Running HTTP on port %s!\n", h.httpPort)
+	zap.S().Infof("Running HTTP on port %s!\n", core.HTTPPort)
 
 	go func() {
 		if err := h.ListenAndServe(); err != http.ErrServerClosed {

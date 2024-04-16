@@ -9,52 +9,54 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormLogger "gorm.io/gorm/logger"
 )
 
-// gormLoggerAdapter is an adapter for the Gorm Logger. It wraps our *zap.Logger and implements the Gorm Logger interface.
-type gormLoggerAdapter struct {
+// sqldbLogger is an adapter for gormLogger.Interface. It wraps our *zap.Logger.
+type sqldbLogger struct {
 	*zap.Logger
-	logger.LogLevel
+	gormLogger.LogLevel
 }
+
+var _ gormLogger.Interface = (&sqldbLogger{})
 
 // newGormLoggerAdapter returns a new instance of *gormLoggerAdapter.
 // We set the Log Level according to the configuration.
-func newGormLoggerAdapter(l *zap.Logger, logLevel int) *gormLoggerAdapter {
-	return &gormLoggerAdapter{l, logger.LogLevel(logLevel)}
+func newGormLoggerAdapter(l *zap.Logger, logLevel int) *sqldbLogger {
+	return &sqldbLogger{l, gormLogger.LogLevel(logLevel)}
 }
 
 // LogMode sets the Log Level.
-func (gl *gormLoggerAdapter) LogMode(level logger.LogLevel) logger.Interface {
+func (gl *sqldbLogger) LogMode(level gormLogger.LogLevel) gormLogger.Interface {
 	newLogger := *gl
 	newLogger.LogLevel = level
 	return &newLogger
 }
 
 // Info logs info level logs.
-func (gl *gormLoggerAdapter) Info(ctx context.Context, msg string, data ...interface{}) {
-	if gl.LogLevel >= logger.Info {
+func (gl *sqldbLogger) Info(_ context.Context, msg string, data ...interface{}) {
+	if gl.LogLevel >= gormLogger.Info {
 		zap.S().Infof(msg, data...)
 	}
 }
 
 // Warn logs warning level logs.
-func (gl *gormLoggerAdapter) Warn(ctx context.Context, msg string, data ...interface{}) {
-	if gl.LogLevel >= logger.Warn {
+func (gl *sqldbLogger) Warn(_ context.Context, msg string, data ...interface{}) {
+	if gl.LogLevel >= gormLogger.Warn {
 		zap.S().Warnf(msg, data...)
 	}
 }
 
 // Error logs error level logs.
-func (gl *gormLoggerAdapter) Error(ctx context.Context, msg string, data ...interface{}) {
-	if gl.LogLevel >= logger.Error {
+func (gl *sqldbLogger) Error(_ context.Context, msg string, data ...interface{}) {
+	if gl.LogLevel >= gormLogger.Error {
 		zap.S().Errorf(msg, data...)
 	}
 }
 
 // Trace logs trace level logs including the time taken for the operation, affected rows, and error if any.
-func (gl *gormLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	if gl.LogLevel <= logger.Silent {
+func (gl *sqldbLogger) Trace(_ context.Context, begin time.Time, fc func() (string, int64), err error) {
+	if gl.LogLevel <= gormLogger.Silent {
 		return
 	}
 
@@ -67,7 +69,6 @@ func (gl *gormLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func
 		var netError *net.OpError
 		if errors.As(err, &netError) {
 			query = "DB Network Error"
-			return
 		}
 
 		zap.S().Errorf(getQueryInfo(elapsed.Nanoseconds(), rows, query), zap.Error(err))
@@ -75,7 +76,7 @@ func (gl *gormLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func
 	}
 
 	// Log the query if the log level is set to Info or if it took more than 1 second.
-	if gl.LogLevel >= logger.Info || elapsed > 1000*time.Millisecond {
+	if gl.LogLevel >= gormLogger.Info || elapsed > 1000*time.Millisecond {
 		zap.S().Infof(getQueryInfo(elapsed.Nanoseconds(), rows, query))
 	}
 }

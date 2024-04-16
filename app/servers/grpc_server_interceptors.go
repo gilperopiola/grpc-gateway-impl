@@ -26,12 +26,12 @@ import (
 
 // getUnaryInterceptors returns the gRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the gRPC Server as a ServerOption.
-func getUnaryInterceptors(allModules *modules.All) []grpc.UnaryServerInterceptor {
+func getUnaryInterceptors(modules *modules.Active) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
-		rateLimiterInterceptor(allModules.RateLimiter),
+		rateLimiterInterceptor(modules.RateLimiter),
 		loggerInterceptor(),
-		tokenValidationInterceptor(allModules.Authenticator),
-		inputValidationInterceptor(allModules.InputValidator),
+		tokenValidationInterceptor(modules.Authenticator),
+		inputValidationInterceptor(modules.InputValidator),
 		contextCancelledInterceptor(),
 		recoveryInterceptor(),
 	}
