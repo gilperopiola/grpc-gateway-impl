@@ -6,9 +6,9 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*              - Models -             */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // AllModels is used to migrate all models at once.
 var AllModels = []interface{}{
@@ -33,9 +33,9 @@ const (
 	AdminRole   Role = "admin"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Model Methods -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (us Users) ToUserInfo() []*pbs.UserInfo {
 	usersInfo := make([]*pbs.UserInfo, 0, len(us))

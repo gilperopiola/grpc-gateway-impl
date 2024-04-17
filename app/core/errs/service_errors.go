@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Service Errors -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
 	ErrSvcUserRelated = func(err error, methodName string) error {

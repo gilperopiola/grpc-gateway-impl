@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - HTTP Gateway -           */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // HTTPGateway is a wrapper around the actual HTTP Server.
 type HTTPGateway struct {

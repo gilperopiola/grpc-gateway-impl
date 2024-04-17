@@ -13,9 +13,9 @@ import (
 	"gorm.io/gorm"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - SQL Database -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // NewGormDB returns a new configured instance of *gormAdapter, which implements SQLDB.
 func NewGormDB(cfg *core.DatabaseCfg) *gormAdapter {

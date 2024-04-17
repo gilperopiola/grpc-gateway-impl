@@ -11,9 +11,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - gRPC Server -           */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // GRPCServer is a wrapper around the actual gRPC Server.
 type GRPCServer struct {

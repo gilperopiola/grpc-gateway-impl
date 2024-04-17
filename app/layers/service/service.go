@@ -12,9 +12,9 @@ import (
 	"gorm.io/gorm"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - v1 Service -            */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // service is our concrete implementation of the BusinessLayer interface.
 type service struct {

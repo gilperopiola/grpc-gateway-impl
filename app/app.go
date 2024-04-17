@@ -9,7 +9,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external"
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
 
 	"go.uber.org/zap"
@@ -19,9 +19,9 @@ func NewApp() *App {
 	return App{}.Setup()
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - App (v1) -             */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type (
 	App struct {

@@ -2,14 +2,14 @@ package external
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/clients"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/clients"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/sqldb"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - External Layer -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // The External Layer handles connections to external resources such as databases or other APIs.
 

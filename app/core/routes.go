@@ -2,9 +2,9 @@ package core
 
 import "strings"
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*              - Routes -             */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Ugh we have this horrible conflict between gRPC and HTTP's naming conventions.
 // In gRPC, Method means the entire endpoint name. In HTTP it's just GET, POST, etc.
@@ -31,7 +31,7 @@ const (
 	RouteAuthAdmin  RouteAuth = "admin"
 )
 
-// Route equals the last part of the gRPC Method.
+// Route is the last part of the gRPC Method.
 //
 // - Method = /pbs.Service/Login
 // - Route  = Login

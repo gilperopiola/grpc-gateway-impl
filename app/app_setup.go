@@ -3,18 +3,19 @@ package app
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/servers"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
-	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
-	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 
 	"golang.org/x/time/rate"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*      - Core, Modules & Layers -     */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (app App) Setup() *App {
 	app.Core.Setup()
@@ -42,15 +43,14 @@ func (m *Modules) Setup(app *App) {
 }
 
 func (l *Layers) Setup(app *App) {
-	l.ExternalLayer = external.NewExternalLayer(sqldb.NewGormDB(&app.DatabaseCfg))
-	l.BusinessLayer = service.NewService(l.ExternalLayer.GetStorage(), app.Authenticator, app.PwdHasher)
-	l.ServerLayer.GRPCServer = servers.NewGRPCServer(app.BusinessLayer, app.GRPC.ServerOptions)
-	l.ServerLayer.HTTPServer = servers.NewHTTPGateway(app.HTTP.MuxOptionsMiddleware, app.HTTP.MuxWrapperMiddleware, app.GRPC.DialOptions)
+	l.ExternalLayer = app.SetupExternalLayer()
+	l.BusinessLayer = app.SetupBusinessLayer()
+	l.ServerLayer = app.SetupServerLayer()
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*             - Modules -             */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (app App) SetupInputValidator() interfaces.InputValidator {
 	app.Modules.InputValidator = modules.NewInputValidator() // -> Input Validator.
@@ -94,4 +94,24 @@ func (app App) SetupTLSModule() *modules.TLS {
 	}
 	app.Modules.TLS.ClientCreds = modules.NewClientTransportCreds(app.TLSCfg.Enabled, app.ServerCert) // -> Client Credentials.
 	return app.Modules.TLS
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*              - Layers -             */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+func (app App) SetupExternalLayer() external.ExternalLayer {
+	app.Layers.ExternalLayer = external.NewExternalLayer(sqldb.NewGormDB(&app.DatabaseCfg)) // -> External Layer.
+	return app.Layers.ExternalLayer
+}
+
+func (app App) SetupBusinessLayer() interfaces.BusinessLayer {
+	app.Layers.BusinessLayer = service.NewService(app.ExternalLayer.GetStorage(), app.Authenticator, app.PwdHasher) // -> Business Layer.
+	return app.Layers.BusinessLayer
+}
+
+func (app App) SetupServerLayer() special_types.ServerLayer {
+	app.Layers.ServerLayer.GRPCServer = servers.NewGRPCServer(app.BusinessLayer, app.GRPC.ServerOptions)                                           // -> gRPC Server.
+	app.Layers.ServerLayer.HTTPServer = servers.NewHTTPGateway(app.HTTP.MuxOptionsMiddleware, app.HTTP.MuxWrapperMiddleware, app.GRPC.DialOptions) // -> HTTP Server.
+	return app.Layers.ServerLayer
 }

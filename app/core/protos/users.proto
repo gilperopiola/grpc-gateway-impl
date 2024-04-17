@@ -8,9 +8,9 @@ import "external/google/api/annotations.proto";
 import "external/google/api/field_behavior.proto";
 import "external/protoc-gen-openapiv2/options/annotations.proto";
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Swagger Schema -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
@@ -45,9 +45,9 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   }
 };
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Users Service -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Service for user management.
 service UsersService {
@@ -109,9 +109,9 @@ service UsersService {
   }
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*       - Requests & Responses -      */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 message SignupRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "SignupRequest" } };
@@ -193,9 +193,9 @@ message GetUsersResponse {
   PaginationInfo pagination = 3 [ json_name = "pagination", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Custom Messages -         */ 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 message PaginationInfo {
   int32 current = 1 [ json_name = "current",  (google.api.field_behavior) = OUTPUT_ONLY ];

@@ -2,15 +2,15 @@ package tests
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
-	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/etc/tests/mocks"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - Tests Setup -           */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 /* Service tests setup */
 

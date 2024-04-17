@@ -19,9 +19,9 @@ type Gorm struct {
 // We first have all the actual Mock Functions from the special_types.SQLDB interface.
 // Then we have the Mock Helpers that help us control the behavior of the mock.
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Mock Functions -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (m *Gorm) AddError(err error) error { args := m.Called(err); return args.Error(0) }
 
@@ -112,9 +112,9 @@ func (m *Gorm) Where(query interface{}, args ...interface{}) special_types.SQLDB
 	return m
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - Mock Helpers  -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (m *Gorm) OnModel(model interface{}) *Gorm {
 	m.On("Model", model).Return(m).Once()
@@ -143,9 +143,9 @@ func (m *Gorm) ErrorWillBe(err error) {
 	m.On("Error").Return(err).Once()
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*       - Users Mock Helpers  -       */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (m *Gorm) OnCreateUser(userBefore, userAfter *models.User) *Gorm {
 	updateUser := func(args mock.Arguments) {

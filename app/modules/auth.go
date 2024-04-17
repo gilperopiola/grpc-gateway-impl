@@ -22,9 +22,9 @@ type jwtClaims struct {
 	Role     models.Role `json:"role"`
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - JWT Auth -             */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // jwtAuthenticator implements TokenAuthenticator.
 type jwtAuthenticator struct {
@@ -48,9 +48,9 @@ func NewJWTAuthenticator(secret string, sessDays int) *jwtAuthenticator {
 	}
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Generate Token -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Generate returns a JWT token with the given user id, username and role.
 func (a *jwtAuthenticator) Generate(id int, username string, role models.Role) (string, error) {
@@ -82,9 +82,9 @@ var defaultExpiresAtFn = func(sessDays int) func(issuedAt time.Time) *jwt.Numeri
 	}
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Validate Token -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Validate returns a gRPC interceptor that validates the JWT token from the context.
 func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {

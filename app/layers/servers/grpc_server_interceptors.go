@@ -17,9 +17,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*        - gRPC Interceptors -        */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Interceptors are used to intervene GRPC Requests and Responses.
 // Even though we only use Unary Interceptors, Stream Interceptors are also available.

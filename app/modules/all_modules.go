@@ -12,9 +12,9 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*   - App Modules (Passive/Active) -  */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Passive Modules are mainly used to hold objects that are loaded at runtime and are not used to perform any actions.
 // They just hold stuff.

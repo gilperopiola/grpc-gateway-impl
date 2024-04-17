@@ -4,9 +4,9 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - Welcome~! -            */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 /* This is the entrypoint of our app */
 /* It runs a gRPC Server and points an HTTP Gateway towards it */
@@ -23,9 +23,9 @@ func main() {
 	app.WaitForShutdown()
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*              - T0D0 -               */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Only log unexpected errors.
 

@@ -5,12 +5,13 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
 
 	"google.golang.org/grpc"
 )
 
-// BusinessLayer holds every gRPC method in pbs.UsersServiceServer. It handles all business logic.
+// BusinessLayer holds all of our Services, here we just have 1.
+// All business logic should be implemented here.
 type BusinessLayer interface {
 	pbs.UsersServiceServer
 }

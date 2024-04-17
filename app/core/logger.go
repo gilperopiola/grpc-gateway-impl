@@ -11,9 +11,9 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*             - Logger -              */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // We use zap as our Logger. It's fast and has a nice API.
 // We don't even need to wrap it in a struct, we just use it globally on the zap pkg.

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/service"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/service"
 	"github.com/gilperopiola/grpc-gateway-impl/etc/tests/mocks"
 
 	"github.com/stretchr/testify/assert"

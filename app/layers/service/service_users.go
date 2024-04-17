@@ -5,12 +5,12 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Users Service -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Signup first tries to get the user with the given username.
 // If the query succeeds, then that user already exists.
@@ -93,9 +93,9 @@ func (s *service) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (*pbs.
 	}, nil
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*       - Users Service Errors -      */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
 	UsersDBError       = func(ctx context.Context, err error) error { return errs.ErrSvcUserRelated(err, getGRPCMethodName(ctx)) }

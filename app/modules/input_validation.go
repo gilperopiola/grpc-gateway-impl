@@ -17,9 +17,9 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Input Validator -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // protoValidator is a wrapper around the protovalidate.Validator.
 type protoValidator struct {

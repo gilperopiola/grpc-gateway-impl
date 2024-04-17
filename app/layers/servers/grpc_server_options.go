@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*       - gRPC Server Options -       */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Server Options are used to configure the gRPC Server.
 // Our interceptors are actually added here, chained together as a ServerOption.
@@ -30,9 +30,9 @@ func AllServerOptions(modules *modules.Active, tlsEnabled bool, tlsSvCreds crede
 	return serverOptions
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*        - gRPC Dial Options -        */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Dial Options are used by the HTTP Gateway when connecting to the gRPC Server.
 

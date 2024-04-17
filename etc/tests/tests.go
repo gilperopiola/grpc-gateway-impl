@@ -8,7 +8,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
@@ -16,9 +16,9 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Tests Variables -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
 
@@ -73,9 +73,9 @@ var (
 	grpcAdminMethodName    = "interfaces.DefaultAdminOnlyMethods[0]"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Tests Helpers -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func assertDBError(t *testing.T, expectedErr, err error) {
 	if expectedErr == nil {

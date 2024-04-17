@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - HTTP Middleware -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Some middleware are passed as ServeMuxOptions when the mux is created.
 // Some are wrapped around the Mux afterwards.
@@ -101,9 +101,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*        - HTTP Error Handler -       */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // HandleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
 // It converts the gRPC error to an HTTP error and writes it to the response.

@@ -18,9 +18,9 @@ package tests
 //	"google.golang.org/protobuf/encoding/protojson"
 //)
 //
-///* ----------------------------------- */
+///* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 ///*      - HTTP Middleware Tests -      */
-///* ----------------------------------- */
+///* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 //
 //func TestHandleHTTPError(t *testing.T) {
 //	tests := []struct {
@@ -69,9 +69,9 @@ package tests
 //	}
 //}
 //
-///* ----------------------------------- */
+///* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 ///*     - Other Middleware Tests -      */
-///* ----------------------------------- */
+///* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 //
 //func TestLogHTTP(t *testing.T) {
 //	modules.InitGlobalLogger(&core.Config{})

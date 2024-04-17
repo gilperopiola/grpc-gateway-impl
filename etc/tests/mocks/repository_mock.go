@@ -2,7 +2,7 @@ package mocks
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
 
 	"github.com/stretchr/testify/mock"
 )

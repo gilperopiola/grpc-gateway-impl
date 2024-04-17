@@ -3,12 +3,12 @@ package storage
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/external/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Users Storage -        */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // CreateUser creates a new user in the database.
 func (r *Storage) CreateUser(username, hashedPwd string) (*models.User, error) {
@@ -63,9 +63,9 @@ func (r *Storage) GetUsers(page, pageSize int, opts ...options.QueryOpt) (models
 	return users, int(totalMatchingUsers), nil
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*     - Users Storage Errors -     */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
 	CreateUserErr = errs.ErrMsgRepoCreatingUser

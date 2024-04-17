@@ -24,9 +24,9 @@ func newGormAdapter(gormDB *gorm.DB) *gormAdapter {
 	return &gormAdapter{gormDB}
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Adapter Methods -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // n is a short version of newGormAdapter. Used for brevity.
 var n = newGormAdapter

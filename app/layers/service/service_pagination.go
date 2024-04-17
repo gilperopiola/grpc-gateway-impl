@@ -2,9 +2,9 @@ package service
 
 import "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - Pagination -            */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // PaginatedRequest is an interface that lets us abstract .pb request types that have pagination methods.
 type PaginatedRequest interface {

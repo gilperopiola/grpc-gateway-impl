@@ -6,9 +6,9 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
 )
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*    - Storage Query Options -     */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // QueryOpt defines a function which takes a *gorm.DB and modifies it.
 // We use it to apply different options to our database queries.
@@ -22,9 +22,9 @@ func Slice(opt QueryOpt) []QueryOpt {
 	return []QueryOpt{opt}
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - General Options -         */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // WithField returns a QueryOption which filters by the given field and value.
 func WithField(fieldName, fieldValue string) QueryOpt {
@@ -49,9 +49,9 @@ func WithFilter(fieldName, filter string) QueryOpt {
 	}
 }
 
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Users Options -          */
-/* ----------------------------------- */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func WithUsername(username string) QueryOpt {
 	return WithField("username", username)
