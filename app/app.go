@@ -10,6 +10,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/interfaces"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
 	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/modules"
 
 	"go.uber.org/zap"
@@ -31,13 +32,13 @@ type (
 	}
 
 	Core struct {
-		*core.Config
-		*zap.Logger
+		*core.Config // -> Config.
+		*zap.Logger  // -> Logger (also lives globally in zap.L() and zap.S()).
 	}
 
 	Modules struct {
-		*modules.Passive
-		*modules.Active
+		*modules.Passive // -> Hold data.
+		*modules.Active  // -> Do things.
 	}
 
 	Layers struct {
@@ -48,8 +49,8 @@ type (
 )
 
 func (app *App) Run() {
-	app.ServerLayer.GRPCServer.Run()
-	app.ServerLayer.HTTPServer.Run()
+	servers.RunGRPCServer(app.ServerLayer.GRPCServer)
+	servers.RunHTTPGateway(app.ServerLayer.HTTPServer)
 
 	go func() {
 		time.Sleep(1 * time.Second)
@@ -69,8 +70,9 @@ func (app *App) WaitForShutdown() {
 	if sqlDB != nil {
 		sqlDB.Close()
 	}
-	app.Layers.ServerLayer.GRPCServer.Shutdown()
-	app.Layers.ServerLayer.HTTPServer.Shutdown()
+
+	servers.ShutdownGRPCServer(app.ServerLayer.GRPCServer)
+	servers.ShutdownHTTPGateway(app.ServerLayer.HTTPServer)
 
 	zap.S().Infoln("Servers stopped! Bye bye~")
 	zap.L().Sync()

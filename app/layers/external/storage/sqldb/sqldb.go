@@ -12,14 +12,14 @@ import (
 
 type Database special_types.SQLDB // Alias for special_types.SQLDB.
 
-var _ Database = &gormAdapter{}
-
 // gormAdapter is our concrete type that implements the special_types.SQLDB interface.
 type gormAdapter struct {
 	*gorm.DB
 }
 
-// newGormAdapter wraps *gorm.DB and returns a new concrete *gormAdapter as a special_types.SQLDB interface.
+var _ Database = &gormAdapter{}
+
+// newGormAdapter wraps *gorm.DB and returns a new concrete *gormAdapter that implements special_types.SQLDB interface.
 func newGormAdapter(gormDB *gorm.DB) *gormAdapter {
 	return &gormAdapter{gormDB}
 }
@@ -28,7 +28,7 @@ func newGormAdapter(gormDB *gorm.DB) *gormAdapter {
 /*         - Adapter Methods -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// n is a short version of newGormAdapter. Used for brevity.
+// Short version of newGormAdapter. Used for brevity.
 var n = newGormAdapter
 
 func (ga *gormAdapter) Count(value *int64) special_types.SQLDB { return n(ga.DB.Count(value)) }
@@ -99,8 +99,15 @@ func (ga *gormAdapter) Save(value any) special_types.SQLDB { return n(ga.DB.Save
 
 func (ga *gormAdapter) Scan(to any) special_types.SQLDB { return n(ga.DB.Scan(to)) }
 
-func (ga *gormAdapter) Scopes(f ...func(*gorm.DB) *gorm.DB) special_types.SQLDB {
-	return n(ga.DB.Scopes(f...))
+func (ga *gormAdapter) Scopes(f ...func(special_types.SQLDB) special_types.SQLDB) special_types.SQLDB {
+	adaptedFns := make([]func(*gorm.DB) *gorm.DB, len(f))
+	for i, fn := range f {
+		adaptedFns[i] = func(db *gorm.DB) *gorm.DB {
+			return fn(&gormAdapter{db}).(*gormAdapter).DB // T0D0 horrible
+		}
+	}
+
+	return n(ga.DB.Scopes(adaptedFns...))
 }
 
 func (ga *gormAdapter) Where(qry any, args ...any) special_types.SQLDB {

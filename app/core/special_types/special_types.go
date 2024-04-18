@@ -2,26 +2,18 @@ package special_types
 
 import (
 	"database/sql"
+	"net/http"
 
-	"gorm.io/gorm"
+	"google.golang.org/grpc"
 )
 
 type ServerLayer struct {
-	GRPCServer Server
-	HTTPServer Server
-}
-
-// Server abstracts the gRPC Server & HTTP Gateway.
-// We used to need it to avoid import cycles, idk now.
-// I think it's still useful somehow, but I'm not sure how.
-type Server interface {
-	Run()
-	Shutdown()
+	GRPCServer *grpc.Server
+	HTTPServer *http.Server
 }
 
 // SQLDB is our adapter interface for Gorm.
 // Concrete types gormAdapter and mocks.Gorm implement this.
-
 type SQLDB interface {
 	AddError(err error) error
 	AutoMigrate(dst ...interface{}) error
@@ -48,6 +40,6 @@ type SQLDB interface {
 	Row() *sql.Row
 	Save(value interface{}) SQLDB
 	Scan(dest interface{}) SQLDB
-	Scopes(funcs ...func(*gorm.DB) *gorm.DB) SQLDB
+	Scopes(funcs ...func(SQLDB) SQLDB) SQLDB
 	Where(query interface{}, args ...interface{}) SQLDB
 }

@@ -37,8 +37,7 @@ type TokenValidator interface {
 	Validate(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error)
 }
 
-// InputValidator is the interface that wraps the ValidateInput method.
-// It is used to validate incoming gRPC requests. The rules are defined in the .proto files.
+// Used to validate incoming gRPC requests. Rules are defined on the protofiles.
 type InputValidator interface {
 	ValidateInput(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error)
 }

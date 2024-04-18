@@ -22,34 +22,34 @@ import (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Interceptors are used to intervene GRPC Requests and Responses.
-// Even though we only use Unary Interceptors, Stream Interceptors are also available.
+// Even though we just use Unary Interceptors, Stream Interceptors are also available.
+// grpc.UnaryServerInterceptor = func(ctx context.Context, req any, info *UnaryServerInfo, handler UnaryHandler) (any, error)
 
-// getUnaryInterceptors returns the gRPC Unary Interceptors.
+// getInterceptors returns the gRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the gRPC Server as a ServerOption.
-func getUnaryInterceptors(modules *modules.Active) []grpc.UnaryServerInterceptor {
+func getInterceptors(modules *modules.Active) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
 		rateLimiterInterceptor(modules.RateLimiter),
-		loggerInterceptor(),
+		requestsLoggerInterceptor(),
 		tokenValidationInterceptor(modules.Authenticator),
 		inputValidationInterceptor(modules.InputValidator),
 		contextCancelledInterceptor(),
-		recoveryInterceptor(),
+		panicRecoveryInterceptor(),
 	}
 }
 
-// tokenValidationInterceptor returns a gRPC interceptor that validates if the user is allowed to access the endpoint.
+// Wraps a TokenValidator in an grpc.UnaryServerInterceptor. Enforces authentication rules.
 func tokenValidationInterceptor(tokenValidator interfaces.TokenValidator) grpc.UnaryServerInterceptor {
 	return tokenValidator.Validate
 }
 
-// inputValidationInterceptor takes a modules.InputValidator and returns a gRPC interceptor
-// that enforces the validation rules written in the .proto files.
-func inputValidationInterceptor(validator interfaces.InputValidator) grpc.UnaryServerInterceptor {
-	return validator.ValidateInput
+// Wraps an InputValidator in an grpc.UnaryServerInterceptor. Enforces request validation rules.
+func inputValidationInterceptor(inputValidator interfaces.InputValidator) grpc.UnaryServerInterceptor {
+	return inputValidator.ValidateInput
 }
 
-// loggerInterceptor returns a gRPC interceptor that logs every gRPC request that comes in through the gRPC server.
-func loggerInterceptor() grpc.UnaryServerInterceptor {
+// requestsLoggerInterceptor returns a gRPC interceptor that logs every gRPC request that comes in through the gRPC server.
+func requestsLoggerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		start := time.Now()
 		resp, err := handler(ctx, req)
@@ -87,8 +87,8 @@ func contextCancelledInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-// recoveryInterceptor returns a gRPC interceptor that recovers from panics.
-func recoveryInterceptor() grpc.UnaryServerInterceptor {
+// panicRecoveryInterceptor returns a gRPC interceptor that recovers from panics.
+func panicRecoveryInterceptor() grpc.UnaryServerInterceptor {
 	return grpc_recovery.UnaryServerInterceptor(
 		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
 			zap.S().Error("gRPC Panic!", zap.Any("info", p))

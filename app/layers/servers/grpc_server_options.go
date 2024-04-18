@@ -24,8 +24,8 @@ func AllServerOptions(modules *modules.Active, tlsEnabled bool, tlsSvCreds crede
 	}
 
 	// Chain all Unary Interceptors into a single ServerOption and add it to the slice.
-	unaryInterceptorSvOpt := grpc.ChainUnaryInterceptor(getUnaryInterceptors(modules)...)
-	serverOptions = append(serverOptions, unaryInterceptorSvOpt)
+	interceptorsOption := grpc.ChainUnaryInterceptor(getInterceptors(modules)...)
+	serverOptions = append(serverOptions, interceptorsOption)
 
 	return serverOptions
 }
