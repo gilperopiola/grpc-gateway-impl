@@ -1,4 +1,4 @@
-package modules
+package tools
 
 import (
 	"context"
@@ -28,23 +28,23 @@ type jwtClaims struct {
 
 // jwtAuthenticator implements TokenAuthenticator.
 type jwtAuthenticator struct {
-	secret          string
-	sessionDays     int
-	signingMethod   jwt.SigningMethod
-	keyFn           func(*jwt.Token) (any, error)
-	expiresAtFn     func(issuedAt time.Time) *jwt.NumericDate
-	headersAccessor func(any) KeyValStoreAccessor
+	secret         string
+	sessionDays    int
+	signingMethod  jwt.SigningMethod
+	keyFn          func(*jwt.Token) (any, error)
+	expiresAtFn    func(issuedAt time.Time) *jwt.NumericDate
+	keyValueMapper func(any) KeyValueMapper
 }
 
 // NewJWTAuthenticator returns a new JWT authenticator with the given secret and session days.
 func NewJWTAuthenticator(secret string, sessDays int) *jwtAuthenticator {
 	return &jwtAuthenticator{
-		secret:          secret,
-		sessionDays:     sessDays,
-		signingMethod:   jwt.SigningMethodHS256,
-		keyFn:           defaultKeyFn(secret),
-		expiresAtFn:     defaultExpiresAtFn(sessDays),
-		headersAccessor: NewGRPCMetadataAccessor,
+		secret:         secret,
+		sessionDays:    sessDays,
+		signingMethod:  jwt.SigningMethodHS256,
+		keyFn:          defaultKeyFn(secret),
+		expiresAtFn:    defaultExpiresAtFn(sessDays),
+		keyValueMapper: NewGRPCMetadataMapper,
 	}
 }
 
@@ -57,6 +57,7 @@ func (a *jwtAuthenticator) Generate(id int, username string, role models.Role) (
 	claims := a.NewClaims(id, username, role)
 	tokenString, err := jwt.NewWithClaims(a.signingMethod, claims).SignedString([]byte(a.secret))
 	if err != nil {
+		core.LogUnexpected(err, "Auth")
 		return "", status.Errorf(codes.Internal, "auth: error generating token: %v", err) // T0D0 move to errs.
 	}
 	return tokenString, nil
@@ -72,13 +73,6 @@ func (a *jwtAuthenticator) NewClaims(id int, username string, role models.Role) 
 		},
 		Username: username,
 		Role:     role,
-	}
-}
-
-var defaultExpiresAtFn = func(sessDays int) func(issuedAt time.Time) *jwt.NumericDate {
-	return func(issuedAt time.Time) *jwt.NumericDate {
-		duration := time.Hour * 24 * time.Duration(sessDays)
-		return jwt.NewNumericDate(issuedAt.Add(duration))
 	}
 }
 
@@ -111,29 +105,33 @@ func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo
 }
 
 func (a *jwtAuthenticator) GetBearer(ctx context.Context) (string, error) { // From ctx -> get md -> get bearer
-	authHeader, err := a.headersAccessor(ctx).Get("authorization")
+	authorization, err := a.keyValueMapper(ctx).Get("authorization")
 	if err != nil {
 		return "", status.Errorf(codes.Unauthenticated, "auth: token not found")
 	}
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	if !strings.HasPrefix(authorization, "Bearer ") {
 		return "", status.Errorf(codes.Unauthenticated, "auth: token malformed")
 	}
-	return strings.TrimPrefix(authHeader, "Bearer "), nil
+	return strings.TrimPrefix(authorization, "Bearer "), nil
 }
 
 // GetClaims parses the token into Claims and then validates them.
 func (a *jwtAuthenticator) GetClaims(bearer string) (*jwtClaims, error) {
-	if jwtToken, err := jwt.ParseWithClaims(bearer, &jwtClaims{}, a.keyFn); err == nil && jwtToken != nil && jwtToken.Valid {
+	jwtToken, err := jwt.ParseWithClaims(bearer, &jwtClaims{}, a.keyFn)
+	if err == nil && jwtToken != nil && jwtToken.Valid {
 		if claims, ok := jwtToken.Claims.(*jwtClaims); ok && claims.Valid() == nil {
 			return claims, nil
 		}
 	}
+
+	core.LogUnexpected(err, "Auth")
 	return nil, status.Errorf(codes.Unauthenticated, "auth: token invalid")
 }
 
 // CanAccessRoute checks if the user is allowed to access the gRPC method.
 func (a *jwtAuthenticator) CanAccessRoute(route, userID string, role models.Role, req interface{}) error {
 	switch core.Routes[route].Auth {
+
 	case core.RouteAuthPublic:
 		return nil
 
@@ -145,15 +143,18 @@ func (a *jwtAuthenticator) CanAccessRoute(route, userID string, role models.Role
 
 	case core.RouteAuthAdmin:
 		if role != models.AdminRole {
+			core.LogPotentialThreat(fmt.Sprintf("User %s tried to access admin route %s", userID, route))
 			return status.Errorf(codes.PermissionDenied, "auth: role invalid")
 		}
+
 	default:
+		core.LogWeirdBehaviour(fmt.Sprintf("Route %s unknown", route))
 		return status.Errorf(codes.Unknown, "auth: route unknown")
 	}
 	return nil
 }
 
-// ContextWithUserInfo adds the user id and username to the context.
+// ContextWithUserInfo adds the user ID and username to the context.
 func (a *jwtAuthenticator) CtxWithUserInfo(c context.Context, userID, username string) context.Context {
 	c = context.WithValue(c, &CtxKeyUserID{}, userID)
 	c = context.WithValue(c, &CtxKeyUsername{}, username)
@@ -164,6 +165,14 @@ func (a *jwtAuthenticator) CtxWithUserInfo(c context.Context, userID, username s
 type CtxKeyUserID struct{}
 type CtxKeyUsername struct{}
 
-var defaultKeyFn = func(secret string) func(_ *jwt.Token) (any, error) {
-	return func(_ *jwt.Token) (any, error) { return []byte(secret), nil }
+// Used to get the key to decrypt the token. Key = JWT Secret.
+var defaultKeyFn = func(key string) func(_ *jwt.Token) (any, error) {
+	return func(_ *jwt.Token) (any, error) { return []byte(key), nil }
+}
+
+var defaultExpiresAtFn = func(sessDays int) func(issuedAt time.Time) *jwt.NumericDate {
+	return func(issuedAt time.Time) *jwt.NumericDate {
+		duration := time.Hour * 24 * time.Duration(sessDays)
+		return jwt.NewNumericDate(issuedAt.Add(duration))
+	}
 }

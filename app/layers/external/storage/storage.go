@@ -1,17 +1,17 @@
 package storage
 
-import "github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
+import "github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/sql"
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*     - External Layer: Storage -     */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // T0D0 this can probably be done in a way that ExternalLayer can hold many Storage(s),
-// each of those being the same Storage struct but with a generic type that would be SQLDB or MongoDB or so. DRY overload.
+// each of those being the same Storage struct but with a generic type that would be sql or MongoDB or so. DRY overload.
 type Storage struct {
-	DB special_types.SQLDB
+	DB sql.DB
 }
 
-func NewStorage(db special_types.SQLDB) *Storage {
+func NewStorage(db sql.DB) *Storage {
 	return &Storage{db}
 }

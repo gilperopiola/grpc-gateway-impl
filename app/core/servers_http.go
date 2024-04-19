@@ -1,17 +1,57 @@
-package servers
+package core
 
 import (
 	"context"
 	"net/http"
 	"time"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 )
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*          - HTTP Gateway -           */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+func NewHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware func(next http.Handler) http.Handler, dialOpts []grpc.DialOption) *http.Server {
+	mux := runtime.NewServeMux(serveOpts...)
+
+	if err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, GRPCPort, dialOpts); err != nil {
+		zap.S().Fatalf(errs.FatalErrMsgStartingHTTP, err)
+	}
+
+	return &http.Server{
+		Addr:    HTTPPort,
+		Handler: middleware(mux),
+	}
+}
+
+func RunHTTPGateway(httpGateway *http.Server) {
+	zap.S().Infof("Running HTTP on port %s!\n", HTTPPort)
+
+	go func() {
+		if err := httpGateway.ListenAndServe(); err != http.ErrServerClosed {
+			zap.S().Fatalf(errs.FatalErrMsgServingHTTP, err)
+		}
+	}()
+}
+
+func ShutdownHTTPGateway(httpGateway *http.Server) {
+	zap.S().Info("Shutting down HTTP server...")
+	shutdownTimeout := 4 * time.Second
+
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := httpGateway.Shutdown(ctx); err != nil {
+		zap.S().Fatalf(errs.FatalErrMsgShuttingDownHTTP, err)
+	}
+}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - HTTP Middleware -         */
@@ -44,7 +84,7 @@ func loggerMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		duration := time.Since(start)
 
-		zap.S().Infow("HTTP Request", core.ZapEndpoint(r.Method+" "+r.URL.Path), core.ZapDuration(duration))
+		zap.S().Infow("HTTP Request", ZapEndpoint(r.Method+" "+r.URL.Path), ZapDuration(duration))
 
 		// Most HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
 		// As such, we add a new line to separate the logs and easily identify different requests.

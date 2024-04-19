@@ -1,8 +1,9 @@
-package service
+package business
 
 import (
 	"context"
 
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
@@ -22,12 +23,12 @@ func (s *service) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs.Sign
 		return nil, ErrAlreadyExists("user")
 	}
 	if !errIsNotFound(err) {
-		return nil, UsersDBError(ctx, err)
+		return nil, ErrInUsersDBCall(ctx, err)
 	}
 
 	// If we're here, we should have gotten a gorm.ErrRecordNotFound in the function above.
 	if user, err = s.Storage.CreateUser(req.Username, s.PwdHasher.Hash(req.Password)); err != nil {
-		return nil, UsersDBError(ctx, err)
+		return nil, ErrInUsersDBCall(ctx, err)
 	}
 
 	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
@@ -44,7 +45,7 @@ func (s *service) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.LoginR
 		return nil, ErrNotFound("user")
 	}
 	if err != nil || user == nil {
-		return nil, UsersDBError(ctx, err)
+		return nil, ErrInUsersDBCall(ctx, err)
 	}
 
 	if !s.PwdHasher.Compare(req.Password, user.Password) {
@@ -69,7 +70,7 @@ func (s *service) GetUser(ctx context.Context, req *pbs.GetUserRequest) (*pbs.Ge
 		return nil, ErrNotFound("user")
 	}
 	if err != nil || user == nil {
-		return nil, UsersDBError(ctx, err)
+		return nil, ErrInUsersDBCall(ctx, err)
 	}
 	return &pbs.GetUserResponse{User: user.ToUserInfo()}, nil
 }
@@ -82,14 +83,14 @@ func (s *service) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (*pbs.
 	filter := options.WithFilter("username", req.GetFilter())
 
 	// While our page is 0-based, gorm offsets are 1-based. That's why we subtract 1.
-	users, totalMatchingUsers, err := s.Storage.GetUsers(page-1, pageSize, filter)
+	users, totalMatches, err := s.Storage.GetUsers(page-1, pageSize, filter)
 	if err != nil {
-		return nil, UsersDBError(ctx, err)
+		return nil, ErrInUsersDBCall(ctx, err)
 	}
 
 	return &pbs.GetUsersResponse{
 		Users:      users.ToUserInfo(),
-		Pagination: responsePagination(page, pageSize, totalMatchingUsers),
+		Pagination: responsePagination(page, pageSize, totalMatches),
 	}, nil
 }
 
@@ -98,6 +99,12 @@ func (s *service) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (*pbs.
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
-	UsersDBError       = func(ctx context.Context, err error) error { return errs.ErrSvcUserRelated(err, getGRPCMethodName(ctx)) }
-	ErrGeneratingToken = func(err error) error { return errs.ErrSvcOnTokenGeneration(err) }
+	ErrInUsersDBCall = func(ctx context.Context, err error) error {
+		route := getRoute(ctx)
+		core.LogUnexpected(err, route)
+		return errs.ErrSvcUserRelated(err, route)
+	}
+	ErrGeneratingToken = func(err error) error {
+		return errs.ErrSvcOnTokenGeneration(err)
+	}
 )

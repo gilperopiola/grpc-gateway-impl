@@ -1,4 +1,4 @@
-package sqldb
+package sql
 
 import (
 	"context"
@@ -12,50 +12,50 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
-// sqldbLogger is an adapter for gormLogger.Interface. It wraps our *zap.Logger.
-type sqldbLogger struct {
+// sqlLogger is an adapter for gormLogger.Interface. It wraps our *zap.Logger.
+type sqlLogger struct {
 	*zap.Logger
 	gormLogger.LogLevel
 }
 
-var _ gormLogger.Interface = (&sqldbLogger{})
+var _ gormLogger.Interface = (&sqlLogger{})
 
 // newGormLoggerAdapter returns a new instance of *gormLoggerAdapter.
 // We set the Log Level according to the configuration.
-func newGormLoggerAdapter(l *zap.Logger, logLevel int) *sqldbLogger {
-	return &sqldbLogger{l, gormLogger.LogLevel(logLevel)}
+func newGormLoggerAdapter(l *zap.Logger, logLevel int) *sqlLogger {
+	return &sqlLogger{l, gormLogger.LogLevel(logLevel)}
 }
 
 // LogMode sets the Log Level.
-func (gl *sqldbLogger) LogMode(level gormLogger.LogLevel) gormLogger.Interface {
+func (gl *sqlLogger) LogMode(level gormLogger.LogLevel) gormLogger.Interface {
 	newLogger := *gl
 	newLogger.LogLevel = level
 	return &newLogger
 }
 
 // Info logs info level logs.
-func (gl *sqldbLogger) Info(_ context.Context, msg string, data ...interface{}) {
+func (gl *sqlLogger) Info(_ context.Context, msg string, data ...interface{}) {
 	if gl.LogLevel >= gormLogger.Info {
 		zap.S().Infof(msg, data...)
 	}
 }
 
 // Warn logs warning level logs.
-func (gl *sqldbLogger) Warn(_ context.Context, msg string, data ...interface{}) {
+func (gl *sqlLogger) Warn(_ context.Context, msg string, data ...interface{}) {
 	if gl.LogLevel >= gormLogger.Warn {
 		zap.S().Warnf(msg, data...)
 	}
 }
 
 // Error logs error level logs.
-func (gl *sqldbLogger) Error(_ context.Context, msg string, data ...interface{}) {
+func (gl *sqlLogger) Error(_ context.Context, msg string, data ...interface{}) {
 	if gl.LogLevel >= gormLogger.Error {
 		zap.S().Errorf(msg, data...)
 	}
 }
 
 // Trace logs trace level logs including the time taken for the operation, affected rows, and error if any.
-func (gl *sqldbLogger) Trace(_ context.Context, begin time.Time, fc func() (string, int64), err error) {
+func (gl *sqlLogger) Trace(_ context.Context, begin time.Time, fc func() (string, int64), err error) {
 	if gl.LogLevel <= gormLogger.Silent {
 		return
 	}

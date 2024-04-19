@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -10,8 +11,7 @@ import (
 )
 
 // Globals!!! Not sure about this but let's try it out.
-// If zap does it then I can too right.
-// These are the default values, LoadConfig() could override them.
+// If zap does it then I can too right. NOTE: LoadConfig() can overwrite these values.
 var (
 	AppName  = "grpc-gateway-impl"
 	IsProd   = false
@@ -60,22 +60,16 @@ func loadLoggerConfig() LoggerCfg {
 
 func loadDatabaseConfig() DatabaseCfg {
 	return DatabaseCfg{
-		DatabaseConnCfg: loadDatabaseConnectionCfg(),
-		MigrateModels:   envVar("DB_MIGRATE_MODELS", true),
-		InsertAdmin:     envVar("DB_INSERT_ADMIN", true),
-		AdminPwd:        envVar("DB_ADMIN_PWD", "n8zAyv96oAtfQoNof-_ulH4pS0Dqf61VThTZbbOLXCU="), // hashed, T0D0 change this unsafe!!!
-		LogLevel:        LogLevels[envVar("DB_LOG_LEVEL", "error")],
-	}
-}
-
-func loadDatabaseConnectionCfg() DatabaseConnCfg {
-	return DatabaseConnCfg{
-		envVar("DB_USERNAME", "root"),
-		envVar("DB_PASSWORD", ""),
-		envVar("DB_HOSTNAME", "localhost"),
-		envVar("DB_PORT", "3306"),
-		envVar("DB_SCHEMA", "grpc-gateway-impl"),
-		envVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
+		Username:      envVar("DB_USERNAME", "root"),
+		Password:      envVar("DB_PASSWORD", ""),
+		Hostname:      envVar("DB_HOSTNAME", "localhost"),
+		Port:          envVar("DB_PORT", "3306"),
+		Schema:        envVar("DB_SCHEMA", "grpc-gateway-impl"),
+		Params:        envVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
+		MigrateModels: envVar("DB_MIGRATE_MODELS", true),
+		InsertAdmin:   envVar("DB_INSERT_ADMIN", true),
+		AdminPwd:      envVar("DB_ADMIN_PWD", "n8zAyv96oAtfQoNof-_ulH4pS0Dqf61VThTZbbOLXCU="), // hashed, T0D0 change this unsafe!!!
+		LogLevel:      LogLevels[envVar("DB_LOG_LEVEL", "error")],
 	}
 }
 
@@ -117,22 +111,25 @@ type LoggerCfg struct {
 }
 
 type DatabaseCfg struct {
-	DatabaseConnCfg
-
+	Username      string
+	Password      string
+	Hostname      string
+	Port          string
+	Schema        string
+	Params        string
 	MigrateModels bool
 	InsertAdmin   bool
 	AdminPwd      string // hashed
 	LogLevel      int
 }
 
-type DatabaseConnCfg struct {
-	Username string
-	Password string
-	Hostname string
-	Port     string
-	Schema   string
-	Params   string
+func (cfg *DatabaseCfg) GetSQLConnectionString() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s", cfg.Username, cfg.Password, cfg.Hostname, cfg.Port, cfg.Schema, cfg.Params)
 }
+func (cfg *DatabaseCfg) GetLogLevel() int        { return cfg.LogLevel }
+func (cfg *DatabaseCfg) ShouldMigrate() bool     { return cfg.MigrateModels }
+func (cfg *DatabaseCfg) ShouldInsertAdmin() bool { return cfg.InsertAdmin }
+func (cfg *DatabaseCfg) GetAdminPwd() string     { return cfg.AdminPwd }
 
 type PwdHasherCfg struct {
 	Salt string

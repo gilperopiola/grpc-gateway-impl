@@ -1,19 +1,25 @@
-package interfaces
+package core
 
 import (
 	"context"
+	"crypto/x509"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
 
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
-// BusinessLayer holds all of our Services, here we just have 1.
-// All business logic should be implemented here.
-type BusinessLayer interface {
-	pbs.UsersServiceServer
+type ToolsAccessor interface {
+	GetInputValidator() InputValidator
+	GetAuthenticator() TokenAuthenticator
+	GetRateLimiter() *rate.Limiter
+	GetPwdHasher() PwdHasher
+	GetTLSServerCert() *x509.CertPool
+	GetTLSServerCreds() credentials.TransportCredentials
+	GetTLSClientCreds() credentials.TransportCredentials
 }
 
 // Storage is the interface that wraps the basic methods to interact with the Database.

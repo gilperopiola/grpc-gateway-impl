@@ -6,7 +6,7 @@ package errs
 
 // -> These are just strings, not actual errors <-
 
-// T0D0 put Err at the end of the vars name. Also perfect the service/db errors thingy.
+// T0D0 put Err at the end of the vars name. Also perfect the business/db errors thingy.
 
 const (
 
@@ -29,7 +29,7 @@ const (
 	ErrMsgGettingDBConn = "Failed to get database connection: %v"
 
 	// Non-fatal shutdown error messages.
-	ErrMsgGettingSqlDB = "Failed to get SQL database connection: %v"
+	ErrMsgGettingSQL = "Failed to get SQL database connection: %v"
 
 	// Request lifecycle error messages.
 	ErrMsgInValidation           = "validation error: %v."
@@ -53,5 +53,5 @@ const (
 	HTTPUnauthorizedErrBody   = `{"error": "unauthorized, authenticate first."}`
 	HTTPForbiddenErrBody      = `{"error": "access to this resource is forbidden."}`
 	HTTPInternalErrBody       = `{"error": "internal server error, something failed on our end."}`
-	HTTPServiceUnavailErrBody = `{"error": "service unavailable, try again later."}`
+	HTTPServiceUnavailErrBody = `{"error": "business unavailable, try again later."}`
 )

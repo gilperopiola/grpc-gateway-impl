@@ -37,7 +37,7 @@ _**~I'm glad you ask!**_ - We have **`two simple APIs: 1 gRPC & 1 HTTP`**, each 
 
 * **rateLimiterInterc** > **loggerInterc** > **tokenValidationInterc** > **inputValidationInterc** > **etc...**
 
-➡️ To finally reach our beloved **`service_users.go`** on **service.Signup**.
+➡️ To finally reach our beloved **`service_users.go`** on **business.Signup**.
 
 # Useful Commands ✍🏼
 

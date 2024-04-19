@@ -1,10 +1,9 @@
 package external
 
 import (
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/special_types"
 	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/clients"
 	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage"
-	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/sql"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -13,10 +12,11 @@ import (
 
 // The External Layer handles connections to external resources such as databases or other APIs.
 
-type ExternalLayer interface {
+type External interface {
 	GetStorage() *storage.Storage
-	GetDB() special_types.SQLDB
 	GetClients() *clients.Clients
+
+	GetDB() sql.DB
 }
 
 type externalLayer struct {
@@ -24,21 +24,13 @@ type externalLayer struct {
 	clients.Clients
 }
 
-func NewExternalLayer(db sqldb.Database) ExternalLayer {
+func NewExternalLayer(db sql.DB) External {
 	return &externalLayer{
 		Storage: storage.Storage{DB: db},
 		Clients: clients.Clients{},
 	}
 }
 
-func (e *externalLayer) GetStorage() *storage.Storage {
-	return &e.Storage
-}
-
-func (e *externalLayer) GetDB() special_types.SQLDB {
-	return e.Storage.DB
-}
-
-func (e *externalLayer) GetClients() *clients.Clients {
-	return &e.Clients
-}
+func (e *externalLayer) GetStorage() *storage.Storage { return &e.Storage }
+func (e *externalLayer) GetClients() *clients.Clients { return &e.Clients }
+func (e *externalLayer) GetDB() sql.DB                { return e.Storage.DB }
