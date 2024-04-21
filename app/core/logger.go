@@ -41,21 +41,57 @@ func SetupLoggerOptions(stackTraceLevel int) []zap.Option {
 	}
 }
 
-// Origin is actually WHERE the log message is coming from. i.e. 'Auth' or 'GetUsers'.
-// T0D0 make an enum?
-func LogUnexpected(err error, origin string) {
-	zap.S().Warn("Unexpected Error", ZapError(err), ZapOrigin(origin))
-}
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+// Used to log things that shouldn't happen, like someone trying to access admin endpoints.
 func LogPotentialThreat(msg string) {
-	zap.S().Error("Potential Threat", ZapInfo(msg))
+	zap.S().Error("Potential Threat", ZapMsg(msg), ZapStacktrace())
 }
 
-// Used to log strange behaviours that aren't necessarily bad. i.e. 'Route not found'.
-func LogWeirdBehaviour(msg string) {
-	zap.S().Error("Weird Behaviour", ZapInfo(msg))
+// Used to log unexpected errors, like panic recoveries or some connection errors.
+func LogUnexpected(err error) {
+	zap.S().Warn("Unexpected Error", ZapError(err), ZapStacktrace())
 }
 
+// Used to log unexpected errors that also should trigger a panic.
+func LogUnexpectedAndPanic(err error) {
+	zap.S().Fatal("Unexpected Error: Fatal", ZapError(err), ZapStacktrace())
+}
+
+// Used to log strange behaviour that isn't necessarily bad or an error.
+func LogWeirdBehaviour(msg string, info ...any) {
+	zap.S().Error("Weird Behaviour", ZapMsg(msg), ZapStacktrace(), ZapInfo(info...))
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+// This unifies both HTTP and gRPC paths:
+//
+//	-> In gRPC, it's only the Method 	-> '/users.UsersService/GetUsers'.
+//	-> In HTTP, we join Method and Path -> 'GET /users'.
+func ZapRoute(route string) zap.Field {
+	return zap.String("route", route)
+}
+
+// Logs a simple message.
+func ZapMsg(info string) zap.Field {
+	return zap.String("info", info)
+}
+
+// Logs a duration.
+func ZapDuration(duration time.Duration) zap.Field {
+	return zap.Duration("duration", duration)
+}
+
+// Logs any kind of info.
+func ZapInfo(info ...any) zap.Field {
+	if len(info) == 0 {
+		return zap.Skip()
+	}
+	return zap.Any("info", info)
+}
+
+// Log error if not nil.
 func ZapError(err error) zap.Field {
 	if err == nil {
 		return zap.Skip()
@@ -63,26 +99,12 @@ func ZapError(err error) zap.Field {
 	return zap.Error(err)
 }
 
-// ZapEndpoint unifies both HTTP and gRPC paths:
-//
-//	-> In gRPC, it's only the Method 	-> '/users.UsersService/GetUsers'.
-//	-> In HTTP, we join Method and Path -> 'GET /users'.
-func ZapEndpoint(value string) zap.Field {
-	return zap.String("endpoint", value)
+// Used to log where in the code a message comes from.
+func ZapStacktrace() zap.Field {
+	return zap.Stack("stack")
 }
 
-// Used to log where the log message is coming from. i.e. 'Auth' or 'GetUsers'.
-func ZapOrigin(value string) zap.Field {
-	return zap.String("origin", value)
-}
-
-func ZapInfo(value string) zap.Field {
-	return zap.String("message", value)
-}
-
-func ZapDuration(value time.Duration) zap.Field {
-	return zap.Duration("duration", value)
-}
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Only log messages with a level equal or higher than the one we set in the config.
 var LogLevels = map[string]int{
@@ -104,19 +126,25 @@ var DBLogLevels = map[string]int{
 	"info":   int(gormLogger.Info),
 }
 
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
 // Returns a new zap.Config with the default options.
 func newZapConfig(cfg *Config) zap.Config {
-	newZapConfigFn := zap.NewDevelopmentConfig
-	if IsProd {
-		newZapConfigFn = zap.NewProductionConfig
-	}
+	zapCfg := getDefaultZapConfig(IsProd)
 
-	zapConfig := newZapConfigFn()
-	zapConfig.DisableCaller = !cfg.LoggerCfg.LogCaller
-	zapConfig.Level = zap.NewAtomicLevelAt(zapcore.Level(cfg.LoggerCfg.Level))
-	zapConfig.EncoderConfig.EncodeTime = func(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-		encoder.AppendString(t.Format(LogTimeLayout))
+	zapCfg.Level = zap.NewAtomicLevelAt(zapcore.Level(cfg.LoggerCfg.Level))
+	zapCfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(t.Format(LogTimeLayout))
 	}
+	zapCfg.DisableCaller = !cfg.LoggerCfg.LogCaller
 
-	return zapConfig
+	return zapCfg
+}
+
+// Returns the default zap.Config for the current environment.
+func getDefaultZapConfig(isProd bool) zap.Config {
+	if isProd {
+		return zap.NewProductionConfig()
+	}
+	return zap.NewDevelopmentConfig()
 }

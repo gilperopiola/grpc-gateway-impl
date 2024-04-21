@@ -16,38 +16,30 @@ import (
 /*           - v1 Service -            */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Service holds all of our particular services, here we just have 1.
-// All business logic should be implemented here.
-type Service interface {
-	pbs.UsersServiceServer
-}
+var _ core.Services = (*ServiceLayer)(nil)
 
-// service is our concrete implementation of the BusinessLayer interface.
-type service struct {
-	Storage        core.Storage
-	TokenGenerator core.TokenGenerator
-	PwdHasher      core.PwdHasher
-
+// This is our concrete implementation of the core.Service interface.
+// Holds a Storage layer to interact with the db and some tools.
+type ServiceLayer struct {
 	*pbs.UnimplementedUsersServiceServer
+
+	Storage core.StorageLayer
+	core.TokenGenerator
+	core.PwdHasher
 }
 
-// NewService returns a new instance of the business.
-func NewService(storage core.Storage, tokenGen core.TokenGenerator, pwdHasher core.PwdHasher) *service {
-	return &service{
+func NewService(storage core.StorageLayer, tokenGen core.TokenGenerator, pwdHasher core.PwdHasher) *ServiceLayer {
+	return &ServiceLayer{
 		Storage:        storage,
 		TokenGenerator: tokenGen,
 		PwdHasher:      pwdHasher,
 	}
 }
 
-var (
-	ErrUnauthenticated = func() error { return errs.ErrSvcUnauthenticated() }
-	ErrNotFound        = func(entity string) error { return errs.ErrSvcNotFound(entity) }
-	ErrAlreadyExists   = func(entity string) error { return errs.ErrSvcAlreadyExists(entity) }
-)
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// getRoute returns the gRPC method name from the context.
-func getRoute(ctx context.Context) string {
+// getRouteFromCtx returns the gRPC method name from the context.
+func getRouteFromCtx(ctx context.Context) string {
 	if methodName, ok := grpc.Method(ctx); ok {
 		return methodName
 	}
@@ -58,3 +50,9 @@ func getRoute(ctx context.Context) string {
 func errIsNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
+
+var (
+	ErrUnauthenticated = func() error { return errs.ErrSvcUnauthenticated() }
+	ErrNotFound        = func(entity string) error { return errs.ErrSvcNotFound(entity) }
+	ErrAlreadyExists   = func(entity string) error { return errs.ErrSvcAlreadyExists(entity) }
+)

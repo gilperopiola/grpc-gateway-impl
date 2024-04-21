@@ -15,36 +15,37 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// jwtClaims are our custom claims that encompass the standard JWT RegisteredClaims and also our own.
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*            - JWT Auth -             */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+var _ core.TokenAuthenticator = (*jwtAuthenticator)(nil) // jwtAuthenticator implements TokenAuthenticator.
+
+type jwtAuthenticator struct {
+	secret        string
+	sessionDays   int
+	signingMethod jwt.SigningMethod
+	grpcMDMapFn   func(any) DataMap
+	keyFn         func(*jwt.Token) (any, error)
+	expAtFn       func(iAt time.Time) *jwt.NumericDate
+}
+
+// Our custom claims, the standard JWT RegisteredClaims + our own.
 type jwtClaims struct {
 	jwt.RegisteredClaims
 	Username string      `json:"username"`
 	Role     models.Role `json:"role"`
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*            - JWT Auth -             */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// jwtAuthenticator implements TokenAuthenticator.
-type jwtAuthenticator struct {
-	secret         string
-	sessionDays    int
-	signingMethod  jwt.SigningMethod
-	keyFn          func(*jwt.Token) (any, error)
-	expiresAtFn    func(issuedAt time.Time) *jwt.NumericDate
-	keyValueMapper func(any) KeyValueMapper
-}
-
-// NewJWTAuthenticator returns a new JWT authenticator with the given secret and session days.
-func NewJWTAuthenticator(secret string, sessDays int) *jwtAuthenticator {
+// New JWT authenticator with the given secret and duration.
+func NewJWTAuthenticator(secret string, sessionDays int) *jwtAuthenticator {
 	return &jwtAuthenticator{
-		secret:         secret,
-		sessionDays:    sessDays,
-		signingMethod:  jwt.SigningMethodHS256,
-		keyFn:          defaultKeyFn(secret),
-		expiresAtFn:    defaultExpiresAtFn(sessDays),
-		keyValueMapper: NewGRPCMetadataMapper,
+		secret:        secret,
+		sessionDays:   sessionDays,
+		signingMethod: jwt.SigningMethodHS256,
+		grpcMDMapFn:   defaultGRPCMetadataMapFn,
+		keyFn:         defaultKeyFn(secret),
+		expAtFn:       defaultExpiresAtFn(sessionDays),
 	}
 }
 
@@ -57,7 +58,7 @@ func (a *jwtAuthenticator) Generate(id int, username string, role models.Role) (
 	claims := a.NewClaims(id, username, role)
 	tokenString, err := jwt.NewWithClaims(a.signingMethod, claims).SignedString([]byte(a.secret))
 	if err != nil {
-		core.LogUnexpected(err, "Auth")
+		go core.LogUnexpected(err)
 		return "", status.Errorf(codes.Internal, "auth: error generating token: %v", err) // T0D0 move to errs.
 	}
 	return tokenString, nil
@@ -69,7 +70,7 @@ func (a *jwtAuthenticator) NewClaims(id int, username string, role models.Role) 
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        fmt.Sprint(id),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: a.expiresAtFn(time.Now()),
+			ExpiresAt: a.expAtFn(time.Now()),
 		},
 		Username: username,
 		Role:     role,
@@ -83,6 +84,7 @@ func (a *jwtAuthenticator) NewClaims(id int, username string, role models.Role) 
 // Validate returns a gRPC interceptor that validates the JWT token from the context.
 func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	route := core.GetRouteFromGRPC(svInfo.FullMethod)
+
 	bearer, err := a.GetBearer(ctx)
 	if err != nil {
 		if core.Routes[route].Auth == core.RouteAuthPublic {
@@ -101,21 +103,24 @@ func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo
 	}
 
 	ctx = a.CtxWithUserInfo(ctx, claims.ID, claims.Username)
+
 	return handler(ctx, req)
 }
 
 func (a *jwtAuthenticator) GetBearer(ctx context.Context) (string, error) { // From ctx -> get md -> get bearer
-	authorization, err := a.keyValueMapper(ctx).Get("authorization")
+	bearer, err := a.grpcMDMapFn(ctx).Get("authorization")
 	if err != nil {
 		return "", status.Errorf(codes.Unauthenticated, "auth: token not found")
 	}
-	if !strings.HasPrefix(authorization, "Bearer ") {
+	if !strings.HasPrefix(bearer, "Bearer ") {
+		core.LogWeirdBehaviour("token bearer malformed: " + bearer)
 		return "", status.Errorf(codes.Unauthenticated, "auth: token malformed")
 	}
-	return strings.TrimPrefix(authorization, "Bearer "), nil
+	return strings.TrimPrefix(bearer, "Bearer "), nil
 }
 
-// GetClaims parses the token into Claims and then validates them.
+// Parses the token object into *jwtClaims and validates them.
+// Returns the claims if valid, or an error if not.
 func (a *jwtAuthenticator) GetClaims(bearer string) (*jwtClaims, error) {
 	jwtToken, err := jwt.ParseWithClaims(bearer, &jwtClaims{}, a.keyFn)
 	if err == nil && jwtToken != nil && jwtToken.Valid {
@@ -123,13 +128,12 @@ func (a *jwtAuthenticator) GetClaims(bearer string) (*jwtClaims, error) {
 			return claims, nil
 		}
 	}
-
-	core.LogUnexpected(err, "Auth")
+	core.LogUnexpected(err)
 	return nil, status.Errorf(codes.Unauthenticated, "auth: token invalid")
 }
 
-// CanAccessRoute checks if the user is allowed to access the gRPC method.
-func (a *jwtAuthenticator) CanAccessRoute(route, userID string, role models.Role, req interface{}) error {
+// Checks if the user is allowed to access the gRPC method.
+func (a *jwtAuthenticator) CanAccessRoute(route, userID string, role models.Role, req any) error {
 	switch core.Routes[route].Auth {
 
 	case core.RouteAuthPublic:
@@ -148,29 +152,33 @@ func (a *jwtAuthenticator) CanAccessRoute(route, userID string, role models.Role
 		}
 
 	default:
-		core.LogWeirdBehaviour(fmt.Sprintf("Route %s unknown", route))
+		core.LogWeirdBehaviour(fmt.Sprintf("Route unknown: %s", route))
 		return status.Errorf(codes.Unknown, "auth: route unknown")
 	}
 	return nil
 }
 
-// ContextWithUserInfo adds the user ID and username to the context.
-func (a *jwtAuthenticator) CtxWithUserInfo(c context.Context, userID, username string) context.Context {
-	c = context.WithValue(c, &CtxKeyUserID{}, userID)
-	c = context.WithValue(c, &CtxKeyUsername{}, username)
-	return c
+// Returns a new context with a user ID and username added.
+func (a *jwtAuthenticator) CtxWithUserInfo(ctx context.Context, userID, username string) context.Context {
+	ctx = context.WithValue(ctx, &CtxKeyUserID{}, userID)
+	ctx = context.WithValue(ctx, &CtxKeyUsername{}, username)
+	return ctx
 }
 
-// CtxKeyUserID and CtxKeyUsername are used to store the user ID and username in the context.
+// These are used as keys to store the user ID and username in the context (it's a key-value store).
 type CtxKeyUserID struct{}
 type CtxKeyUsername struct{}
 
-// Used to get the key to decrypt the token. Key = JWT Secret.
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+var defaultGRPCMetadataMapFn = NewGRPCMetadataMap
+
+// Gets the key to decrypt the token. Key = JWT Secret.
 var defaultKeyFn = func(key string) func(_ *jwt.Token) (any, error) {
 	return func(_ *jwt.Token) (any, error) { return []byte(key), nil }
 }
 
-var defaultExpiresAtFn = func(sessDays int) func(issuedAt time.Time) *jwt.NumericDate {
+var defaultExpiresAtFn = func(sessDays int) func(time.Time) *jwt.NumericDate {
 	return func(issuedAt time.Time) *jwt.NumericDate {
 		duration := time.Hour * 24 * time.Duration(sessDays)
 		return jwt.NewNumericDate(issuedAt.Add(duration))

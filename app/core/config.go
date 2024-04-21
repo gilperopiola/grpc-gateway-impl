@@ -10,10 +10,11 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 )
 
-// Globals!!! Not sure about this but let's try it out.
-// If zap does it then I can too right. NOTE: LoadConfig() can overwrite these values.
+// If zap uses globals I can give them a chance, right?? -> **gets decapitated by the Go community**
 var (
-	AppName  = "grpc-gateway-impl"
+	AppName    = "grpc-gateway-impl"
+	AppAcronym = "GWI"
+
 	IsProd   = false
 	GRPCPort = ":50053"
 	HTTPPort = ":8083"

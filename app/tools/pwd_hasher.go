@@ -3,9 +3,13 @@ package tools
 import (
 	"crypto/sha256"
 	"encoding/base64"
+
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 )
 
-// pwdHasher is our concrete implementation of the PwdHasher interface.
+var _ core.PwdHasher = (*pwdHasher)(nil)
+
+// pwdHasher is our concrete implementation of the core.PwdHasher interface.
 type pwdHasher struct {
 	salt string
 }
@@ -23,6 +27,6 @@ func (p *pwdHasher) Hash(pwd string) string {
 }
 
 // ComparePasswords returns true if plainPwd hashed is equal to the hashedPwd.
-func (p *pwdHasher) Compare(plainPwd, hashedPwd string) bool {
-	return p.Hash(plainPwd) == hashedPwd
+func (p *pwdHasher) Compare(plain, hashed string) bool {
+	return p.Hash(plain) == hashed
 }

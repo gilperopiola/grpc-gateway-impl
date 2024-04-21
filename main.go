@@ -10,6 +10,7 @@ import (
 
 /* This is the entrypoint of our app */
 /* It runs a gRPC Server and points an HTTP Gateway towards it */
+/* Even though it's not a complex app, its architecture and overall code are extremely polished */
 
 func main() {
 
@@ -27,6 +28,6 @@ func main() {
 /*              - T0D0 -               */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Only log unexpected errors.
+/* Update README / Put tests back in */
 /* Buf file / Dockerfile / Docker-compose / Kubernetes /
 /* CI-CD / Metrics / Tracing / Caching / Tests */

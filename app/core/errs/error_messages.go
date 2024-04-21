@@ -32,7 +32,7 @@ const (
 	ErrMsgGettingSQL = "Failed to get SQL database connection: %v"
 
 	// Request lifecycle error messages.
-	ErrMsgInValidation           = "validation error: %v."
+	ErrMsgInValidation           = "request validation error: %v."
 	ErrMsgInValidationRuntime    = "runtime validation error: %v."
 	ErrMsgInValidationUnexpected = "unexpected validation error: %v."
 	ErrMsgPanic                  = "unexpected panic, something went wrong."

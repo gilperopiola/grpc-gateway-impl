@@ -10,17 +10,20 @@ import (
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*           - App Tools -           */
+/*              - Tools -              */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+// -> Tools do things and hold data.
+
+var _ core.ToolsAccessor = (*Tools)(nil)
+
 type (
-	// All tools used by the app. Tools do things and hold data.
 	Tools struct {
-		InputValidator core.InputValidator     // Validates GRPC and HTTP requests.
-		Authenticator  core.TokenAuthenticator // Generate & Validate JWT Tokens.
-		RateLimiter    *rate.Limiter           // Limit rate of requests.
-		PwdHasher      core.PwdHasher          // Hash and compare passwords.
-		*TLS                                   // Holds data for TLS communication.
+		core.RequestsValidator  // Validates gRPC requests.
+		core.TokenAuthenticator // Generates & Validates JWT Tokens.
+		*rate.Limiter           // Limits rate of requests.
+		core.PwdHasher          // Hashes and compares passwords.
+		*TLS                    // Holds data for TLS communication.
 	}
 
 	TLS struct {
@@ -34,48 +37,31 @@ type (
 /*           - Setup Tools -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (tools *Tools) Setup(cfg *core.Config) {
-	tools.SetupPwdHasher(cfg.PwdHasherCfg)
-	tools.SetupRateLimiter(cfg.RateLimiterCfg)
-	tools.SetupInputValidator()
-	tools.SetupAuthenticator(cfg.JWTCfg)
-	tools.SetupTLS(cfg.TLSCfg)
+func (t *Tools) Setup(cfg *core.Config) {
+	t.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
+	t.Limiter = rate.NewLimiter(rate.Limit(cfg.TokensPerSecond), cfg.MaxTokens)
+	t.RequestsValidator = NewProtoValidator()
+	t.TokenAuthenticator = NewJWTAuthenticator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
+	t.SetupTLS(cfg.TLSCfg)
 }
 
-func (tools *Tools) SetupInputValidator() {
-	tools.InputValidator = NewInputValidator()
-}
-
-func (tools *Tools) SetupAuthenticator(jwtCfg core.JWTCfg) {
-	tools.Authenticator = NewJWTAuthenticator(jwtCfg.Secret, jwtCfg.SessionDays)
-}
-
-func (tools *Tools) SetupRateLimiter(rlCfg core.RateLimiterCfg) {
-	tools.RateLimiter = rate.NewLimiter(rate.Limit(rlCfg.TokensPerSecond), rlCfg.MaxTokens)
-}
-
-func (tools *Tools) SetupPwdHasher(pwdHasherCfg core.PwdHasherCfg) {
-	tools.PwdHasher = NewPwdHasher(pwdHasherCfg.Salt)
-}
-
-func (tools *Tools) SetupTLS(tlsCfg core.TLSCfg) {
-	tools.TLS = &TLS{}
-	if tlsCfg.Enabled {
-		tools.TLS.ServerCert = NewTLSCertPool(tlsCfg.CertPath)                           // -> Server Certificate.
-		tools.TLS.ServerCreds = NewServerTransportCreds(tlsCfg.CertPath, tlsCfg.KeyPath) // -> Server Credentials.
+func (t *Tools) SetupTLS(cfg core.TLSCfg) {
+	t.TLS = &TLS{}
+	if cfg.Enabled {
+		t.TLS.ServerCert = newTLSCertPool(cfg.CertPath)
+		t.TLS.ServerCreds = newServerTransportCreds(cfg.CertPath, cfg.KeyPath)
 	}
-	tools.TLS.ClientCreds = NewClientTransportCreds(tlsCfg.Enabled, tools.ServerCert) // -> Client Credentials.
+	t.TLS.ClientCreds = newClientTransportCreds(cfg.Enabled, t.ServerCert)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*     - Tools Concrete Methods -      */
+/*        - Get Tools Methods -        */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Avoid depending on this package by using core.ToolsAccessor instead of this concrete struct.
-
-func (t *Tools) GetInputValidator() core.InputValidator              { return t.InputValidator }
-func (t *Tools) GetAuthenticator() core.TokenAuthenticator           { return t.Authenticator }
-func (t *Tools) GetRateLimiter() *rate.Limiter                       { return t.RateLimiter }
+func (t *Tools) GetRequestsValidator() core.RequestsValidator        { return t.RequestsValidator }
+func (t *Tools) GetAuthenticator() core.TokenAuthenticator           { return t.TokenAuthenticator }
+func (t *Tools) GetRateLimiter() *rate.Limiter                       { return t.Limiter }
 func (t *Tools) GetPwdHasher() core.PwdHasher                        { return t.PwdHasher }
 func (t *Tools) GetTLSServerCert() *x509.CertPool                    { return t.TLS.ServerCert }
 func (t *Tools) GetTLSServerCreds() credentials.TransportCredentials { return t.TLS.ServerCreds }

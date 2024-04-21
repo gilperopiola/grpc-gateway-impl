@@ -18,11 +18,11 @@ import (
 /*          - HTTP Gateway -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func NewHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware func(next http.Handler) http.Handler, dialOpts []grpc.DialOption) *http.Server {
+func NewHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware func(http.Handler) http.Handler, dialOpts []grpc.DialOption) *http.Server {
 	mux := runtime.NewServeMux(serveOpts...)
 
 	if err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, GRPCPort, dialOpts); err != nil {
-		zap.S().Fatalf(errs.FatalErrMsgStartingHTTP, err)
+		LogUnexpectedAndPanic(err)
 	}
 
 	return &http.Server{
@@ -36,7 +36,7 @@ func RunHTTPGateway(httpGateway *http.Server) {
 
 	go func() {
 		if err := httpGateway.ListenAndServe(); err != http.ErrServerClosed {
-			zap.S().Fatalf(errs.FatalErrMsgServingHTTP, err)
+			LogUnexpectedAndPanic(err)
 		}
 	}()
 }
@@ -49,7 +49,7 @@ func ShutdownHTTPGateway(httpGateway *http.Server) {
 	defer cancel()
 
 	if err := httpGateway.Shutdown(ctx); err != nil {
-		zap.S().Fatalf(errs.FatalErrMsgShuttingDownHTTP, err)
+		LogUnexpectedAndPanic(err)
 	}
 }
 
@@ -60,31 +60,32 @@ func ShutdownHTTPGateway(httpGateway *http.Server) {
 // Some middleware are passed as ServeMuxOptions when the mux is created.
 // Some are wrapped around the Mux afterwards.
 
-// MiddlewareWrapper returns the middleware to be wrapped around the HTTP Gateway's Mux.
-func MiddlewareWrapper() func(next http.Handler) http.Handler {
+// Returns the middleware to be wrapped around the HTTP Gateway's Mux.
+func MiddlewareWrapper() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return corsMiddleware(
-			loggerMiddleware(
-				setHeadersMiddleware(next),
+			requestsLoggerMiddleware(
+				setResponseHeadersMiddleware(next),
 			),
 		)
 	}
 }
 
-// ServeMuxOpts returns all the HTTP middleware that are used as ServeMuxOptions.
-func ServeMuxOpts() []runtime.ServeMuxOption {
+// Returns all the HTTP middleware that are used as ServeMuxOptions.
+func MiddlewareServeOpts() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
-		runtime.WithErrorHandler(HandleHTTPError),
+		runtime.WithErrorHandler(handleHTTPError),
 	}
 }
 
-func loggerMiddleware(next http.Handler) http.Handler {
+// Logs HTTP Requests.
+func requestsLoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
 		duration := time.Since(start)
 
-		zap.S().Infow("HTTP Request", ZapEndpoint(r.Method+" "+r.URL.Path), ZapDuration(duration))
+		zap.S().Infow("HTTP Request", ZapRoute(r.Method+" "+r.URL.Path), ZapDuration(duration))
 
 		// Most HTTP logs come with a gRPC log before, as HTTP acts as a gateway to gRPC.
 		// As such, we add a new line to separate the logs and easily identify different requests.
@@ -93,9 +94,9 @@ func loggerMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// setHeadersMiddleware executes before the response is written to the client.
-// It's also called from the HTTP Error Handler.
-func setHeadersMiddleware(next http.Handler) http.Handler {
+// Executes before response headers are fully set.
+// Also called from our HTTP Error Handler Func.
+func setResponseHeadersMiddleware(next http.Handler) http.Handler {
 	var (
 		headersToDelete = []string{"Grpc-Metadata-Content-Type"}
 		headersToAdd    = map[string]string{
@@ -107,7 +108,6 @@ func setHeadersMiddleware(next http.Handler) http.Handler {
 			"X-XSS-Protection":          "1; mode=block",
 		}
 	)
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 
@@ -120,7 +120,7 @@ func setHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// corsMiddleware adds CORS headers to the response and handles preflight requests.
+// Adds CORS headers to the response and handles preflight requests.
 func corsMiddleware(next http.Handler) http.Handler {
 	var headersToAdd = map[string]string{
 		"Access-Control-Allow-Origin":  "*",
@@ -132,8 +132,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		for key, value := range headersToAdd {
 			w.Header().Set(key, value)
 		}
-		if r.Method == "OPTIONS" {
-			// Preflight request
+		if r.Method == "OPTIONS" { // Preflight request
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -145,9 +144,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 /*        - HTTP Error Handler -       */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// HandleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
+// handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
 // It converts the gRPC error to an HTTP error and writes it to the response.
-func HandleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
+func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
 	grpcStatus := status.Convert(err)                           // err 			-> gRPC Status.
 	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code()) // gRPC Status -> HTTP Status.
 
@@ -158,9 +157,9 @@ func HandleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marsh
 
 	// Create and marshal an httpError into a []byte buffer. If it fails (unlikely), we return 500 Internal Server Error.
 	var httpBody []byte
-	if httpBody, err = m.Marshal(httpError{Error: grpcStatus.Message()}); err != nil {
+	if httpBody, err = m.Marshal(httpError{grpcStatus.Message()}); err != nil {
 		httpStatus = http.StatusInternalServerError
-		zap.S().Errorf("Failed to marshal error message: %v", err)
+		LogUnexpected(err)
 	}
 
 	// We send generic responses for some HTTP Status Codes.

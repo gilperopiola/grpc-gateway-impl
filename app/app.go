@@ -20,14 +20,18 @@ import (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func NewApp() *App {
-	return App{&Core{}, &Layers{}, &tools.Tools{}}.Setup()
+	return App{
+		&Core{},
+		&Layers{},
+		&tools.Tools{},
+	}.Setup()
 }
 
 type (
 	App struct {
 		*Core        // -> Servers, Config and Logger.
 		*Layers      // -> Business / External Layers.
-		*tools.Tools // -> JWT Auth, Input Validator, Rate Limiter, TLS, gRPC Interceptors, HTTP Middleware, etc.
+		*tools.Tools // -> JWT Auth, Reqs Validator, Rate Limiter, TLS, etc.
 	}
 
 	Core struct {
@@ -37,8 +41,8 @@ type (
 	}
 
 	Layers struct {
-		business.Service  // -> Service, all business logic.
-		external.External // -> Storage (DB, Cache, etc) and Clients (gRPC, HTTP, etc).
+		*business.ServiceLayer  // -> Service, all business logic.
+		*external.ExternalLayer // -> Storage (DB, Cache, etc) and Clients (gRPC, HTTP, etc).
 	}
 )
 
@@ -51,36 +55,41 @@ func (app App) Setup() *App {
 	// 1. Setup Config and Logger on the Core struct.
 	app.Core.SetupConfigAndLogger()
 
-	// 2. Setup Tools struct. Tools live in their own package.
+	// 2. Setup Tools struct. This goes through the tools pkg.
 	app.Tools.Setup(app.Config)
 
 	// 3. Setup Layers struct.
-	//  * Business Layer = Service.
-	//  * External Layer = DBs and such.
+	//  * Service Layer = Business logic.
+	//  * External Layer = Storage & Clients.
 	app.Layers.Setup(app.Tools, &app.DatabaseCfg)
 
 	// 4. Setup gRPC & HTTP Servers on the Core struct.
-	app.Core.SetupServers(app.Tools, app.Layers.Service)
+	app.Core.SetupServers(app.Tools, app.Layers.ServiceLayer)
 
 	return &app
 }
 
+// Step 1: Setup Config and Logger (on Core).
 func (c *Core) SetupConfigAndLogger() {
 	c.Config = core.LoadConfig()
 	c.Logger = core.SetupLogger(c.Config, core.SetupLoggerOptions(c.Config.LevelStackTrace)...)
 }
 
+// Step 2: Setup Tools (on /tools pkg). It's the only Setup func that doesn't live here.
+
+// Step 3: Setup Layers.
 func (l *Layers) Setup(tools core.ToolsAccessor, dbCfg *core.DatabaseCfg) {
-	l.External = external.NewExternalLayer(sql.NewGormDB(dbCfg))
-	l.Service = business.NewService(l.External.GetStorage(), tools.GetAuthenticator(), tools.GetPwdHasher())
+	l.ExternalLayer = external.SetupLayer(sql.NewGormDB(dbCfg))
+	l.ServiceLayer = business.NewService(l.ExternalLayer.StorageLayer, tools.GetAuthenticator(), tools.GetPwdHasher())
 }
 
-func (c *Core) SetupServers(tools core.ToolsAccessor, businessLayer business.Service) {
-	c.Servers = core.SetupServers(tools, businessLayer, c.TLSCfg.Enabled)
+// Step 4: Setup gRPC & HTTP Servers (on Core).
+func (c *Core) SetupServers(tools core.ToolsAccessor, serviceLayer *business.ServiceLayer) {
+	c.Servers = core.SetupServers(tools, serviceLayer, c.TLSCfg.Enabled)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*       - Run & Shutdown App -        */
+/*       - Run / Shutdown App -        */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (app *App) Run() {
@@ -93,15 +102,15 @@ func (app *App) Run() {
 }
 
 func (app *App) WaitForShutdown() { // Waits for a SIGINT or SIGTERM to gracefully shutdown the servers.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-ch
 
 	zap.S().Infoln("Shutting down servers...")
 
-	sql := app.External.GetDB().GetSQL()
-	if sql != nil {
-		sql.Close()
+	sqlDB := app.ExternalLayer.DB.GetSQL()
+	if sqlDB != nil {
+		sqlDB.Close()
 	}
 
 	app.Servers.Shutdown()

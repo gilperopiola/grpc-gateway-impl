@@ -16,7 +16,7 @@ type Servers struct {
 func SetupServers(tools ToolsAccessor, usersService pbs.UsersServiceServer, tlsEnabled bool) *Servers {
 	return &Servers{
 		NewGRPCServer(usersService, AllServerOptions(tools, tlsEnabled)),
-		NewHTTPGateway(ServeMuxOpts(), MiddlewareWrapper(), AllDialOptions(tools.GetTLSClientCreds())),
+		NewHTTPGateway(MiddlewareServeOpts(), MiddlewareWrapper(), AllDialOptions(tools.GetTLSClientCreds())),
 	}
 }
 
