@@ -21,14 +21,14 @@ import (
 /*           - gRPC Server -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func NewGRPCServer(usersService pbs.UsersServiceServer, svOptions []grpc.ServerOption) *grpc.Server {
-	grpcServer := grpc.NewServer(svOptions...)
-	pbs.RegisterUsersServiceServer(grpcServer, usersService)
+func newGRPCServer(usersSvc pbs.UsersServiceServer, serverOpts []grpc.ServerOption) *grpc.Server {
+	grpcServer := grpc.NewServer(serverOpts...)
+	pbs.RegisterUsersServiceServer(grpcServer, usersSvc)
 	return grpcServer
 }
 
-func RunGRPCServer(grpcServer *grpc.Server) {
-	zap.S().Infof("Running gRPC on port %s!\n", GRPCPort)
+func runGRPC(grpcServer *grpc.Server) {
+	zap.S().Infof("GRPC Gateway Implementation | GRPC Port %s 🚀", GRPCPort)
 
 	lis, err := net.Listen("tcp", GRPCPort)
 	if err != nil {
@@ -42,7 +42,7 @@ func RunGRPCServer(grpcServer *grpc.Server) {
 	}()
 }
 
-func ShutdownGRPCServer(grpcServer *grpc.Server) {
+func shutdownGRPC(grpcServer *grpc.Server) {
 	zap.S().Info("Shutting down gRPC server...")
 	grpcServer.GracefulStop()
 }
@@ -57,11 +57,11 @@ func ShutdownGRPCServer(grpcServer *grpc.Server) {
 
 // Returns the gRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the gRPC Server as a ServerOption.
-func getInterceptors(tools ToolsAccessor) []grpc.UnaryServerInterceptor {
+func defaultGRPCInterceptors(tools Toolbox) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
 		rateLimiterInterceptor(tools.GetRateLimiter()),
 		requestsLoggerInterceptor(),
-		tokenValidationInterceptor(tools.GetAuthenticator()),
+		tokenAuthInterceptor(tools.GetAuthenticator()),
 		requestsValidationInterceptor(tools.GetRequestsValidator()),
 		contextCancelledInterceptor(),
 		panicRecoveryInterceptor(),
@@ -69,8 +69,8 @@ func getInterceptors(tools ToolsAccessor) []grpc.UnaryServerInterceptor {
 }
 
 // Wraps a TokenValidator in an grpc.UnaryServerInterceptor. Enforces authentication rules.
-func tokenValidationInterceptor(tokenValidator TokenValidator) grpc.UnaryServerInterceptor {
-	return tokenValidator.Validate
+func tokenAuthInterceptor(tokenValidator TokenValidator) grpc.UnaryServerInterceptor {
+	return tokenValidator.ValidateToken
 }
 
 // Wraps an InputValidator in an grpc.UnaryServerInterceptor. Enforces request validation rules.
@@ -111,7 +111,7 @@ func rateLimiterInterceptor(limiter *rate.Limiter) grpc.UnaryServerInterceptor {
 func contextCancelledInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if ctx.Err() != nil {
-			LogWeirdBehaviour("Context cancelled before processing request.")
+			LogWeirdBehaviour("Context cancelled before processing request.", req)
 			return nil, ctx.Err()
 		}
 		return handler(ctx, req)
@@ -135,20 +135,20 @@ func panicRecoveryInterceptor() grpc.UnaryServerInterceptor {
 // Server Options are used to configure the gRPC Server.
 // Our interceptors are actually added here, chained together as a ServerOption.
 
-// AllServerOptions returns the gRPC Server Options.
-func AllServerOptions(tools ToolsAccessor, tlsEnabled bool) []grpc.ServerOption {
-	serverOptions := []grpc.ServerOption{}
+// Returns the gRPC Server Options, interceptors included.
+func defaultGRPCServerOpts(tools Toolbox, tlsEnabled bool) []grpc.ServerOption {
+	serverOpts := []grpc.ServerOption{}
 
 	// Add TLS Option if enabled.
 	if tlsEnabled {
-		serverOptions = append(serverOptions, grpc.Creds(tools.GetTLSServerCreds()))
+		serverOpts = append(serverOpts, grpc.Creds(tools.GetTLSServerCreds()))
 	}
 
 	// Chain all Unary Interceptors into a single ServerOption and add it to the slice.
-	interceptorsOption := grpc.ChainUnaryInterceptor(getInterceptors(tools)...)
-	serverOptions = append(serverOptions, interceptorsOption)
+	interceptorsOpt := grpc.ChainUnaryInterceptor(defaultGRPCInterceptors(tools)...)
+	serverOpts = append(serverOpts, interceptorsOpt)
 
-	return serverOptions
+	return serverOpts
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -156,15 +156,11 @@ func AllServerOptions(tools ToolsAccessor, tlsEnabled bool) []grpc.ServerOption 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Dial Options are used by the HTTP Gateway when connecting to the gRPC Server.
-
-const (
-	customUserAgent = "by @gilperopiola"
-)
-
-// AllDialOptions returns the gRPC Dial Options.
-func AllDialOptions(tlsClientCreds credentials.TransportCredentials) []grpc.DialOption {
+func defaultGRPCDialOpts(tlsClientCreds credentials.TransportCredentials) []grpc.DialOption {
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(tlsClientCreds),
 		grpc.WithUserAgent(customUserAgent),
 	}
 }
+
+const customUserAgent = "by @gilperopiola"

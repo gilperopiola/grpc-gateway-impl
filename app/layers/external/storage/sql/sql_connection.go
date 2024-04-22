@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
@@ -15,7 +16,7 @@ import (
 
 // NewGormDB returns a new configured instance of *gormAdapter, which implements sql.
 func NewGormDB(dbCfg DBConfigAccessor) *gormAdapter {
-	gormDB, err := gormConnect(dbCfg.GetSQLConnectionString(), gormConfig(zap.L(), dbCfg.GetLogLevel()))
+	gormDB, err := gormConnect(dbCfg.GetSQLConnString(), gormConfig(zap.L(), dbCfg.GetLogLevel()))
 	if err != nil {
 		zap.S().Fatalf(errs.FatalErrMsgConnectingDB, err)
 	}
@@ -35,7 +36,7 @@ func NewGormDB(dbCfg DBConfigAccessor) *gormAdapter {
 
 // Used to avoid circular dependencies with the core package.
 type DBConfigAccessor interface {
-	GetSQLConnectionString() string
+	GetSQLConnString() string
 	GetLogLevel() int
 	ShouldMigrate() bool
 	ShouldInsertAdmin() bool
@@ -57,7 +58,7 @@ func gormConfig(l *zap.Logger, logLevel int) *gorm.Config {
 }
 
 // InsertAdmin inserts the admin user into the database if it doesn't exist.
-func InsertAdmin(db DB, adminPwd string) {
+func InsertAdmin(db core.SQLDatabaseAPI, adminPwd string) {
 	admin := models.User{Username: "admin", Password: adminPwd, Role: models.AdminRole}
 	if err := db.FirstOrCreate(&admin).Error(); err != nil {
 		zap.S().Warnf(errs.InsertingDBAdmin, err)

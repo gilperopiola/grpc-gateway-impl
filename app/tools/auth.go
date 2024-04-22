@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 /*            - JWT Auth -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-var _ core.TokenAuthenticator = (*jwtAuthenticator)(nil) // jwtAuthenticator implements TokenAuthenticator.
+var _ core.TokenAuthenticator = (*jwtAuthenticator)(nil)
 
 type jwtAuthenticator struct {
 	secret        string
@@ -30,7 +31,7 @@ type jwtAuthenticator struct {
 	expAtFn       func(iAt time.Time) *jwt.NumericDate
 }
 
-// Our custom claims, the standard JWT RegisteredClaims + our own.
+// Our custom claims = the standard JWT RegisteredClaims + our own.
 type jwtClaims struct {
 	jwt.RegisteredClaims
 	Username string      `json:"username"`
@@ -53,12 +54,12 @@ func NewJWTAuthenticator(secret string, sessionDays int) *jwtAuthenticator {
 /*         - Generate Token -          */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Generate returns a JWT token with the given user id, username and role.
-func (a *jwtAuthenticator) Generate(id int, username string, role models.Role) (string, error) {
+// GenerateToken returns a JWT token with the given user id, username and role.
+func (a *jwtAuthenticator) GenerateToken(id int, username string, role models.Role) (string, error) {
 	claims := a.NewClaims(id, username, role)
 	tokenString, err := jwt.NewWithClaims(a.signingMethod, claims).SignedString([]byte(a.secret))
 	if err != nil {
-		go core.LogUnexpected(err)
+		core.LogUnexpected(err)
 		return "", status.Errorf(codes.Internal, "auth: error generating token: %v", err) // T0D0 move to errs.
 	}
 	return tokenString, nil
@@ -66,11 +67,12 @@ func (a *jwtAuthenticator) Generate(id int, username string, role models.Role) (
 
 // newClaims have inside the RegisteredClaims (with ID and dates), as well as the Username and Role.
 func (a *jwtAuthenticator) NewClaims(id int, username string, role models.Role) *jwtClaims {
+	now := time.Now()
 	return &jwtClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        fmt.Sprint(id),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: a.expAtFn(time.Now()),
+			ID:        strconv.Itoa(id),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: a.expAtFn(now),
 		},
 		Username: username,
 		Role:     role,
@@ -81,8 +83,8 @@ func (a *jwtAuthenticator) NewClaims(id int, username string, role models.Role) 
 /*         - Validate Token -          */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Validate returns a gRPC interceptor that validates the JWT token from the context.
-func (a *jwtAuthenticator) Validate(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+// Returns a gRPC interceptor that validates a JWT token inside of the context.
+func (a *jwtAuthenticator) ValidateToken(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	route := core.GetRouteFromGRPC(svInfo.FullMethod)
 
 	bearer, err := a.GetBearer(ctx)
@@ -113,7 +115,7 @@ func (a *jwtAuthenticator) GetBearer(ctx context.Context) (string, error) { // F
 		return "", status.Errorf(codes.Unauthenticated, "auth: token not found")
 	}
 	if !strings.HasPrefix(bearer, "Bearer ") {
-		core.LogWeirdBehaviour("token bearer malformed: " + bearer)
+		core.LogWeirdBehaviour("Bearer token malformed: " + bearer) // Should we log the malformed token?
 		return "", status.Errorf(codes.Unauthenticated, "auth: token malformed")
 	}
 	return strings.TrimPrefix(bearer, "Bearer "), nil
@@ -128,11 +130,10 @@ func (a *jwtAuthenticator) GetClaims(bearer string) (*jwtClaims, error) {
 			return claims, nil
 		}
 	}
-	core.LogUnexpected(err)
 	return nil, status.Errorf(codes.Unauthenticated, "auth: token invalid")
 }
 
-// Checks if the user is allowed to access the gRPC method.
+// Checks if the user is allowed to access the route.
 func (a *jwtAuthenticator) CanAccessRoute(route, userID string, role models.Role, req any) error {
 	switch core.Routes[route].Auth {
 

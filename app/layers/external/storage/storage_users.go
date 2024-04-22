@@ -1,17 +1,17 @@
 package storage
 
 import (
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Users Storage -        */
+/*           - Users Storage -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // CreateUser creates a new user in the database.
-func (r *StorageLayer) CreateUser(username, hashedPwd string) (*models.User, error) {
+func (r *Storage) CreateUser(username, hashedPwd string) (*models.User, error) {
 	user := models.User{Username: username, Password: hashedPwd}
 	if err := r.DB.Create(&user).Error(); err != nil {
 		return nil, &errs.DBError{err, CreateUserErr}
@@ -21,7 +21,7 @@ func (r *StorageLayer) CreateUser(username, hashedPwd string) (*models.User, err
 
 // GetUser returns a user from the database.
 // At least one option must be provided, otherwise an error will be returned.
-func (r *StorageLayer) GetUser(opts ...options.QueryOpt) (*models.User, error) {
+func (r *Storage) GetUser(opts ...core.DBQueryOpt) (*models.User, error) {
 	if len(opts) == 0 {
 		return nil, &errs.DBError{nil, NoOptionsErr}
 	}
@@ -40,7 +40,7 @@ func (r *StorageLayer) GetUser(opts ...options.QueryOpt) (*models.User, error) {
 }
 
 // GetUsers returns a list of users from the database.
-func (r *StorageLayer) GetUsers(page, pageSize int, opts ...options.QueryOpt) (models.Users, int, error) {
+func (r *Storage) GetUsers(page, pageSize int, opts ...core.DBQueryOpt) (models.Users, int, error) {
 	query := r.DB.Model(&models.User{})
 	for _, opt := range opts {
 		opt(query)
@@ -64,7 +64,7 @@ func (r *StorageLayer) GetUsers(page, pageSize int, opts ...options.QueryOpt) (m
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*     - Users Storage Errors -     */
+/*       - Users Storage Errors -      */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (

@@ -2,20 +2,18 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
-	"strings"
-
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 )
 
 // If zap uses globals I can give them a chance, right?? -> **gets decapitated by the Go community**
 var (
 	AppName    = "grpc-gateway-impl"
-	AppAcronym = "GWI"
+	AppAcronym = "GGI"
 
-	IsProd   = false
+	EnvName   = "local"
+	EnvIsProd = false
+
 	GRPCPort = ":50053"
 	HTTPPort = ":8083"
 )
@@ -24,76 +22,59 @@ var (
 /*             - Config -              */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Config holds the configuration values of our app.
+// Holds the configurable settings of our app.
 type Config struct {
-	LoggerCfg
-	DatabaseCfg
-	PwdHasherCfg
-	RateLimiterCfg
+	DBCfg
 	JWTCfg
 	TLSCfg
+	LoggerCfg
+	PwdHasherCfg
+	RLimiterCfg
 }
 
-// LoadConfig sets up the configuration from the environment variables.
+// Loads all settings from environment variables.
 func LoadConfig() *Config {
 	AppName = envVar("APP_NAME", AppName)
-	IsProd = envVar("IS_PROD", IsProd)
+	AppAcronym = envVar("APP_ACRONYM", AppAcronym)
+	EnvName = envVar("ENV_NAME", EnvName)
+	EnvIsProd = EnvName == "prod" || EnvName == "production" || EnvName == "live"
 	GRPCPort = envVar("GRPC_PORT", GRPCPort)
 	HTTPPort = envVar("HTTP_PORT", HTTPPort)
 
 	return &Config{
-		loadLoggerConfig(),
-		loadDatabaseConfig(),
-		loadPwdHasherConfig(),
-		loadRateLimiterConfig(),
-		loadJWTConfig(),
-		loadTLSConfig(),
+		DBCfg:        loadConfigDB(),
+		JWTCfg:       loadConfigJWT(),
+		TLSCfg:       loadConfigTLS(),
+		LoggerCfg:    loadConfigLogger(),
+		PwdHasherCfg: loadConfigPwdHasher(),
+		RLimiterCfg:  loadConfigRLimiter(),
 	}
 }
 
-func loadLoggerConfig() LoggerCfg {
-	return LoggerCfg{
-		Level:           LogLevels[envVar("LOG_LEVEL", "info")],
-		LevelStackTrace: LogLevels[envVar("LOG_LEVEL_STACKTRACE", "dpanic")],
-		LogCaller:       envVar("LOG_CALLER", false),
+func loadConfigDB() DBCfg {
+	return DBCfg{
+		Username:       envVar("DB_USERNAME", "root"),
+		Password:       envVar("DB_PASSWORD", ""),
+		Hostname:       envVar("DB_HOSTNAME", "localhost"),
+		Port:           envVar("DB_PORT", "3306"),
+		Schema:         envVar("DB_SCHEMA", "grpc-gateway-impl"),
+		Params:         envVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
+		MigrateModels:  envVar("DB_MIGRATE_MODELS", true),
+		InsertAdmin:    envVar("DB_INSERT_ADMIN", true),
+		InsertAdminPwd: envVar("DB_INSERT_ADMIN_PWD", "n8zAyv96oAtfQoNof-_ulH4pS0Dqf61VThTZbbOLXCU="), // T0D0 unsafe!!!! ...Well it's local so...
+		LogLevel:       LogLevels[envVar("DB_LOG_LEVEL", "error")],
 	}
 }
 
-func loadDatabaseConfig() DatabaseCfg {
-	return DatabaseCfg{
-		Username:      envVar("DB_USERNAME", "root"),
-		Password:      envVar("DB_PASSWORD", ""),
-		Hostname:      envVar("DB_HOSTNAME", "localhost"),
-		Port:          envVar("DB_PORT", "3306"),
-		Schema:        envVar("DB_SCHEMA", "grpc-gateway-impl"),
-		Params:        envVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
-		MigrateModels: envVar("DB_MIGRATE_MODELS", true),
-		InsertAdmin:   envVar("DB_INSERT_ADMIN", true),
-		AdminPwd:      envVar("DB_ADMIN_PWD", "n8zAyv96oAtfQoNof-_ulH4pS0Dqf61VThTZbbOLXCU="), // hashed, T0D0 change this unsafe!!!
-		LogLevel:      LogLevels[envVar("DB_LOG_LEVEL", "error")],
-	}
-}
-
-func loadPwdHasherConfig() PwdHasherCfg {
-	return PwdHasherCfg{Salt: envVar("HASH_SALT", "s0m3_s4l7")}
-}
-
-func loadRateLimiterConfig() RateLimiterCfg {
-	return RateLimiterCfg{
-		MaxTokens:       envVar("RATE_LIMITER_MAX_TOKENS", 40),
-		TokensPerSecond: envVar("RATE_LIMITER_TOKENS_PER_SECOND", 10),
-	}
-}
-
-func loadJWTConfig() JWTCfg {
+func loadConfigJWT() JWTCfg {
 	return JWTCfg{
 		Secret:      envVar("JWT_SECRET", "s0m3_s3cr37"),
 		SessionDays: envVar("JWT_SESSION_DAYS", 7),
 	}
 }
 
-func loadTLSConfig() TLSCfg {
-	rootPrefix := getRootPrefix(AppName) // "." or "../.." depending on where is the app being run from
+func loadConfigTLS() TLSCfg {
+	rootPrefix := "." // Is this always like this?
 	return TLSCfg{
 		Enabled:  envVar("TLS_ENABLED", false),
 		CertPath: envVar("TLS_CERT_PATH", rootPrefix+"/server.crt"),
@@ -101,88 +82,92 @@ func loadTLSConfig() TLSCfg {
 	}
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Config Structure -        */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-type LoggerCfg struct {
-	Level           int
-	LevelStackTrace int
-	LogCaller       bool
+func loadConfigLogger() LoggerCfg {
+	return LoggerCfg{
+		Level:       LogLevels[envVar("LOGGER_LEVEL", "info")],
+		LevelStackT: LogLevels[envVar("LOGGER_LEVEL_STACKTRACE", "dpanic")],
+		LogCaller:   envVar("LOGGER_LOG_CALLER", false),
+	}
 }
 
-type DatabaseCfg struct {
-	Username      string
-	Password      string
-	Hostname      string
-	Port          string
-	Schema        string
-	Params        string
-	MigrateModels bool
-	InsertAdmin   bool
-	AdminPwd      string // hashed
-	LogLevel      int
+func loadConfigPwdHasher() PwdHasherCfg {
+	return PwdHasherCfg{Salt: envVar("PWD_HASHER_SALT", "s0m3_s4l7")}
 }
 
-func (cfg *DatabaseCfg) GetSQLConnectionString() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s", cfg.Username, cfg.Password, cfg.Hostname, cfg.Port, cfg.Schema, cfg.Params)
-}
-func (cfg *DatabaseCfg) GetLogLevel() int        { return cfg.LogLevel }
-func (cfg *DatabaseCfg) ShouldMigrate() bool     { return cfg.MigrateModels }
-func (cfg *DatabaseCfg) ShouldInsertAdmin() bool { return cfg.InsertAdmin }
-func (cfg *DatabaseCfg) GetAdminPwd() string     { return cfg.AdminPwd }
-
-type PwdHasherCfg struct {
-	Salt string
-}
-
-type RateLimiterCfg struct {
-	MaxTokens       int // Max tokens the bucket can hold.
-	TokensPerSecond int // Tokens reloaded per second.
-}
-
-type JWTCfg struct {
-	Secret      string
-	SessionDays int
-}
-
-type TLSCfg struct {
-	Enabled  bool
-	CertPath string
-	KeyPath  string
+func loadConfigRLimiter() RLimiterCfg {
+	return RLimiterCfg{
+		MaxTokens:       envVar("RLIMITER_MAX_TOKENS", 40),
+		TokensPerSecond: envVar("RLIMITER_TOKENS_PER_SECOND", 10),
+	}
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Config Helpers -          */
+
+type (
+	DBCfg struct {
+		Username string
+		Password string
+		Hostname string
+		Port     string
+		Schema   string
+		Params   string
+
+		MigrateModels  bool
+		InsertAdmin    bool
+		InsertAdminPwd string // hashed with our PwdHasher
+
+		LogLevel int
+	}
+	JWTCfg struct {
+		Secret      string
+		SessionDays int
+	}
+	TLSCfg struct {
+		Enabled  bool
+		CertPath string
+		KeyPath  string
+	}
+	LoggerCfg struct {
+		Level       int
+		LevelStackT int
+		LogCaller   bool
+	}
+	PwdHasherCfg struct {
+		Salt string
+	}
+	RLimiterCfg struct {
+		MaxTokens       int // Max tokens the bucket can hold.
+		TokensPerSecond int // Tokens reloaded per second.
+	}
+)
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+func (c *DBCfg) ShouldMigrate() bool     { return c.MigrateModels }
+func (c *DBCfg) ShouldInsertAdmin() bool { return c.InsertAdmin }
+func (c *DBCfg) GetAdminPwd() string     { return c.InsertAdminPwd }
+func (c *DBCfg) GetLogLevel() int        { return c.LogLevel }
+func (c *DBCfg) GetSQLConnString() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s", c.Username, c.Password, c.Hostname, c.Port, c.Schema, c.Params)
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func envVar[T string | bool | int](key string, fallback T) T {
-	value, exists := os.LookupEnv(key)
+	val, exists := os.LookupEnv(key)
 	if !exists {
 		return fallback
 	}
+
 	switch any(fallback).(type) {
 	case string:
-		return any(value).(T)
+		return any(val).(T)
 	case bool:
-		boolValue := value == "true" || value == "TRUE" || value == "1"
-		return any(boolValue).(T)
+		return any(val == "true" || val == "TRUE" || val == "1").(T)
 	case int:
-		if intValue, err := strconv.Atoi(value); err == nil {
+		if intValue, err := strconv.Atoi(val); err == nil {
 			return any(intValue).(T)
 		}
 	}
 	return fallback
-}
-
-// getRootPrefix returns the prefix that needs to be added to the default paths to point at the root folder.
-func getRootPrefix(projectName string) string {
-	workingDir, err := os.Getwd()
-	if err != nil {
-		log.Fatalf(errs.FatalErrMsgGettingWorkingDir, err) // zap is not initialized yet.
-	}
-	if strings.HasSuffix(workingDir, projectName) {
-		return "." // -> running from root folder
-	}
-	return "../.." // -> running from /etc/cmd
 }

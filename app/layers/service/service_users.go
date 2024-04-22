@@ -1,4 +1,4 @@
-package business
+package service
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/options"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external/storage/sql"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -18,7 +18,7 @@ import (
 // If the query fails (without a gorm.ErrRecordNotFound), then we return an unknown error.
 // If the query fails (with a gorm.ErrRecordNotFound), it means everything is OK, so we create the user and return its ID.
 func (s *ServiceLayer) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
-	user, err := s.Storage.GetUser(options.WithUsername(req.Username))
+	user, err := s.Storage.GetUser(sql.WithUsername(req.Username))
 	if err == nil && user != nil {
 		return nil, ErrAlreadyExists("user")
 	}
@@ -40,7 +40,7 @@ func (s *ServiceLayer) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs
 // Then we compare both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
 func (s *ServiceLayer) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
-	user, err := s.Storage.GetUser(options.WithUsername(req.Username))
+	user, err := s.Storage.GetUser(sql.WithUsername(req.Username))
 	if errIsNotFound(err) {
 		return nil, ErrNotFound("user")
 	}
@@ -52,7 +52,7 @@ func (s *ServiceLayer) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.L
 		return nil, ErrUnauthenticated()
 	}
 
-	token, err := s.TokenGenerator.Generate(user.ID, user.Username, user.Role)
+	token, err := s.TokenGenerator.GenerateToken(user.ID, user.Username, user.Role)
 	if err != nil {
 		return nil, ErrGeneratingToken(err)
 	}
@@ -65,7 +65,7 @@ func (s *ServiceLayer) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.L
 // If the query fails (for some other reason), then it returns an unknown error.
 // If everything is OK, it returns the user.
 func (s *ServiceLayer) GetUser(ctx context.Context, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
-	user, err := s.Storage.GetUser(options.WithUserID(int(req.UserId)))
+	user, err := s.Storage.GetUser(sql.WithUserID(int(req.UserId)))
 	if errIsNotFound(err) {
 		return nil, ErrNotFound("user")
 	}
@@ -80,7 +80,7 @@ func (s *ServiceLayer) GetUser(ctx context.Context, req *pbs.GetUserRequest) (*p
 // If everything is OK, it returns the users and the pagination info.
 func (s *ServiceLayer) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (*pbs.GetUsersResponse, error) {
 	page, pageSize := getPaginationValues(req)
-	filter := options.WithFilter("username", req.GetFilter())
+	filter := sql.WithFilter("username", req.GetFilter())
 
 	// While our page is 0-based, gorm offsets are 1-based. That's why we subtract 1.
 	users, totalMatches, err := s.Storage.GetUsers(page-1, pageSize, filter)
@@ -100,9 +100,8 @@ func (s *ServiceLayer) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (
 
 var (
 	ErrInUsersDBCall = func(ctx context.Context, err error) error {
-		route := getRouteFromCtx(ctx)
-		go core.LogUnexpected(err)
-		return errs.ErrSvcUserRelated(err, route)
+		core.LogUnexpected(err)
+		return errs.ErrSvcUserRelated(err, getRouteFromCtx(ctx))
 	}
 	ErrGeneratingToken = func(err error) error {
 		return errs.ErrSvcOnTokenGeneration(err)

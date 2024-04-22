@@ -1,4 +1,4 @@
-package business
+package service
 
 import "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 

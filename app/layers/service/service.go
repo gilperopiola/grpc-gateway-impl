@@ -1,4 +1,4 @@
-package business
+package service
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external"
 
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
@@ -16,21 +17,21 @@ import (
 /*           - v1 Service -            */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-var _ core.Services = (*ServiceLayer)(nil)
+var _ core.ServiceAPI = (*ServiceLayer)(nil)
 
-// This is our concrete implementation of the core.Service interface.
-// Holds a Storage layer to interact with the db and some tools.
+// Concrete implementation of the interface above.
 type ServiceLayer struct {
 	*pbs.UnimplementedUsersServiceServer
 
-	Storage core.StorageLayer
-	core.TokenGenerator
-	core.PwdHasher
+	*external.ExternalLayer // -> Holds a reference to the ExternalLayer. This probably should be handled differently T0D0.
+
+	core.TokenGenerator // Tool
+	core.PwdHasher      // Tool
 }
 
-func NewService(storage core.StorageLayer, tokenGen core.TokenGenerator, pwdHasher core.PwdHasher) *ServiceLayer {
+func SetupLayer(external *external.ExternalLayer, tokenGen core.TokenGenerator, pwdHasher core.PwdHasher) *ServiceLayer {
 	return &ServiceLayer{
-		Storage:        storage,
+		ExternalLayer:  external,
 		TokenGenerator: tokenGen,
 		PwdHasher:      pwdHasher,
 	}

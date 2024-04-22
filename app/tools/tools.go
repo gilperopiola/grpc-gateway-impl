@@ -15,14 +15,14 @@ import (
 
 // -> Tools do things and hold data.
 
-var _ core.ToolsAccessor = (*Tools)(nil)
+var _ core.Toolbox = (*Tools)(nil)
 
 type (
 	Tools struct {
-		core.RequestsValidator  // Validates gRPC requests.
 		core.TokenAuthenticator // Generates & Validates JWT Tokens.
-		*rate.Limiter           // Limits rate of requests.
+		core.RequestsValidator  // Validates gRPC requests.
 		core.PwdHasher          // Hashes and compares passwords.
+		*rate.Limiter           // Limits rate of requests.
 		*TLS                    // Holds data for TLS communication.
 	}
 

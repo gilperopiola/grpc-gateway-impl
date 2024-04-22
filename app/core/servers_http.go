@@ -18,10 +18,10 @@ import (
 /*          - HTTP Gateway -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func NewHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware func(http.Handler) http.Handler, dialOpts []grpc.DialOption) *http.Server {
+func newHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware func(http.Handler) http.Handler, grpcDialOpts []grpc.DialOption) *http.Server {
 	mux := runtime.NewServeMux(serveOpts...)
 
-	if err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, GRPCPort, dialOpts); err != nil {
+	if err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, GRPCPort, grpcDialOpts); err != nil {
 		LogUnexpectedAndPanic(err)
 	}
 
@@ -31,8 +31,8 @@ func NewHTTPGateway(serveOpts []runtime.ServeMuxOption, middleware func(http.Han
 	}
 }
 
-func RunHTTPGateway(httpGateway *http.Server) {
-	zap.S().Infof("Running HTTP on port %s!\n", HTTPPort)
+func runHTTP(httpGateway *http.Server) {
+	zap.S().Infof("GRPC Gateway Implementation | HTTP Port %s 🚀", HTTPPort)
 
 	go func() {
 		if err := httpGateway.ListenAndServe(); err != http.ErrServerClosed {
@@ -41,11 +41,11 @@ func RunHTTPGateway(httpGateway *http.Server) {
 	}()
 }
 
-func ShutdownHTTPGateway(httpGateway *http.Server) {
+func shutdownHTTP(httpGateway *http.Server) {
 	zap.S().Info("Shutting down HTTP server...")
-	shutdownTimeout := 4 * time.Second
 
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	timeout := 4 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	if err := httpGateway.Shutdown(ctx); err != nil {
@@ -61,7 +61,7 @@ func ShutdownHTTPGateway(httpGateway *http.Server) {
 // Some are wrapped around the Mux afterwards.
 
 // Returns the middleware to be wrapped around the HTTP Gateway's Mux.
-func MiddlewareWrapper() func(http.Handler) http.Handler {
+func defaultHTTPMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return corsMiddleware(
 			requestsLoggerMiddleware(
@@ -72,7 +72,7 @@ func MiddlewareWrapper() func(http.Handler) http.Handler {
 }
 
 // Returns all the HTTP middleware that are used as ServeMuxOptions.
-func MiddlewareServeOpts() []runtime.ServeMuxOption {
+func defaultHTTPServeOpts() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
 	}
@@ -147,31 +147,36 @@ func corsMiddleware(next http.Handler) http.Handler {
 // handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
 // It converts the gRPC error to an HTTP error and writes it to the response.
 func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
-	grpcStatus := status.Convert(err)                           // err 			-> gRPC Status.
-	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code()) // gRPC Status -> HTTP Status.
+	grpcStatus := status.Convert(err)
+	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
 
 	// This function stops the execution chain, so we manually call the forwardResponseOptions to set the headers.
-	for _, fn := range mux.GetForwardResponseOptions() {
-		fn(ctx, w, nil)
+	for _, forwardResponseFn := range mux.GetForwardResponseOptions() {
+		forwardResponseFn(ctx, w, nil)
 	}
 
 	// Create and marshal an httpError into a []byte buffer. If it fails (unlikely), we return 500 Internal Server Error.
 	var httpBody []byte
 	if httpBody, err = m.Marshal(httpError{grpcStatus.Message()}); err != nil {
-		httpStatus = http.StatusInternalServerError
 		LogUnexpected(err)
+		httpStatus = http.StatusInternalServerError
 	}
 
-	// We send generic responses for some HTTP Status Codes.
-	httpStatus, httpBody = getGenericErrorResponse(w, httpStatus, httpBody)
-
+	httpStatus, httpBody = standardizeErrorResponse(w, httpStatus, httpBody)
 	w.WriteHeader(httpStatus)
 	w.Write(httpBody)
 }
 
-// getGenericErrorResponse returns a generic HTTP Status Code and Body for each HTTP Status Code.
-func getGenericErrorResponse(w http.ResponseWriter, httpStatus int, httpBody []byte) (int, []byte) {
-	switch httpStatus {
+// httpError is the struct that gets marshalled onto the HTTP Response body when an error happens.
+// This is what the client would see. The format is '{"error": "error message."}'.
+// If this format is changed, then the ErrBodies in errs.go should also change.
+type httpError struct {
+	Error string `json:"error"`
+}
+
+// standardizeErrorResponse returns a generic HTTP Status Code and Body for each HTTP Status Code.
+func standardizeErrorResponse(w http.ResponseWriter, status int, respBody []byte) (int, []byte) {
+	switch status {
 	case http.StatusUnauthorized:
 		w.Header().Set("WWW-Authenticate", "Bearer")
 		return http.StatusUnauthorized, []byte(errs.HTTPUnauthorizedErrBody) // ------------ 401 (WWW-Authenticate: Bearer)
@@ -184,12 +189,5 @@ func getGenericErrorResponse(w http.ResponseWriter, httpStatus int, httpBody []b
 	case http.StatusServiceUnavailable:
 		return http.StatusInternalServerError, []byte(errs.HTTPServiceUnavailErrBody) // --- 503 (Service Unavailable)
 	}
-	return httpStatus, httpBody
-}
-
-// httpError is the struct that gets marshalled onto the HTTP Response body when an error happens.
-// This is what the client would see. The format is '{"error": "error message."}'.
-// If this format is changed, then the ErrBodies in errs.go should also change.
-type httpError struct {
-	Error string `json:"error"`
+	return status, respBody
 }

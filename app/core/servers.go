@@ -5,6 +5,7 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -13,19 +14,29 @@ type Servers struct {
 	HTTP *http.Server
 }
 
-func SetupServers(tools ToolsAccessor, usersService pbs.UsersServiceServer, tlsEnabled bool) *Servers {
+// Sets up both gRPC and HTTP servers.
+func SetupServers(usersSvc pbs.UsersServiceServer, tools Toolbox, tlsEnabled bool) *Servers {
+	var (
+		grpcServerOpts        = defaultGRPCServerOpts(tools, tlsEnabled)
+		grpcDialOpts          = defaultGRPCDialOpts(tools.GetTLSClientCreds())
+		httpGatewayOpts       = defaultHTTPServeOpts()
+		httpGatewayMiddleware = defaultHTTPMiddleware()
+	)
+
+	zap.S().Info("GRPC Gateway Implementation | Starting up 🚀")
+
 	return &Servers{
-		NewGRPCServer(usersService, AllServerOptions(tools, tlsEnabled)),
-		NewHTTPGateway(MiddlewareServeOpts(), MiddlewareWrapper(), AllDialOptions(tools.GetTLSClientCreds())),
+		newGRPCServer(usersSvc, grpcServerOpts),
+		newHTTPGateway(httpGatewayOpts, httpGatewayMiddleware, grpcDialOpts),
 	}
 }
 
 func (s *Servers) Run() {
-	RunGRPCServer(s.GRPC)
-	RunHTTPGateway(s.HTTP)
+	runGRPC(s.GRPC)
+	runHTTP(s.HTTP)
 }
 
 func (s *Servers) Shutdown() {
-	ShutdownGRPCServer(s.GRPC)
-	ShutdownHTTPGateway(s.HTTP)
+	shutdownGRPC(s.GRPC)
+	shutdownHTTP(s.HTTP)
 }

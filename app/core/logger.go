@@ -18,14 +18,16 @@ import (
 // We use zap as our Logger. It's fast and easy to use.
 // We don't even need to wrap it in a struct, we just use it globally on the zap pkg.
 
-const LogTimeLayout = "02/01/06 15:04:05"
+const LogsTimeLayout = "02/01/06 15:04:05"
 
 // Replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
-func SetupLogger(c *Config, opts ...zap.Option) *zap.Logger {
-	zapLogger, err := newZapConfig(c).Build(opts...)
+func SetupLogger(cfg *LoggerCfg) *zap.Logger {
+	zapOpts := newZapBuildOpts(cfg.LevelStackT)
+
+	zapLogger, err := newZapConfig(cfg).Build(zapOpts...)
 	if err != nil {
-		log.Fatalf(errs.FatalErrMsgCreatingLogger, err)
+		log.Fatalf(errs.FatalErrMsgCreatingLogger, err) // don't use zap for this.
 	}
 
 	zap.ReplaceGlobals(zapLogger)
@@ -33,24 +35,16 @@ func SetupLogger(c *Config, opts ...zap.Option) *zap.Logger {
 	return zapLogger
 }
 
-// Returns the default options for the Logger.
-func SetupLoggerOptions(stackTraceLevel int) []zap.Option {
-	return []zap.Option{
-		zap.AddStacktrace(zapcore.Level(stackTraceLevel)),
-		zap.WithClock(zapcore.DefaultClock),
-	}
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Used to log things that shouldn't happen, like someone trying to access admin endpoints.
 func LogPotentialThreat(msg string) {
-	zap.S().Error("Potential Threat", ZapMsg(msg), ZapStacktrace())
+	zap.S().Error("Potential Threat", ZapMsg(msg))
 }
 
 // Used to log unexpected errors, like panic recoveries or some connection errors.
 func LogUnexpected(err error) {
-	zap.S().Warn("Unexpected Error", ZapError(err), ZapStacktrace())
+	zap.S().Error("Unexpected Error", ZapError(err), ZapStacktrace())
 }
 
 // Used to log unexpected errors that also should trigger a panic.
@@ -60,12 +54,12 @@ func LogUnexpectedAndPanic(err error) {
 
 // Used to log strange behaviour that isn't necessarily bad or an error.
 func LogWeirdBehaviour(msg string, info ...any) {
-	zap.S().Error("Weird Behaviour", ZapMsg(msg), ZapStacktrace(), ZapInfo(info...))
+	zap.S().Warn("Weird Behaviour", ZapMsg(msg), ZapInfo(info...))
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// This unifies both HTTP and gRPC paths:
+// This unifies both HTTP and gRPC route formats:
 //
 //	-> In gRPC, it's only the Method 	-> '/users.UsersService/GetUsers'.
 //	-> In HTTP, we join Method and Path -> 'GET /users'.
@@ -74,8 +68,8 @@ func ZapRoute(route string) zap.Field {
 }
 
 // Logs a simple message.
-func ZapMsg(info string) zap.Field {
-	return zap.String("info", info)
+func ZapMsg(msg string) zap.Field {
+	return zap.String("msg", msg)
 }
 
 // Logs a duration.
@@ -128,22 +122,27 @@ var DBLogLevels = map[string]int{
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Returns a new zap.Config with the default options.
-func newZapConfig(cfg *Config) zap.Config {
-	zapCfg := getDefaultZapConfig(IsProd)
-
-	zapCfg.Level = zap.NewAtomicLevelAt(zapcore.Level(cfg.LoggerCfg.Level))
-	zapCfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(t.Format(LogTimeLayout))
+// Returns the default options for creating the zap Logger.
+func newZapBuildOpts(levelStackT int) []zap.Option {
+	return []zap.Option{
+		zap.AddStacktrace(zapcore.Level(levelStackT)),
+		zap.WithClock(zapcore.DefaultClock),
 	}
-	zapCfg.DisableCaller = !cfg.LoggerCfg.LogCaller
+}
+
+// Returns a new zap.Config with the default options + *LoggerCfg settings.
+func newZapConfig(cfg *LoggerCfg) zap.Config {
+	zapCfg := newZapBaseConfig()
+	zapCfg.Level = zap.NewAtomicLevelAt(zapcore.Level(cfg.Level))
+	zapCfg.DisableCaller = !cfg.LogCaller
+	zapCfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) { enc.AppendString(t.Format(LogsTimeLayout)) }
 
 	return zapCfg
 }
 
 // Returns the default zap.Config for the current environment.
-func getDefaultZapConfig(isProd bool) zap.Config {
-	if isProd {
+func newZapBaseConfig() zap.Config {
+	if EnvIsProd {
 		return zap.NewProductionConfig()
 	}
 	return zap.NewDevelopmentConfig()
