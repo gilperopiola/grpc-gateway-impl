@@ -31,7 +31,7 @@ var (
 	}
 )
 
-// NewGRPC returns a new ServiceError inside of a gRPC error.
+// NewGRPC returns a new ServiceError inside of a GRPC error.
 func NewGRPC(code codes.Code, err error, messages ...string) error {
 	msg := code.String()
 	if len(messages) > 0 {

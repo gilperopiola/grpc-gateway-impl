@@ -1,4 +1,4 @@
-package models
+package core
 
 import (
 	"time"
@@ -7,13 +7,15 @@ import (
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*              - Models -             */
+/*         - Database Models -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// AllModels is used to migrate all models at once.
+// Used to migrate all models at once.
 var AllModels = []interface{}{
 	User{},
 }
+
+/* -~-~-~-~-~- User ~-~-~-~-~-~ */
 
 type User struct {
 	ID        int    `gorm:"primaryKey"`
@@ -24,27 +26,6 @@ type User struct {
 	UpdatedAt time.Time
 }
 
-type Users []*User
-
-type Role string
-
-const (
-	DefaultRole Role = "default"
-	AdminRole   Role = "admin"
-)
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*          - Model Methods -          */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-func (us Users) ToUserInfo() []*pbs.UserInfo {
-	usersInfo := make([]*pbs.UserInfo, 0, len(us))
-	for _, u := range us {
-		usersInfo = append(usersInfo, u.ToUserInfo())
-	}
-	return usersInfo
-}
-
 func (u User) ToUserInfo() *pbs.UserInfo {
 	return &pbs.UserInfo{
 		Id:        int32(u.ID),
@@ -52,4 +33,14 @@ func (u User) ToUserInfo() *pbs.UserInfo {
 		CreatedAt: u.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: u.UpdatedAt.Format(time.RFC3339),
 	}
+}
+
+type Users []*User
+
+func (us Users) ToUsersInfo() []*pbs.UserInfo {
+	usersInfo := make([]*pbs.UserInfo, 0, len(us))
+	for i := range us {
+		usersInfo[i] = us[i].ToUserInfo()
+	}
+	return usersInfo
 }

@@ -6,10 +6,10 @@ import "strings"
 /*              - Routes -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// In gRPC, 'method' means the entire 'endpoint' name. In HTTP it's just GET, POST, etc.
+// In GRPC, 'method' means the entire 'endpoint' name. In HTTP it's just GET, POST, etc.
 //
 // -> We're calling both of them 'routes'.
-// -> Each route is just the last part of the corresponding gRPC method.
+// -> Each route is just the last part of the corresponding GRPC method.
 // -> So '/pbs.Service/Login' becomes 'Login' and that is the route for the Login endpoint.
 
 var Routes = map[string]RouteInfo{
@@ -19,24 +19,12 @@ var Routes = map[string]RouteInfo{
 	"GetUsers": {Auth: RouteAuthAdmin},
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
 // All data that we need on a per-route basis lives here. For now it's just the Auth type.
 type RouteInfo struct {
 	Auth RouteAuth
 }
 
-type RouteAuth string
-
-const (
-	RouteAuthPublic RouteAuth = "public"
-	RouteAuthSelf   RouteAuth = "self"
-	RouteAuthAdmin  RouteAuth = "admin"
-)
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// Route is the last part of the gRPC Method.
+// Route is the last part of the GRPC Method.
 //
 // -> Method = /pbs.Service/Signup
 // -> Route  = Signup
@@ -44,6 +32,7 @@ const (
 func GetRouteFromGRPC(method string) string {
 	i := strings.LastIndex(method, "/")
 	if i == -1 {
+		LogWeirdBehaviour("No '/' found in GRPC: " + method)
 		return method
 	}
 	return method[i+1:]

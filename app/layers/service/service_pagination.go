@@ -12,7 +12,7 @@ type PaginatedRequest interface {
 	GetPageSize() int32
 }
 
-// getPaginationValues returns the page and pageSize values from a gRPC Request with pagination methods.
+// getPaginationValues returns the page and pageSize values from a GRPC Request with pagination methods.
 // It defaults to page 1 and pageSize 10 if the values are not set.
 func getPaginationValues[r PaginatedRequest](req r) (int, int) {
 	defaultPage := int32(1)      // T0D0 -> Config var.
@@ -31,10 +31,11 @@ func getPaginationValues[r PaginatedRequest](req r) (int, int) {
 	return int(page), int(pageSize)
 }
 
-// responsePagination returns a *pbs.PaginationInfo with the current and total pages.
-func responsePagination(currentPage, pageSize, matchingRecords int) *pbs.PaginationInfo {
-	totalPages := matchingRecords / pageSize
-	if matchingRecords%pageSize > 0 {
+// Part of the Response of a GetMany endpoint (like GetUsers).
+// Has Current and Total Pages.
+func newResponsePagination(currentPage, pageSize, totalRecords int) *pbs.PaginationInfo {
+	totalPages := totalRecords / pageSize
+	if totalRecords%pageSize > 0 {
 		totalPages++
 	}
 

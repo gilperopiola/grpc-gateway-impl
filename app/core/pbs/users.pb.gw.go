@@ -4,7 +4,7 @@
 /*
 Package pbs is a reverse proxy.
 
-It translates gRPC into RESTful JSON APIs.
+It translates GRPC into RESTful JSON APIs.
 */
 package pbs
 
@@ -174,7 +174,7 @@ func local_request_UsersService_GetUsers_0(ctx context.Context, marshaler runtim
 // RegisterUsersServiceHandlerServer registers the http handlers for service UsersService to "mux".
 // UnaryRPC     :call UsersServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
-// Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterUsersServiceHandlerFromEndpoint instead.
+// Note that using this registration option will cause many GRPC library features to stop working. Consider using RegisterUsersServiceHandlerFromEndpoint instead.
 func RegisterUsersServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux, server UsersServiceServer) error {
 
 	mux.Handle("POST", pattern_UsersService_Signup_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -313,8 +313,8 @@ func RegisterUsersServiceHandler(ctx context.Context, mux *runtime.ServeMux, con
 
 // RegisterUsersServiceHandlerClient registers the http handlers for service UsersService
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "UsersServiceClient".
-// Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "UsersServiceClient"
-// doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
+// Note: the GRPC framework executes interceptors within the GRPC handler. If the passed in "UsersServiceClient"
+// doesn't go through the normal GRPC flow (creating a GRPC client etc.) then it will be up to the passed in
 // "UsersServiceClient" to call the correct interceptors.
 func RegisterUsersServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client UsersServiceClient) error {
 

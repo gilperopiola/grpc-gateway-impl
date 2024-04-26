@@ -1,10 +1,13 @@
 package core
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"google.golang.org/grpc"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -27,7 +30,7 @@ func SetupLogger(cfg *LoggerCfg) *zap.Logger {
 
 	zapLogger, err := newZapConfig(cfg).Build(zapOpts...)
 	if err != nil {
-		log.Fatalf(errs.FatalErrMsgCreatingLogger, err) // don't use zap for this.
+		log.Fatalf(errs.FailedToCreateLogger, err) // don't use zap for this.
 	}
 
 	zap.ReplaceGlobals(zapLogger)
@@ -35,46 +38,81 @@ func SetupLogger(cfg *LoggerCfg) *zap.Logger {
 	return zapLogger
 }
 
+// This func is a GRPC Interceptor. Or technically a grpc.UnaryServerInterceptor.
+func LogGRPCRequest(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	start := time.Now()
+	resp, err := handler(ctx, req)
+	duration := time.Since(start)
+
+	if err != nil {
+		zap.S().Errorw("GRPC Error", ZapRouteFromGRPC(info.FullMethod), ZapDuration(duration), ZapError(err))
+	} else {
+		zap.S().Infow("GRPC Request", ZapRouteFromGRPC(info.FullMethod), ZapDuration(duration))
+	}
+
+	return resp, err
+}
+
+// Why log both HTTP and GRPC? Because we can. And it's cool.
+func LogHTTPRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		start := time.Now()
+		handler.ServeHTTP(rw, req)
+		duration := time.Since(start)
+
+		zap.S().Infow("HTTP Request", ZapRouteFromHTTP(req), ZapDuration(duration))
+
+		// Most HTTP logs come with a GRPC log before, as HTTP acts as a gateway to GRPC.
+		// As such, we add a new line to separate the logs and easily identify different requests.
+		// The only exception would be if there was an error before calling the GRPC handlers.
+		zap.L().Info("\n") // T0D0 is this ok?
+	})
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Used to log things that shouldn't happen, like someone trying to access admin endpoints.
-func LogPotentialThreat(msg string) {
-	zap.S().Error("Potential Threat", ZapMsg(msg))
+// Helps keeping code clean and readable, lets you omit the error check on the caller when you just need to log it.
+func LogIfErr(err error, fmtMsg string) {
+	if err != nil {
+		if fmtMsg == "" {
+			fmtMsg = "untyped error: %v"
+		}
+		zap.S().Errorf(fmtMsg, err)
+	}
+}
+
+// Helps keeping code clean and readable, lets you omit the error check on the caller.
+func LogPanicIfErr(err error) {
+	if err != nil {
+		LogUnexpectedAndPanic(err)
+	}
 }
 
 // Used to log unexpected errors, like panic recoveries or some connection errors.
-func LogUnexpected(err error) {
-	zap.S().Error("Unexpected Error", ZapError(err), ZapStacktrace())
+func LogUnexpectedErr(err error) {
+	zap.S().Error("Unexpected", ZapError(err), ZapStacktrace())
 }
 
 // Used to log unexpected errors that also should trigger a panic.
 func LogUnexpectedAndPanic(err error) {
-	zap.S().Fatal("Unexpected Error: Fatal", ZapError(err), ZapStacktrace())
+	zap.S().Fatal("Unexpected Fatal", ZapError(err), ZapStacktrace())
+}
+
+// Used to log things that shouldn't happen, like someone trying to access admin endpoints.
+func LogPotentialThreat(msg string) {
+	zap.S().Error("Threat", ZapMsg(msg))
 }
 
 // Used to log strange behaviour that isn't necessarily bad or an error.
 func LogWeirdBehaviour(msg string, info ...any) {
-	zap.S().Warn("Weird Behaviour", ZapMsg(msg), ZapInfo(info...))
+	zap.S().Warn("Weird", ZapMsg(msg), ZapInfo(info...))
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// This unifies both HTTP and gRPC route formats:
-//
-//	-> In gRPC, it's only the Method 	-> '/users.UsersService/GetUsers'.
-//	-> In HTTP, we join Method and Path -> 'GET /users'.
-func ZapRoute(route string) zap.Field {
-	return zap.String("route", route)
-}
-
 // Logs a simple message.
 func ZapMsg(msg string) zap.Field {
 	return zap.String("msg", msg)
-}
-
-// Logs a duration.
-func ZapDuration(duration time.Duration) zap.Field {
-	return zap.Duration("duration", duration)
 }
 
 // Logs any kind of info.
@@ -83,6 +121,23 @@ func ZapInfo(info ...any) zap.Field {
 		return zap.Skip()
 	}
 	return zap.Any("info", info)
+}
+
+// Routes apply to both GRPC and HTTP.
+//
+//	-> In GRPC, it's the last part of the Method -> '/users.UsersService/GetUsers'.
+func ZapRouteFromGRPC(method string) zap.Field {
+	return zap.String("route", GetRouteFromGRPC(method))
+}
+
+// -> In HTTP, we join Method and Path -> 'GET /users'.
+func ZapRouteFromHTTP(req *http.Request) zap.Field {
+	return zap.String("route", req.Method+" "+req.URL.Path)
+}
+
+// Logs a duration.
+func ZapDuration(duration time.Duration) zap.Field {
+	return zap.Duration("duration", duration)
 }
 
 // Log error if not nil.

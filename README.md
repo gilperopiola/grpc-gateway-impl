@@ -1,14 +1,16 @@
-# 🐉 gRPC Gateway Implementation 🐉
+# 🐉 GRPC Gateway Implementation 🐉
 
-### **If an HTTP API is worth a dollar, its gRPC counterpart is like 20 cents more**.
+### **If an HTTP API is worth a dollar, its GRPC counterpart is like 20 cents more**.
 <div style="text-align: right; margin-top: -4px">- Lionel Messi. </div>
 
 ---
+(This README needs updating)
+
 **And now** with _`GRPC Gateway`_ we get both of them for only... _**$0.75!!!**_ 😱 With extra fries and a refreshing _Monster Mango Loco™_ free of charge. 🍟🥤 
 
 ... _**What?**_ 🤨 You're not making any sense, why do you use emojis on a _**readme**_ ❗❓ 
 
-**Let's say** we define a `UsersService` in a `.proto` file, with some endpoints. We can _leverage_ `gRPC Gateway` to auto-generate a **gRPC Server** with handlers mapping each endpoint on our previously defined `UsersService`. It also auto-generates a**n** **HTTP Gateway** that points to the server and translates _HTTP_ to _gRPC_ and viceversa. 🤯 _**For free!**_
+**Let's say** we define a `UsersService` in a `.proto` file, with some endpoints. We can _leverage_ `GRPC Gateway` to auto-generate a **GRPC Server** with handlers mapping each endpoint on our previously defined `UsersService`. It also auto-generates a**n** **HTTP Gateway** that points to the server and translates _HTTP_ to _gRPC_ and viceversa. 🤯 _**For free!**_
 
 ... ... ... But wasn't it... _$0.75_? 🤔
 
@@ -19,7 +21,7 @@
 
 # So what's in here? 👀
 
-_**~I'm glad you ask!**_ - We have **`two simple APIs: 1 gRPC & 1 HTTP`**, each of them with **4** endpoints --> **Signup**, **Login**, **GetUser** and **GetUsers**.
+_**~I'm glad you ask!**_ - We have **`two simple APIs: 1 GRPC & 1 HTTP`**, each of them with **4** endpoints --> **Signup**, **Login**, **GetUser** and **GetUsers**.
 
 **_It leverages_** --> Clean, Hexagonal Architecture 🔷 / MySQL 🐬 / Patterns and Good Practices 📐 / Excellent Documentation 📚 / Gorm 🌱 / Centralized Error Handling 🎯 / JWT 🔑 / TLS 🔒 / RBAC 👑 / GCP ❌ / JJR ❓ / Y2K 🤔 / Swagger 📜 / BRB 🤦‍♂️ / LOL 😂 / Postman Automation 📬 / AFK 🏃‍♀️.
 
@@ -59,7 +61,7 @@ For more commands, check the `Makefile`. 🌈
 
 With **`.protos`**: your _API_ gets defined before it's implemented. 
 
-Using custom annotations on the **`.proto`** file and tools like `gRPC Gateway` you get an _HTTP Handler_ for each _gRPC Method_, each Handler decoding _HTTP_ Requests into _gRPC_ ones, calling their designated method on the _gRPC_ server and encoding the _gRPC_ Response back into _HTTP_.
+Using custom annotations on the **`.proto`** file and tools like `GRPC Gateway` you get an _HTTP Handler_ for each _gRPC Method_, each Handler decoding _HTTP_ Requests into _gRPC_ ones, calling their designated method on the _gRPC_ server and encoding the _gRPC_ Response back into _HTTP_.
 
 <div style="margin-bottom: -16px">
 You also get a <i>Validation Layer</i> based on the protofile. And did I mention the free Swagger? 😁 It's <i>$11.99</i>.

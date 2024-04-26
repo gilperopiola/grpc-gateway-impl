@@ -7,8 +7,8 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/layers/external"
 
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 )
@@ -17,39 +17,37 @@ import (
 /*           - v1 Service -            */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-var _ core.ServiceAPI = (*ServiceLayer)(nil)
+var _ core.ServiceLayer = (*serviceLayer)(nil)
 
 // Concrete implementation of the interface above.
-type ServiceLayer struct {
+type serviceLayer struct {
 	*pbs.UnimplementedUsersServiceServer
 
-	*external.ExternalLayer // -> Holds a reference to the ExternalLayer. This probably should be handled differently T0D0.
-
-	core.TokenGenerator // Tool
-	core.PwdHasher      // Tool
+	External core.ExternalLayer // -> Holds a reference to the ExternalLayer.
+	Toolbox  core.Toolbox       // -> Holds a reference to the Toolbox.
 }
 
-func SetupLayer(external *external.ExternalLayer, tokenGen core.TokenGenerator, pwdHasher core.PwdHasher) *ServiceLayer {
-	return &ServiceLayer{
-		ExternalLayer:  external,
-		TokenGenerator: tokenGen,
-		PwdHasher:      pwdHasher,
+func SetupLayer(external core.ExternalLayer, toolbox core.Toolbox) *serviceLayer {
+	return &serviceLayer{
+		External: external,
+		Toolbox:  toolbox,
 	}
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// getRouteFromCtx returns the gRPC method name from the context.
-func getRouteFromCtx(ctx context.Context) string {
+// getGRPCMethodFromCtx returns the GRPC method name from the context.
+func getGRPCMethodFromCtx(ctx context.Context) string {
 	if methodName, ok := grpc.Method(ctx); ok {
 		return methodName
 	}
 	return ""
 }
 
-// errIsNotFound checks if the error is a gorm.ErrRecordNotFound.
+// errIsNotFound checks if the error is a gorm.ErrRecordNotFound or a mongo.ErrNoDocuments.
+// T0D0 Move to storage?
 func errIsNotFound(err error) bool {
-	return errors.Is(err, gorm.ErrRecordNotFound)
+	return errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, mongo.ErrNoDocuments)
 }
 
 var (

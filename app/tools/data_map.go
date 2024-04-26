@@ -20,7 +20,7 @@ type httpHeadersMap struct {
 }
 
 type grpcMetadataMap struct {
-	ctx context.Context // we can access gRPC Metadata from the context
+	ctx context.Context // we can access GRPC Metadata from the context
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -35,15 +35,15 @@ func NewGRPCMetadataMap(ctx any) DataMap {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (a *httpHeadersMap) Get(key string) (string, error) {
-	if val := a.headers.Get(key); val != "" {
+func (hhm *httpHeadersMap) Get(key string) (string, error) {
+	if val := hhm.headers.Get(key); val != "" {
 		return val, nil
 	}
 	return "", fmt.Errorf("header with key %s not found", key)
 }
 
-func (a *grpcMetadataMap) Get(key string) (string, error) {
-	if val := metadata.ValueFromIncomingContext(a.ctx, key); len(val) > 0 {
+func (gmm *grpcMetadataMap) Get(key string) (string, error) {
+	if val := metadata.ValueFromIncomingContext(gmm.ctx, key); len(val) > 0 {
 		return val[0], nil
 	}
 	return "", fmt.Errorf("metadata with key %s not found", key)

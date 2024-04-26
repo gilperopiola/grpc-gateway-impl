@@ -5,23 +5,20 @@ import (
 	"crypto/x509"
 	"database/sql"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
-	"golang.org/x/time/rate"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-// Our App struct holds Servers, which trigger calls to our Service API on each gRPC/HTTP request, after applying interceptors.
+// When a GRPC/HTTP Request arrives, our Servers pass it through Interceptors, and then through the Service.
 // So: App -> Servers -> Interceptors -> Service.
 //
 // Our Service, assisted by our set of Tools (like TokenGenerator, PwdHasher, etc), interacts with our External Layer,
-// which in turn just holds our Storage and Clients. Storage holds our SQL Database. Clients... is empty (for now).
+// which in turn just holds our Storage and Clients. Storage holds our SQL Database. Clients is empty (for now).
 // So: Service (with Tools) -> External Layer -> Storage -> SQL Database.
-//
-// While Storage is a high-level DB API, the SQL Database itself (DatabaseAPI interface) is much more low-level.
-// Storage actually uses the SQL Database under the hood.
 //
 // To sum it all up:
 // * App -> Servers -> Interceptors -> Service (with Tools) -> External Layer -> Storage -> SQL Database.
@@ -30,79 +27,101 @@ import (
 /*            - Interfaces -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+/* -~-~-~-~- Service Layer -~-~-~-~- */
+
 // Embed all PB Services here! For now we only have 1.
-// This interface is kind of our entire API. It has a method for each gRPC/HTTP endpoint we have.
-type ServiceAPI interface {
+// This interface is kind of our entire API. It has a method for each GRPC/HTTP endpoint we have.
+type ServiceLayer interface {
 	pbs.UsersServiceServer
 }
 
-// StorageAPI is our high-level API to interact with our DBs and similar.
-// This would be named Repository instead of Storage only if it weren't so long. And Repo sucks.
-type StorageAPI interface {
-	CreateUser(username, hashedPwd string) (*models.User, error)
-	GetUser(opts ...DBQueryOpt) (*models.User, error)
-	GetUsers(page, pageSize int, opts ...DBQueryOpt) (models.Users, int, error)
+/* -~-~-~- External Layer -~-~-~- */
+
+type ExternalLayer interface {
+	GetStorage() StorageAPI
+	GetClients() ClientsAPI
 }
 
-// This is the interface we use to interact with our SQL Database.
-// It's an adapter for Gorm. Concrete types gormAdapter and mocks.Gorm implement this.
+// High-level API to interact with our DBs (or any Storage we implement).
+// This would be named Repository instead of Storage if it was shorter. And Repo sucks.
+type StorageAPI interface {
+	CreateUser(ctx context.Context, username, hashedPwd string) (*User, error)
+	GetUser(ctx context.Context, opts ...any) (*User, error)
+	GetUsers(ctx context.Context, page, pageSize int, opts ...any) (Users, int, error)
+	CloseDB() // Either SQL or Mongo.
+}
+
+type ClientsAPI interface {
+	// We still don't have any Clients.
+}
+
+/* -~-~-~ SQL Database ~-~-~- */
+
+// Low-level API for our SQL Database.
+// It's an adapter for Gorm. Concrete types sqlAdapter and mocks.Gorm implement this.
 type SQLDatabaseAPI interface {
-	GetSQL() *sql.DB
 	AddError(err error) error
-	AutoMigrate(dst ...interface{}) error
+	AutoMigrate(dst ...any) error
+	Close()
 	Count(value *int64) SQLDatabaseAPI
-	Create(value interface{}) SQLDatabaseAPI
+	Create(value any) SQLDatabaseAPI
 	Debug() SQLDatabaseAPI
-	Delete(value interface{}, where ...interface{}) SQLDatabaseAPI
+	Delete(value any, where ...any) SQLDatabaseAPI
 	Error() error
-	Find(out interface{}, where ...interface{}) SQLDatabaseAPI
-	First(out interface{}, where ...interface{}) SQLDatabaseAPI
-	FirstOrCreate(out interface{}, where ...interface{}) SQLDatabaseAPI
+	Find(out any, where ...any) SQLDatabaseAPI
+	First(out any, where ...any) SQLDatabaseAPI
+	FirstOrCreate(out any, where ...any) SQLDatabaseAPI
 	Group(query string) SQLDatabaseAPI
-	Joins(query string, args ...interface{}) SQLDatabaseAPI
+	Joins(query string, args ...any) SQLDatabaseAPI
 	Limit(value int) SQLDatabaseAPI
-	Model(value interface{}) SQLDatabaseAPI
+	Model(value any) SQLDatabaseAPI
 	Offset(value int) SQLDatabaseAPI
+	Or(query any, args ...any) SQLDatabaseAPI
 	Order(value string) SQLDatabaseAPI
-	Or(query interface{}, args ...interface{}) SQLDatabaseAPI
-	Pluck(column string, value interface{}) SQLDatabaseAPI
-	Raw(sql string, values ...interface{}) SQLDatabaseAPI
+	Pluck(column string, value any) SQLDatabaseAPI
+	Raw(sql string, values ...any) SQLDatabaseAPI
 	Rows() (*sql.Rows, error)
 	RowsAffected() int64
 	Row() *sql.Row
-	Save(value interface{}) SQLDatabaseAPI
-	Scan(dest interface{}) SQLDatabaseAPI
-	Where(query interface{}, args ...interface{}) SQLDatabaseAPI
+	Save(value any) SQLDatabaseAPI
+	Scan(dest any) SQLDatabaseAPI
 	Scopes(funcs ...func(SQLDatabaseAPI) SQLDatabaseAPI) SQLDatabaseAPI
+	WithContext(ctx context.Context) SQLDatabaseAPI
+	Where(query any, args ...any) SQLDatabaseAPI
 }
 
-// DBQueryOpt is any function which takes a DatabaseAPI instance and modifies it.
-// We use it to apply different settings to our queries.
-type DBQueryOpt func(SQLDatabaseAPI)
+type SQLQueryOpt func(SQLDatabaseAPI) // Variadic func.
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* -~-~-~ Mongo Database ~-~-~- */
 
-// Lets you obtain all tools.Tools without having to import the tools package.
+// Low-level API for our Mongo Database.
+type MongoDatabaseAPI interface {
+	Close(ctx context.Context)
+	InsertOne(ctx context.Context, colName string, document any) (*mongo.InsertOneResult, error)
+	Find(ctx context.Context, colName string, filter any, limit, offset int) (*mongo.Cursor, error)
+	FindOne(ctx context.Context, colName string, filter any) *mongo.SingleResult
+	DeleteOne(ctx context.Context, colName string, filter any) (*mongo.DeleteResult, error)
+	Count(ctx context.Context, colName string, filter any) (int64, error)
+}
+
+type MongoQueryOpt func(*bson.D) // Variadic func.
+
+/* -~-~-~- Toolbox -~-~-~- */
+
+// Use this to avoid importing the tools pkg.
+// Our app.Tools fulfills this interface.
 type Toolbox interface {
-	GetRequestsValidator() RequestsValidator
 	GetAuthenticator() TokenAuthenticator
-	GetRateLimiter() *rate.Limiter
+	GetRequestsValidator() RequestsValidator
+	GetRateLimiter() RateLimiter
 	GetPwdHasher() PwdHasher
-	GetTLSServerCert() *x509.CertPool
-	GetTLSServerCreds() credentials.TransportCredentials
-	GetTLSClientCreds() credentials.TransportCredentials
-}
+	GetTLSTool() TLSTool
 
-type RequestsValidator interface {
-	ValidateRequest(ctx context.Context, req any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error)
-}
-
-type TokenGenerator interface {
-	GenerateToken(id int, username string, role models.Role) (string, error)
-}
-
-type TokenValidator interface {
-	ValidateToken(ctx context.Context, req any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error)
+	TokenAuthenticator
+	RequestsValidator
+	RateLimiter
+	PwdHasher
+	TLSTool
 }
 
 type TokenAuthenticator interface {
@@ -110,7 +129,31 @@ type TokenAuthenticator interface {
 	TokenValidator
 }
 
+type TokenGenerator interface {
+	GenerateToken(id int, username string, role Role) (string, error)
+}
+
 type PwdHasher interface {
-	Hash(pwd string) string
-	Compare(plainPwd, hashedPwd string) bool
+	HashPassword(pwd string) string
+	PasswordsMatch(plainPwd, hashedPwd string) bool
+}
+
+type TLSTool interface {
+	GetServerCertificate() *x509.CertPool
+	GetServerCreds() credentials.TransportCredentials
+	GetClientCreds() credentials.TransportCredentials
+}
+
+// These below are grpc.UnaryInterceptor funcs.
+
+type TokenValidator interface {
+	ValidateToken(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error)
+}
+
+type RequestsValidator interface {
+	ValidateGRPC(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error)
+}
+
+type RateLimiter interface {
+	LimitGRPC(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error)
 }

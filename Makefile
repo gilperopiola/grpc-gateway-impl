@@ -1,6 +1,6 @@
 ###---------------------------------------------###
 ###                                             ###
-###       - gRPC Gateway Implementation -       ###
+###       - GRPC Gateway Implementation -       ###
 ###                                             ###
 ###--------------------------- by @gilperopiola ###
 

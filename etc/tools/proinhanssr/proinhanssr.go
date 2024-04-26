@@ -15,16 +15,14 @@ import (
 // T0D0 make all enum variables a diff color
 
 func main() {
-	workingDir, _ := os.Getwd()
-	fmt.Println("Working directory: " + workingDir)
 	folderToCrawl := "./pkg"
 	beginCrawling(folderToCrawl)
 }
 
-func beginCrawling(folderToCrawl string) {
-	err := filepath.Walk(folderToCrawl, visitAll())
+func beginCrawling(folder string) {
+	err := filepath.Walk(folder, visitAll())
 	if err != nil {
-		fmt.Printf("error crawling %q: %v\n", folderToCrawl, err)
+		fmt.Printf("error crawling %s: %v\n", folder, err)
 	}
 }
 
@@ -56,6 +54,7 @@ func visitAll() filepath.WalkFunc {
 
 		fmt.Printf("\nFile %s\n\n", path)
 		fmt.Println("Functions:")
+
 		structSlice := []string{}
 		interfaceSlice := []string{}
 
@@ -77,7 +76,6 @@ func visitAll() filepath.WalkFunc {
 
 		return nil
 	}
-
 }
 
 // parseGoFile parses a single Go file and prints out structs, interfaces, and functions
@@ -105,8 +103,8 @@ func parseGoFile(filename string, structSlice, interfaceSlice *[]string) {
 				*interfaceSlice = append(*interfaceSlice, fmt.Sprintf(".. [%s] %s\n:", filepath.Base(filename), x.Name.Name))
 			}
 		case *ast.FuncDecl:
-			for _, functionToOmit := range protoFunctions {
-				if x.Name.Name == functionToOmit {
+			for _, fnToOmit := range funcsToOmit {
+				if x.Name.Name == fnToOmit {
 					return true
 				}
 			}
@@ -118,33 +116,27 @@ func parseGoFile(filename string, structSlice, interfaceSlice *[]string) {
 				return true
 			}
 
-			fmt.Printf("..%s[%s] %s\n:", getSpacesRemaining(len(filepath.Base(filename))), filepath.Base(filename), x.Name.Name)
+			fmt.Printf("..%s[%s] %s\n:", applySpacing(len(filepath.Base(filename))), filepath.Base(filename), x.Name.Name)
 		}
 		return true
 	})
 }
 
-func getSpacesRemaining(length int) string {
-	var spaces string
-	for i := 0; i < 30-length; i++ {
+var funcsToOmit = []string{
+	"Reset", "String", "ProtoMessage", "ProtoReflect", "Descriptor",
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+func applySpacing(wordLength int) string {
+	spaces := ""
+	for i := 0; i < 30-wordLength; i++ {
 		spaces += " "
 	}
 	return spaces
 }
 
-var protoFunctions = []string{
-	"Reset", "String", "ProtoMessage", "ProtoReflect", "Descriptor",
-}
-
-func isInStringsSlice(slice []string, value string) bool {
-	for _, v := range slice {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
-
+// T0D0 Finish.
 func modifySettingsJSONFile() {
 	filePath := `C:\Users\LUCFR\AppData\Roaming\Code\User`
 	searchString := "// proinhanssr begin"

@@ -41,25 +41,25 @@ message Http {
   bool fully_decode_reserved_expansion = 2;
 }
 
-// # gRPC Transcoding
+// # GRPC Transcoding
 //
-// gRPC Transcoding is a feature for mapping between a gRPC method and one or
+// GRPC Transcoding is a feature for mapping between a GRPC method and one or
 // more HTTP REST endpoints. It allows developers to build a single API service
-// that supports both gRPC APIs and REST APIs. Many systems, including [Google
+// that supports both GRPC APIs and REST APIs. Many systems, including [Google
 // APIs](https://github.com/googleapis/googleapis),
-// [Cloud Endpoints](https://cloud.google.com/endpoints), [gRPC
+// [Cloud Endpoints](https://cloud.google.com/endpoints), [GRPC
 // Gateway](https://github.com/grpc-ecosystem/grpc-gateway),
 // and [Envoy](https://github.com/envoyproxy/envoy) proxy support this feature
 // and use it for large scale production services.
 //
-// `HttpRule` defines the schema of the gRPC/REST mapping. The mapping specifies
-// how different portions of the gRPC request message are mapped to the URL
+// `HttpRule` defines the schema of the GRPC/REST mapping. The mapping specifies
+// how different portions of the GRPC request message are mapped to the URL
 // path, URL query parameters, and HTTP request body. It also controls how the
-// gRPC response message is mapped to the HTTP response body. `HttpRule` is
-// typically specified as an `google.api.http` annotation on the gRPC method.
+// GRPC response message is mapped to the HTTP response body. `HttpRule` is
+// typically specified as an `google.api.http` annotation on the GRPC method.
 //
 // Each mapping specifies a URL path template and an HTTP method. The path
-// template may refer to one or more fields in the gRPC request message, as long
+// template may refer to one or more fields in the GRPC request message, as long
 // as each field is a non-repeated field with a primitive (non-message) type.
 // The path template controls how fields of the request message are mapped to
 // the URL path.
@@ -80,9 +80,9 @@ message Http {
 //       string text = 1; // The resource content.
 //     }
 //
-// This enables an HTTP REST to gRPC mapping as below:
+// This enables an HTTP REST to GRPC mapping as below:
 //
-// HTTP | gRPC
+// HTTP | GRPC
 // -----|-----
 // `GET /v1/messages/123456`  | `GetMessage(name: "messages/123456")`
 //
@@ -108,7 +108,7 @@ message Http {
 //
 // This enables a HTTP JSON to RPC mapping as below:
 //
-// HTTP | gRPC
+// HTTP | GRPC
 // -----|-----
 // `GET /v1/messages/123456?revision=2&sub.subfield=foo` |
 // `GetMessage(message_id: "123456" revision: 2 sub: SubMessage(subfield:
@@ -142,7 +142,7 @@ message Http {
 // representation of the JSON in the request body is determined by
 // protos JSON encoding:
 //
-// HTTP | gRPC
+// HTTP | GRPC
 // -----|-----
 // `PATCH /v1/messages/123456 { "text": "Hi!" }` | `UpdateMessage(message_id:
 // "123456" message { text: "Hi!" })`
@@ -168,7 +168,7 @@ message Http {
 //
 // The following HTTP JSON to RPC mapping is enabled:
 //
-// HTTP | gRPC
+// HTTP | GRPC
 // -----|-----
 // `PATCH /v1/messages/123456 { "text": "Hi!" }` | `UpdateMessage(message_id:
 // "123456" text: "Hi!")`
@@ -199,7 +199,7 @@ message Http {
 //
 // This enables the following two alternative HTTP JSON to RPC mappings:
 //
-// HTTP | gRPC
+// HTTP | GRPC
 // -----|-----
 // `GET /v1/messages/123456` | `GetMessage(message_id: "123456")`
 // `GET /v1/users/me/messages/123456` | `GetMessage(user_id: "me" message_id:
@@ -263,16 +263,16 @@ message Http {
 // Document](https://developers.google.com/discovery/v1/reference/apis) as
 // `{+var}`.
 //
-// ## Using gRPC API Service Configuration
+// ## Using GRPC API Service Configuration
 //
-// gRPC API Service Configuration (service config) is a configuration language
-// for configuring a gRPC service to become a user-facing product. The
+// GRPC API Service Configuration (service config) is a configuration language
+// for configuring a GRPC service to become a user-facing product. The
 // service config is simply the YAML representation of the `google.api.Service`
 // proto message.
 //
-// As an alternative to annotating your proto file, you can configure gRPC
+// As an alternative to annotating your proto file, you can configure GRPC
 // transcoding in your service config YAML files. You do this by specifying a
-// `HttpRule` that maps the gRPC method to a REST endpoint, achieving the same
+// `HttpRule` that maps the GRPC method to a REST endpoint, achieving the same
 // effect as the proto annotation. This can be particularly useful if you
 // have a proto that is reused in multiple services. Note that any transcoding
 // specified in the service config will override any matching transcoding
@@ -282,13 +282,13 @@ message Http {
 //
 //     http:
 //       rules:
-//         # Selects a gRPC method and applies HttpRule to it.
+//         # Selects a GRPC method and applies HttpRule to it.
 //         - selector: example.v1.Messaging.GetMessage
 //           get: /v1/messages/{message_id}/{sub.subfield}
 //
 // ## Special notes
 //
-// When gRPC Transcoding is used to map a gRPC to JSON REST endpoints, the
+// When GRPC Transcoding is used to map a GRPC to JSON REST endpoints, the
 // proto to JSON conversion must follow the [proto3
 // specification](https://developers.google.com/protocol-buffers/docs/proto3#json).
 //
@@ -297,7 +297,7 @@ message Http {
 // Expansion, the multi segment variable **does not** follow RFC 6570 Section
 // 3.2.3 Reserved Expansion. The reason is that the Reserved Expansion
 // does not expand special characters like `?` and `#`, which would lead
-// to invalid URLs. As the result, gRPC Transcoding uses a custom encoding
+// to invalid URLs. As the result, GRPC Transcoding uses a custom encoding
 // for multi segment variables.
 //
 // The path variables **must not** refer to any repeated or mapped field,
@@ -311,7 +311,7 @@ message Http {
 // no client library can support such complicated mapping.
 //
 // If an API needs to use a JSON array for request or response body, it can map
-// the request or response body to a repeated field. However, some gRPC
+// the request or response body to a repeated field. However, some GRPC
 // Transcoding implementations may not support this feature.
 message HttpRule {
   // Selects a method to which this rule applies.

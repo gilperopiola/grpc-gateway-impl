@@ -4,54 +4,52 @@ package errs
 /*              - Errors -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// -> These are just strings, not actual errors <-
-
-// T0D0 put Err at the end of the vars name. Also perfect the business/db errors thingy.
+// NOTE -> These are just strings. Error messages, NOT the actual errors.
 
 const (
 
-	// Fatal error messages. Most of them are used when initializing the application.
-	FatalErrMsgGettingWorkingDir = "Failed to get working directory: %v"
-	FatalErrMsgCreatingValidator = "Failed to create validator: %v"
-	FatalErrMsgCreatingLogger    = "Failed to create logger: %v"
-	FatalErrMsgLoadingTLSCreds   = "Failed to load server TLS credentials: %v"
-	FatalErrMsgReadingTLSCert    = "Failed to read TLS certificate: %v"
-	FatalErrMsgAppendingTLSCert  = "Failed to append TLS certificate"
-	FatalErrMsgStartingGRPC      = "Failed to start gRPC server: %v"
-	FatalErrMsgServingGRPC       = "Failed to serve gRPC server: %v"
-	FatalErrMsgStartingHTTP      = "Failed to start HTTP server: %v"
-	FatalErrMsgServingHTTP       = "Failed to serve HTTP server: %v"
-	FatalErrMsgShuttingDownHTTP  = "Failed to shutdown HTTP server: %v"
-	FatalErrMsgConnectingDB      = "Failed to connect to the database: %v"
+	/* -~-~-~-~-~-~ Fatal (init/shutdown) ~-~-~-~-~-~- */
 
-	// Non-fatal initialization error messages.
-	InsertingDBAdmin    = "Failed to insert admin user to the database: %v"
-	ErrMsgGettingDBConn = "Failed to get database connection: %v"
+	FailedToStartGRPC    = "Failed to start GRPC Server: %v"
+	FailedToServeGRPC    = "Failed to serve GRPC Server: %v"
+	FailedToStartHTTP    = "Failed to start HTTP Server: %v"
+	FailedToServeHTTP    = "Failed to serve HTTP Server: %v"
+	FailedToShutdownHTTP = "Failed to shutdown HTTP Server: %v"
 
-	// Non-fatal shutdown error messages.
-	ErrMsgGettingSQL = "Failed to get SQL database connection: %v"
+	FailedToCreateProtoVal = "Failed to create Proto Validator: %v"
+	FailedToCreateLogger   = "Failed to create Logger: %v"
+	FailedToConnectToDB    = "Failed to connect to the DB: %v"
 
-	// Request lifecycle error messages.
-	ErrMsgInValidation           = "request validation error: %v."
-	ErrMsgInValidationRuntime    = "runtime validation error: %v."
-	ErrMsgInValidationUnexpected = "unexpected validation error: %v."
-	ErrMsgPanic                  = "unexpected panic, something went wrong."
-	ErrMsgRateLimitExceeded      = "too many requests in a very short time, try again later."
+	FailedToLoadTLSCreds  = "Failed to load TLS Creds: %v"
+	FailedToReadTLSCert   = "Failed to read TLS Cert: %v"
+	FailedToAppendTLSCert = "Failed to append TLS Cert"
 
-	// Storage Layer error messages.
-	ErrMsgRepoNoQueryOpts = "external error -> no query options"
+	/* -~-~-~-~-~ Non-Fatal (init/shutdown) ~-~-~-~-~- */
 
-	ErrMsgRepoCreatingUser  = "external error -> creating user"
-	ErrMsgRepoGettingUser   = "external error -> getting user"
-	ErrMsgRepoGettingUsers  = "external error -> getting users"
-	ErrMsgRepoCountingUsers = "external error -> counting users"
+	FailedToInsertDBAdmin = "Failed to insert admin to DB: %v"
+	FailedToGetSQLDB      = "Failed to get SQL DB connection: %v"
+	FailedToCloseSQLDB    = "Failed to close SQL DB connection: %v"
 
-	// HTTP error response bodies.
-	// They are what gets sent as the HTTP Response's body when an error occurs.
+	/* -~-~-~-~-~ Requests lifecycle errors ~-~-~-~-~- */
+
+	PanicMsg       = "unexpected panic, something went wrong."
+	RateLimitedMsg = "too many requests in a very short time, try again later."
+
+	InReqValidation           = "request validation error -> %v."
+	InReqValidationRuntime    = "runtime validation error -> %v."
+	InReqValidationUnexpected = "unexpected validation error -> %v."
+
+	DBNoQueryOpts   = "DB error -> no query options"
+	DBCreatingUser  = "DB error -> creating user"
+	DBGettingUser   = "DB error -> getting user"
+	DBGettingUsers  = "DB error -> getting users"
+	DBCountingUsers = "DB error -> counting users"
+
+	// These are the actual HTTP error response bodies when an error happens.
 	// Bad Requests (400) are handled by the HTTP Error Handler.
-	HTTPNotFoundErrBody       = `{"error": "resource not found."}`
-	HTTPUnauthorizedErrBody   = `{"error": "unauthorized, authenticate first."}`
-	HTTPForbiddenErrBody      = `{"error": "access to this resource is forbidden."}`
-	HTTPInternalErrBody       = `{"error": "internal server error, something failed on our end."}`
-	HTTPServiceUnavailErrBody = `{"error": "business unavailable, try again later."}`
+	HTTPNotFound     = `{"error": "resource not found."}`
+	HTTPUnauthorized = `{"error": "unauthorized, authenticate first."}`
+	HTTPForbidden    = `{"error": "access to this resource is forbidden."}`
+	HTTPInternal     = `{"error": "internal server error, something failed on our end."}`
+	HTTPUnavailable  = `{"error": "service unavailable, try again later."}`
 )
