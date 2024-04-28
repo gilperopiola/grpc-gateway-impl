@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -19,23 +18,21 @@ type Servers struct {
 }
 
 // Sets up both GRPC and HTTP servers.
-func Setup(usersService pbs.UsersServiceServer, toolbox core.Toolbox, tlsEnabled bool) *Servers {
+func Setup(service core.Service, toolbox core.Toolbox, tlsEnabled bool) core.Servers {
 	var (
-		grpcServerOpts       = defaultGRPCServerOpts(toolbox, tlsEnabled)
-		grpcDialOpts         = defaultGRPCDialOpts(toolbox.GetClientCreds())
-		httpServerOpts       = defaultHTTPMuxOpts()
-		httpServerMiddleware = defaultHTTPMiddleware()
+		grpcServerOpts   = defaultGRPCServerOpts(toolbox, tlsEnabled)
+		grpcDialOpts     = defaultGRPCDialOpts(toolbox.GetClientCreds())
+		httpServeMuxOpts = defaultHTTPServeMuxOpts()
+		httpMiddleware   = defaultHTTPMiddleware()
 	)
 
 	zap.S().Info("GRPC Gateway Implementation | Starting Servers 🚀")
 
 	return &Servers{
-		newGRPCServer(usersService, grpcServerOpts),
-		newHTTPGateway(httpServerOpts, httpServerMiddleware, grpcDialOpts),
+		newGRPCServer(service, grpcServerOpts),
+		newHTTPGateway(httpServeMuxOpts, httpMiddleware, grpcDialOpts),
 	}
 }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (s *Servers) Run() {
 	runGRPC(s.GRPC)
@@ -43,26 +40,33 @@ func (s *Servers) Run() {
 
 	go func() {
 		time.Sleep(time.Second) // T0D0 healtcheck??
-		zap.S().Infoln("GRPC Gateway Implementation | Servers OK 🚀")
+		zap.S().Infoln("GRPC Gateway Implementation | Servers OK 🚀\n")
 	}()
 }
 
-func runGRPC(grpcSv *grpc.Server) {
+func (s *Servers) Shutdown() {
+	shutdownGRPC(s.GRPC)
+	shutdownHTTP(s.HTTP)
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+func runGRPC(grpcServer *grpc.Server) {
 	zap.S().Infof("GRPC Gateway Implementation | GRPC Port %s 🚀", core.GRPCPort)
 
 	lis, err := net.Listen("tcp", core.GRPCPort)
 	core.LogPanicIfErr(err)
 
 	go func() {
-		core.LogPanicIfErr(grpcSv.Serve(lis))
+		core.LogPanicIfErr(grpcServer.Serve(lis))
 	}()
 }
 
-func runHTTP(httpGw *http.Server) {
+func runHTTP(httpGateway *http.Server) {
 	zap.S().Infof("GRPC Gateway Implementation | HTTP Port %s 🚀", core.HTTPPort)
 
 	go func() {
-		if err := httpGw.ListenAndServe(); err != http.ErrServerClosed {
+		if err := httpGateway.ListenAndServe(); err != http.ErrServerClosed {
 			core.LogUnexpectedAndPanic(err)
 		}
 	}()
@@ -70,21 +74,16 @@ func runHTTP(httpGw *http.Server) {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (s *Servers) Shutdown() {
-	shutdownGRPC(s.GRPC)
-	shutdownHTTP(s.HTTP)
-}
-
-func shutdownGRPC(grpcSv *grpc.Server) {
+func shutdownGRPC(grpcServer *grpc.Server) {
 	zap.S().Info("GRPC Gateway Implementation | Shutting down GRPC 🛑")
-	grpcSv.GracefulStop()
+	grpcServer.GracefulStop()
 }
 
-func shutdownHTTP(httpGw *http.Server) {
+func shutdownHTTP(httpGateway *http.Server) {
 	zap.S().Info("GRPC Gateway Implementation | Shutting down HTTP 🛑")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	core.LogPanicIfErr(httpGw.Shutdown(ctx))
+	core.LogPanicIfErr(httpGateway.Shutdown(ctx))
 }

@@ -15,11 +15,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var _ core.TokenAuthenticator = (*jwtAuthenticator)(nil)
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - JWT Auth -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-var _ core.TokenAuthenticator = (*jwtAuthenticator)(nil)
 
 type jwtAuthenticator struct {
 	secret        string
@@ -30,15 +30,14 @@ type jwtAuthenticator struct {
 	expAtFn       func(iAt time.Time) *jwt.NumericDate
 }
 
-// Our custom claims = the standard JWT RegisteredClaims + our own.
+// Our jwtClaims -> Standard JWT RegisteredClaims + Username + Role.
 type jwtClaims struct {
 	jwt.RegisteredClaims
 	Username string    `json:"username"`
 	Role     core.Role `json:"role"`
 }
 
-// New JWT authenticator with the given secret and duration.
-func NewJWTAuthenticator(secret string, sessionDays int) *jwtAuthenticator {
+func NewJWTAuthenticator(secret string, sessionDays int) core.TokenAuthenticator {
 	return &jwtAuthenticator{
 		secret:        secret,
 		sessionDays:   sessionDays,
@@ -49,44 +48,30 @@ func NewJWTAuthenticator(secret string, sessionDays int) *jwtAuthenticator {
 	}
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Generate Token -          */
+func (jwta jwtAuthenticator) GetTokenAuthenticator() core.TokenAuthenticator {
+	return jwta
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // GenerateToken returns a JWT token with the given user id, username and role.
-func (a *jwtAuthenticator) GenerateToken(id int, username string, role core.Role) (string, error) {
-	claims := a.NewClaims(id, username, role)
-	tokenString, err := jwt.NewWithClaims(a.signingMethod, claims).SignedString([]byte(a.secret))
+func (jwta jwtAuthenticator) GenerateToken(id int, username string, role core.Role) (string, error) {
+	claims := jwta.newClaims(id, username, role, time.Now())
+
+	token, err := jwt.NewWithClaims(jwta.signingMethod, claims).SignedString([]byte(jwta.secret))
 	if err != nil {
 		core.LogUnexpectedErr(err)
 		return "", status.Errorf(codes.Internal, "auth: error generating token: %v", err) // T0D0 move to errs.
 	}
-	return tokenString, nil
-}
 
-// newClaims have inside the RegisteredClaims (with ID and dates), as well as the Username and Role.
-func (a *jwtAuthenticator) NewClaims(id int, username string, role core.Role) *jwtClaims {
-	now := time.Now()
-	return &jwtClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        strconv.Itoa(id),
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: a.expAtFn(now),
-		},
-		Username: username,
-		Role:     role,
-	}
+	return token, nil
 }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Validate Token -          */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Returns a GRPC interceptor that validates a JWT token inside of the context.
-func (a *jwtAuthenticator) ValidateToken(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-	route := core.GetRouteFromGRPC(svInfo.FullMethod)
+func (jwta jwtAuthenticator) ValidateToken(ctx context.Context, req interface{}, svInfo *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	route := core.RouteNameFromGRPC(svInfo.FullMethod)
 
-	bearer, err := a.getBearer(ctx)
+	bearer, err := jwta.getBearer(ctx)
 	if err != nil {
 		if core.Routes[route].Auth == core.RouteAuthPublic {
 			return handler(ctx, req)
@@ -94,47 +79,24 @@ func (a *jwtAuthenticator) ValidateToken(ctx context.Context, req interface{}, s
 		return nil, err
 	}
 
-	claims, err := a.getClaims(bearer)
+	claims, err := jwta.getClaims(bearer)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := a.canAccessRoute(route, claims.ID, claims.Role, req); err != nil {
+	if err := jwta.canAccessRoute(route, claims.ID, claims.Role, req); err != nil {
 		return nil, err
 	}
 
-	ctx = a.contextWithUserInfo(ctx, claims.ID, claims.Username)
+	ctx = jwta.contextWithUserInfo(ctx, claims.ID, claims.Username)
 
 	return handler(ctx, req)
 }
 
-// Returns the authorization Metadata from the context.
-func (a *jwtAuthenticator) getBearer(ctx context.Context) (string, error) {
-	bearer, err := a.grpcMDMapFn(ctx).Get("authorization")
-	if err != nil {
-		return "", status.Errorf(codes.Unauthenticated, "auth: token not found")
-	}
-	if !strings.HasPrefix(bearer, "Bearer ") {
-		core.LogWeirdBehaviour(msgTokenMalformed())
-		return "", status.Errorf(codes.Unauthenticated, "auth: token malformed")
-	}
-	return strings.TrimPrefix(bearer, "Bearer "), nil
-}
-
-// Parses the token object into *jwtClaims and validates them.
-// Returns the claims if valid, or an error if not.
-func (a *jwtAuthenticator) getClaims(bearer string) (*jwtClaims, error) {
-	jwtToken, err := jwt.ParseWithClaims(bearer, &jwtClaims{}, a.keyFn)
-	if err == nil && jwtToken != nil && jwtToken.Valid {
-		if claims, ok := jwtToken.Claims.(*jwtClaims); ok && claims.Valid() == nil {
-			return claims, nil
-		}
-	}
-	return nil, status.Errorf(codes.Unauthenticated, "auth: token invalid")
-}
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Checks if the user is allowed to access the route.
-func (a *jwtAuthenticator) canAccessRoute(route, userID string, role core.Role, req any) error {
+func (jwta jwtAuthenticator) canAccessRoute(route, userID string, role core.Role, req any) error {
 	switch core.Routes[route].Auth {
 
 	case core.RouteAuthPublic:
@@ -159,8 +121,45 @@ func (a *jwtAuthenticator) canAccessRoute(route, userID string, role core.Role, 
 	return nil
 }
 
+// Returns the authorization Metadata from the context.
+func (jwta jwtAuthenticator) getBearer(ctx context.Context) (string, error) {
+	bearer, err := jwta.grpcMDMapFn(ctx).Get("authorization")
+	if err != nil {
+		return "", status.Errorf(codes.Unauthenticated, "auth: token not found")
+	}
+	if !strings.HasPrefix(bearer, "Bearer ") {
+		core.LogWeirdBehaviour(msgTokenMalformed())
+		return "", status.Errorf(codes.Unauthenticated, "auth: token malformed")
+	}
+	return strings.TrimPrefix(bearer, "Bearer "), nil
+}
+
+// Parses the token object into *jwtClaims and validates them.
+// Returns the claims if valid, or an error if not.
+func (jwta jwtAuthenticator) getClaims(bearer string) (*jwtClaims, error) {
+	jwtToken, err := jwt.ParseWithClaims(bearer, &jwtClaims{}, jwta.keyFn)
+	if err == nil && jwtToken != nil && jwtToken.Valid {
+		if claims, ok := jwtToken.Claims.(*jwtClaims); ok && claims.Valid() == nil {
+			return claims, nil
+		}
+	}
+	return nil, status.Errorf(codes.Unauthenticated, "auth: token invalid")
+}
+
+func (jwta jwtAuthenticator) newClaims(id int, username string, role core.Role, issuedAt time.Time) *jwtClaims {
+	return &jwtClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        strconv.Itoa(id),
+			IssuedAt:  jwt.NewNumericDate(issuedAt),
+			ExpiresAt: jwta.expAtFn(issuedAt),
+		},
+		Username: username,
+		Role:     role,
+	}
+}
+
 // Returns a new context with the user ID and username inside.
-func (a *jwtAuthenticator) contextWithUserInfo(ctx context.Context, userID, username string) context.Context {
+func (jwta jwtAuthenticator) contextWithUserInfo(ctx context.Context, userID, username string) context.Context {
 	ctx = context.WithValue(ctx, &ContextKeyUserID{}, userID)
 	ctx = context.WithValue(ctx, &ContextKeyUsername{}, username)
 	return ctx

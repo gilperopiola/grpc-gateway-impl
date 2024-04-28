@@ -26,7 +26,7 @@ type User struct {
 	UpdatedAt time.Time
 }
 
-func (u User) ToUserInfo() *pbs.UserInfo {
+func (u User) ToUserInfoPB() *pbs.UserInfo {
 	return &pbs.UserInfo{
 		Id:        int32(u.ID),
 		Username:  u.Username,
@@ -37,10 +37,10 @@ func (u User) ToUserInfo() *pbs.UserInfo {
 
 type Users []*User
 
-func (us Users) ToUsersInfo() []*pbs.UserInfo {
+func (us Users) ToUsersInfoPB() []*pbs.UserInfo {
 	usersInfo := make([]*pbs.UserInfo, 0, len(us))
-	for i := range us {
-		usersInfo[i] = us[i].ToUserInfo()
+	for _, u := range us {
+		usersInfo = append(usersInfo, u.ToUserInfoPB())
 	}
 	return usersInfo
 }

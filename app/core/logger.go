@@ -2,15 +2,16 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"google.golang.org/grpc"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc"
 	gormLogger "gorm.io/gorm/logger"
 )
 
@@ -30,7 +31,7 @@ func SetupLogger(cfg *LoggerCfg) *zap.Logger {
 
 	zapLogger, err := newZapConfig(cfg).Build(zapOpts...)
 	if err != nil {
-		log.Fatalf(errs.FailedToCreateLogger, err) // don't use zap for this.
+		log.Fatalf(errs.FailedToCreateLogger, err) // Don't use zap for this.
 	}
 
 	zap.ReplaceGlobals(zapLogger)
@@ -72,19 +73,35 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Helps keeping code clean and readable, lets you omit the error check on the caller when you just need to log it.
-func LogIfErr(err error, fmtMsg string) {
+func LogIfErr(err error, optionalFmtMsg ...string) {
 	if err != nil {
-		if fmtMsg == "" {
-			fmtMsg = "untyped error: %v"
+		fmtMsg := "untyped error: %v"
+		if len(optionalFmtMsg) > 0 {
+			fmtMsg = optionalFmtMsg[0]
 		}
 		zap.S().Errorf(fmtMsg, err)
 	}
 }
 
-// Helps keeping code clean and readable, lets you omit the error check on the caller.
-func LogPanicIfErr(err error) {
+// Helps keeping code clean and readable, lets you omit the error check on the caller when you just need to log it.
+func WarnIfErr(err error, optionalFmtMsg ...string) {
 	if err != nil {
-		LogUnexpectedAndPanic(err)
+		fmtMsg := "untyped warning: %v"
+		if len(optionalFmtMsg) > 0 {
+			fmtMsg = optionalFmtMsg[0]
+		}
+		zap.S().Warnf(fmtMsg, err)
+	}
+}
+
+// Helps keeping code clean and readable, lets you omit the error check on the caller.
+func LogPanicIfErr(err error, optionalFmtMsg ...string) {
+	if err != nil {
+		fmtMsg := "untyped panic: %v"
+		if len(optionalFmtMsg) > 0 {
+			fmtMsg = optionalFmtMsg[0]
+		}
+		LogUnexpectedAndPanic(fmt.Errorf(fmtMsg, err))
 	}
 }
 
@@ -127,12 +144,12 @@ func ZapInfo(info ...any) zap.Field {
 //
 //	-> In GRPC, it's the last part of the Method -> '/users.UsersService/GetUsers'.
 func ZapRouteFromGRPC(method string) zap.Field {
-	return zap.String("route", GetRouteFromGRPC(method))
+	return zap.String("route", RouteNameFromGRPC(method))
 }
 
 // -> In HTTP, we join Method and Path -> 'GET /users'.
 func ZapRouteFromHTTP(req *http.Request) zap.Field {
-	return zap.String("route", req.Method+" "+req.URL.Path)
+	return zap.String("route", RouteNameFromHTTP(req))
 }
 
 // Logs a duration.

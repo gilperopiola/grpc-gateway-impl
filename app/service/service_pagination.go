@@ -12,9 +12,9 @@ type PaginatedRequest interface {
 	GetPageSize() int32
 }
 
-// getPaginationValues returns the page and pageSize values from a GRPC Request with pagination methods.
+// getPaginationFromRequest returns the page and pageSize values from a GRPC Request with pagination methods.
 // It defaults to page 1 and pageSize 10 if the values are not set.
-func getPaginationValues[r PaginatedRequest](req r) (int, int) {
+func getPaginationFromRequest[r PaginatedRequest](req r) (int, int) {
 	defaultPage := int32(1)      // T0D0 -> Config var.
 	defaultPageSize := int32(10) // T0D0 -> Config var.
 

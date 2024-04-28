@@ -11,51 +11,54 @@ import (
 /*          - Service Errors -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+// -> Service Errors have to be GRPC 'status' errors, as our Service speaks GRPC.
+// -> But we want to have our own custom errors, so we first make a ServiceErr and then .Error() it as the GRPC Status message.
+
+type ServiceErr struct {
+	Err      error
+	Code     codes.Code
+	Metadata string // Holds relevant info like the route or sth.
+}
+
+// Returns a new ServiceError inside of a GRPC error 'status'.
+func NewGRPCServiceErr(code codes.Code, err error, optionalMD ...string) error {
+	md := code.String()
+	if len(optionalMD) > 0 {
+		md = optionalMD[0]
+	}
+	return status.Error(code, ServiceErr{err, code, md}.Unwrap().Error())
+}
+
+func (serr ServiceErr) Error() string {
+	if serr.Metadata == "" {
+		return serr.Unwrap().Error()
+	}
+	return fmt.Sprintf("%s -> %v", serr.Metadata, serr.Unwrap())
+}
+
+func (serr ServiceErr) Unwrap() error {
+	if serr.Err != nil {
+		return serr.Err
+	}
+	return fmt.Errorf(serr.Code.String())
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
 var (
-	ErrSvcUserRelated = func(err error, methodName string) error {
-		return NewGRPC(codes.Unknown, err, methodName)
+	GRPCUsersDBCall = func(err error, route string) error {
+		return NewGRPCServiceErr(codes.Unknown, err, route)
 	}
-	ErrSvcOnTokenGeneration = func(err error) error {
-		return NewGRPC(codes.Unknown, err)
+	GRPCGeneratingToken = func(err error) error {
+		return NewGRPCServiceErr(codes.Unknown, err)
 	}
-	ErrSvcUnauthenticated = func() error {
-		return NewGRPC(codes.Unauthenticated, nil)
+	GRPCUnauthenticated = func() error {
+		return NewGRPCServiceErr(codes.Unauthenticated, nil)
 	}
-	ErrSvcNotFound = func(entity string) error {
-		err := fmt.Errorf("%s not found", entity)
-		return NewGRPC(codes.NotFound, err)
+	GRPCNotFound = func(resource string) error {
+		return NewGRPCServiceErr(codes.NotFound, fmt.Errorf("%s not found", resource))
 	}
-	ErrSvcAlreadyExists = func(entity string) error {
-		err := fmt.Errorf("%s already exists", entity)
-		return NewGRPC(codes.AlreadyExists, err)
+	GRPCAlreadyExists = func(resource string) error {
+		return NewGRPCServiceErr(codes.AlreadyExists, fmt.Errorf("%s already exists", resource))
 	}
 )
-
-// NewGRPC returns a new ServiceError inside of a GRPC error.
-func NewGRPC(code codes.Code, err error, messages ...string) error {
-	msg := code.String()
-	if len(messages) > 0 {
-		msg = messages[0]
-	}
-	return status.Error(code, ServiceError{err, code, msg}.Error())
-}
-
-type ServiceError struct {
-	Err  error
-	Code codes.Code
-	Msg  string
-}
-
-func (e ServiceError) Error() string {
-	if e.Msg == "" {
-		return e.Unwrap().Error()
-	}
-	return fmt.Sprintf("%s -> %v", e.Msg, e.Unwrap())
-}
-
-func (e ServiceError) Unwrap() error {
-	if e.Err != nil {
-		return e.Err
-	}
-	return fmt.Errorf(e.Code.String())
-}

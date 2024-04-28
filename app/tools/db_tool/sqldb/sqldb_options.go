@@ -1,4 +1,4 @@
-package sql
+package sqldb
 
 import (
 	"fmt"
@@ -20,11 +20,11 @@ const (
 /*      - High Level SQL Options -     */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func WithUserID(userID int) core.SQLQueryOpt {
-	return WithCondition(Where, "id", strconv.Itoa(userID))
+func WithUserID(userID int32) core.SQLDBOpt {
+	return WithCondition(Where, "id", strconv.Itoa(int(userID)))
 }
 
-func WithUsername(username string) core.SQLQueryOpt {
+func WithUsername(username string) core.SQLDBOpt {
 	return WithCondition(Where, "username", username)
 }
 
@@ -32,13 +32,13 @@ func WithUsername(username string) core.SQLQueryOpt {
 /*      - Low Level SQL Options -      */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func WithCondition(operation Operation, field, value string) core.SQLQueryOpt {
+func WithCondition(operation Operation, field, value string) core.SQLDBOpt {
 	if field == "" {
 		core.LogWeirdBehaviour("Empty field in SQL condition -> value = " + value)
-		return func(db core.SQLDatabaseAPI) {} // No-op
+		return func(db core.SQLDB) {} // No-op
 	}
 
-	return func(db core.SQLDatabaseAPI) {
+	return func(db core.SQLDB) {
 		if operation == Where || operation == And { // Where / And
 			db.Where(fmt.Sprintf("%s = ?", field), value)
 			return
@@ -50,11 +50,6 @@ func WithCondition(operation Operation, field, value string) core.SQLQueryOpt {
 		}
 
 		if operation == Like { // Like
-			if value == "" {
-				core.LogWeirdBehaviour("Empty value in SQL condition -> field = " + field)
-				return
-			}
-
 			db.Where(fmt.Sprintf("%s LIKE ?", field), "%"+value+"%")
 			return
 		}

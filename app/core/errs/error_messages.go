@@ -4,11 +4,11 @@ package errs
 /*              - Errors -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// NOTE -> These are just strings. Error messages, NOT the actual errors.
+// NOTE -> These are just strings, error messages, NOT actual errors.
 
 const (
 
-	/* -~-~-~-~-~-~ Fatal (init/shutdown) ~-~-~-~-~-~- */
+	/* -~-~-~-~-~-~ Fatal error messages (init/shutdown) ~-~-~-~-~-~- */
 
 	FailedToStartGRPC    = "Failed to start GRPC Server: %v"
 	FailedToServeGRPC    = "Failed to serve GRPC Server: %v"
@@ -24,32 +24,34 @@ const (
 	FailedToReadTLSCert   = "Failed to read TLS Cert: %v"
 	FailedToAppendTLSCert = "Failed to append TLS Cert"
 
-	/* -~-~-~-~-~ Non-Fatal (init/shutdown) ~-~-~-~-~- */
+	/* -~-~-~-~-~ Non-Fatal error messages (init/shutdown) ~-~-~-~-~- */
 
 	FailedToInsertDBAdmin = "Failed to insert admin to DB: %v"
 	FailedToGetSQLDB      = "Failed to get SQL DB connection: %v"
 	FailedToCloseSQLDB    = "Failed to close SQL DB connection: %v"
 
-	/* -~-~-~-~-~ Requests lifecycle errors ~-~-~-~-~- */
+	/* -~-~-~-~-~ Requests lifecycle error messages ~-~-~-~-~- */
 
 	PanicMsg       = "unexpected panic, something went wrong."
 	RateLimitedMsg = "too many requests in a very short time, try again later."
 
-	InReqValidation           = "request validation error -> %v."
-	InReqValidationRuntime    = "runtime validation error -> %v."
-	InReqValidationUnexpected = "unexpected validation error -> %v."
+	// Validation Errors
+	ValidatingRequest           = "request validation error -> %v."
+	ValidatingRequestRuntime    = "runtime validation error -> %v."
+	ValidatingRequestUnexpected = "unexpected validation error -> %v."
 
-	DBNoQueryOpts   = "DB error -> no query options"
-	DBCreatingUser  = "DB error -> creating user"
-	DBGettingUser   = "DB error -> getting user"
-	DBGettingUsers  = "DB error -> getting users"
-	DBCountingUsers = "DB error -> counting users"
+	// DB Errors
+	DBNoQueryOpts   = "db error -> no query options"
+	DBCreatingUser  = "db error -> creating user"
+	DBGettingUser   = "db error -> getting user"
+	DBGettingUsers  = "db error -> getting users"
+	DBCountingUsers = "db error -> counting users"
 
-	// These are the actual HTTP error response bodies when an error happens.
-	// Bad Requests (400) are handled by the HTTP Error Handler.
-	HTTPNotFound     = `{"error": "resource not found."}`
-	HTTPUnauthorized = `{"error": "unauthorized, authenticate first."}`
-	HTTPForbidden    = `{"error": "access to this resource is forbidden."}`
-	HTTPInternal     = `{"error": "internal server error, something failed on our end."}`
-	HTTPUnavailable  = `{"error": "service unavailable, try again later."}`
+	// HTTP Errors
+	HTTPNotFound     = "resource not found."
+	HTTPUnauthorized = "unauthorized, authenticate first."
+	HTTPForbidden    = "access to this resource is forbidden."
+	HTTPInternal     = "internal server error, something failed on our end."
+	HTTPUnavailable  = "service unavailable, try again later."
+	HTTPConflict     = "resource already exists."
 )

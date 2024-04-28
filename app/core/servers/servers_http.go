@@ -2,6 +2,7 @@ package servers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -18,80 +19,124 @@ import (
 /*          - HTTP Gateway -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func newHTTPGateway(muxOpts []runtime.ServeMuxOption, middleware middlewareFunc, grpcDialOpts []grpc.DialOption) *http.Server {
-	mux := runtime.NewServeMux(muxOpts...)
-
-	ctx := context.Background()
-	core.LogPanicIfErr(pbs.RegisterUsersServiceHandlerFromEndpoint(ctx, mux, core.GRPCPort, grpcDialOpts))
+func newHTTPGateway(serveMuxOpts []runtime.ServeMuxOption, middlewareFn middlewareFunc, grpcDialOpts []grpc.DialOption) *http.Server {
+	mux := runtime.NewServeMux(serveMuxOpts...)
+	err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, core.GRPCPort, grpcDialOpts)
+	core.LogPanicIfErr(err)
 
 	return &http.Server{
 		Addr:    core.HTTPPort,
-		Handler: middleware(mux),
+		Handler: middlewareFn(mux),
 	}
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - HTTP Mux Options -        */
+
+type middlewareFunc func(http.Handler) http.Handler
+
+// Returns the middleware to be wrapped around the HTTP Gateway's Mux.
+func defaultHTTPMiddleware() middlewareFunc {
+	return func(handler http.Handler) http.Handler {
+		return handleCORS(core.LogHTTPRequest(setResponseHeaders(handler)))
+	}
+}
+
+// Middleware.
+var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		handler.ServeHTTP(rw, req)
+		for _, value := range deleteHeaders {
+			rw.Header().Del(value)
+		}
+		for key, value := range defaultHeaders {
+			rw.Header().Set(key, value)
+		}
+	})
+}
+
+// Middleware. Adds CORS headers to the response and handles preflight requests.
+var handleCORS middlewareFunc = func(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		for key, value := range corsHeaders {
+			rw.Header().Set(key, value)
+		}
+		if req.Method == "OPTIONS" { // Preflight
+			rw.WriteHeader(http.StatusOK)
+			return
+		}
+		handler.ServeHTTP(rw, req)
+	})
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Returns a slice of runtime.ServeMuxOption.
-// For now there's only an error handler in here.
-func defaultHTTPMuxOpts() []runtime.ServeMuxOption {
+// ServeMuxOptions are applied to the HTTP Gateway's Mux on creation.
+// For now there's only an error handler.
+
+// Returns our ServeMuxOptions.
+func defaultHTTPServeMuxOpts() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{runtime.WithErrorHandler(handleHTTPError)}
 }
 
-// handleHTTPError is a custom error handler for the HTTP Gateway. It's pretty simple.
-// It converts the GRPC error to an HTTP error and writes it to the response.
-func handleHTTPError(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
+func handleHTTPError(c context.Context, mux *runtime.ServeMux, m runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
+
+	// HTTP Errors stop the HTTP Middleware execution chain, so we call forwardResponseOptions to set the headers.
+	for _, forwardResponseFn := range mux.GetForwardResponseOptions() {
+		forwardResponseFn(c, rw, nil)
+	}
+
 	grpcStatus := status.Convert(err)
 	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
+	httpBody := newHTTPErrorRespBody(grpcStatus.Message())
 
-	// This fn stops the execution chain, so we manually call the forwardResponseOptions to set the headers.
-	for _, forwardResponseFn := range mux.GetForwardResponseOptions() {
-		forwardResponseFn(ctx, w, nil)
-	}
+	modifyHTTPErrorBodyOrHeaders(rw, httpStatus, &httpBody)
 
-	// Create and marshal an httpError into a []byte buffer. If it fails (unlikely), we return 500.
-	var httpBody []byte
-	if httpBody, err = m.Marshal(httpError{grpcStatus.Message()}); err != nil {
-		core.LogUnexpectedErr(err)
-		httpStatus = http.StatusInternalServerError
-	}
-
-	writeHTTPErrorResponse(w, httpStatus, httpBody)
+	rw.WriteHeader(httpStatus)
+	rw.Write([]byte(httpBody))
 }
 
-// Writes the response that gets sent to the client when an error happens.
-// For some errors we replace the body with a generic message.
-func writeHTTPErrorResponse(rw http.ResponseWriter, status int, body []byte) {
+// Modifies the HTTP Error response body and headers based on the HTTP Status.
+func modifyHTTPErrorBodyOrHeaders(rw http.ResponseWriter, status int, body *string) {
 	switch status {
+	case http.StatusBadRequest:
+		// Do nothing.
 	case http.StatusUnauthorized:
 		rw.Header().Set("WWW-Authenticate", "Bearer")
-		body = []byte(errs.HTTPUnauthorized)
-
+		*body = newHTTPErrorRespBody(errs.HTTPUnauthorized)
 	case http.StatusForbidden:
-		body = []byte(errs.HTTPForbidden)
-
+		*body = newHTTPErrorRespBody(errs.HTTPForbidden)
 	case http.StatusNotFound, http.StatusMethodNotAllowed:
-		body = []byte(errs.HTTPNotFound)
-
+		*body = newHTTPErrorRespBody(errs.HTTPNotFound)
+	case http.StatusConflict:
+		*body = newHTTPErrorRespBody(errs.HTTPConflict)
 	case http.StatusInternalServerError:
-		body = []byte(errs.HTTPInternal)
-
+		*body = newHTTPErrorRespBody(errs.HTTPInternal)
 	case http.StatusServiceUnavailable:
-		body = []byte(errs.HTTPUnavailable)
-
+		*body = newHTTPErrorRespBody(errs.HTTPUnavailable)
 	default:
 		core.LogWeirdBehaviour("HTTP Error Status: " + strconv.Itoa(status))
 	}
-
-	rw.WriteHeader(status)
-	rw.Write(body)
 }
 
-// httpError is the struct that gets marshalled onto the HTTP Response body when an error happens.
-// This is what the client would see. The format is '{"error": "error message."}'.
-// If this format is changed, then the ErrBodies in errs.go should also change.
-type httpError struct {
-	Error string `json:"error"`
+func newHTTPErrorRespBody(msg string) string {
+	return fmt.Sprintf(`{"error": "%s"}`, msg)
 }
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+var (
+	corsHeaders = map[string]string{
+		"Access-Control-Allow-Origin":  "*",
+		"Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+		"Access-Control-Allow-Headers": "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	}
+	defaultHeaders = map[string]string{
+		"Content-Type":              "application/json",
+		"Content-Security-Policy":   "default-src 'self'",
+		"Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+		"X-Content-Type-Options":    "nosniff",
+		"X-Frame-Options":           "SAMEORIGIN",
+		"X-XSS-Protection":          "1; mode=block",
+	}
+	deleteHeaders = []string{"Grpc-Metadata-Content-Type"}
+)

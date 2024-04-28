@@ -17,30 +17,34 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+var _ core.RequestsValidator = (*protoRequestsValidator)(nil)
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*       - Requests Validator -        */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-var _ core.RequestsValidator = (*protoValidator)(nil)
-
 // Validates GRPC requests based on rules written on .proto files.
 // It uses the bufbuild/protovalidate library.
-type protoValidator struct {
+type protoRequestsValidator struct {
 	*protovalidate.Validator
 }
 
 // New instance of *protoValidator. This panics on failure.
-func NewProtoValidator() *protoValidator {
+func NewRequestsValidator() *protoRequestsValidator {
 	validator, err := protovalidate.New()
-	if err != nil {
-		core.LogUnexpectedAndPanic(fmt.Errorf(errs.FailedToCreateProtoVal, err))
-	}
-	return &protoValidator{validator}
+	core.LogPanicIfErr(err, errs.FailedToCreateProtoVal)
+	return &protoRequestsValidator{validator}
 }
 
+func (prv *protoRequestsValidator) GetRequestsValidator() core.RequestsValidator {
+	return prv
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
 // Wraps the proto validation logic with a GRPC Interceptor.
-func (v *protoValidator) ValidateGRPC(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-	if err := v.Validate(req.(protoreflect.ProtoMessage)); err != nil {
+func (prv protoRequestsValidator) ValidateGRPC(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	if err := prv.Validate(req.(protoreflect.ProtoMessage)); err != nil {
 		return nil, validationErrToGRPC(err)
 	}
 	return handler(ctx, req)
@@ -55,17 +59,17 @@ func validationErrToGRPC(err error) error {
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
 		violations := validationErr.ToProto().GetViolations()
-		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.InReqValidation, parseViolations(violations)))
+		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequest, parseViolations(violations)))
 	}
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
 		core.LogUnexpectedErr(runtimeErr)
-		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.InReqValidationRuntime, runtimeErr))
+		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequestRuntime, runtimeErr))
 	}
 
 	core.LogUnexpectedErr(err)
-	return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.InReqValidationUnexpected, err))
+	return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequestUnexpected, err))
 }
 
 // Returns a string detailing the validations violations.

@@ -6,15 +6,14 @@ import (
 	"strconv"
 )
 
-// If zap uses globals I can give them a chance, right?? -> **gets decapitated by the Go community**
-var (
-	AppName    = "grpc-gateway-impl"
-	AppAcronym = "GGWI"
-	EnvName    = "local"
-	EnvIsProd  = false
-	GRPCPort   = ":50053"
-	HTTPPort   = ":8083"
-)
+// Globals! Because why not?
+// If Zap uses globals then I can too :) -> **gets decapitated by the Go community**
+var AppName = "grpc-gateway-impl"
+var AppAlias = "GGWI"
+var Env = "local"
+var EnvIsProd = false
+var GRPCPort = ":50053"
+var HTTPPort = ":8083"
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*             - Config -              */
@@ -31,27 +30,27 @@ type Config struct {
 }
 
 // Loads all settings from environment variables.
-func LoadConfig() *Config {
+func SetupConfig() *Config {
 
 	// Globals
 	AppName = envVar("APP_NAME", AppName)
-	AppAcronym = envVar("APP_ACRONYM", AppAcronym)
-	EnvName = envVar("ENV_NAME", EnvName)
-	EnvIsProd = EnvName == "prod" || EnvName == "production" || EnvName == "live"
+	AppAlias = envVar("APP_ACRONYM", AppAlias)
+	Env = envVar("ENV_NAME", Env)
+	EnvIsProd = Env == "prod" || Env == "production" || Env == "live"
 	GRPCPort = envVar("GRPC_PORT", GRPCPort)
 	HTTPPort = envVar("HTTP_PORT", HTTPPort)
 
 	return &Config{
-		DBCfg:        loadConfigForDB(),
-		JWTCfg:       loadConfigForJWT(),
-		TLSCfg:       loadConfigForTLS(),
-		LoggerCfg:    loadConfigForLogger(),
-		PwdHasherCfg: loadConfigForPwdHasher(),
-		RLimiterCfg:  loadConfigForRateLimiter(),
+		DBCfg:        setupDBConfig(),
+		JWTCfg:       setupJWTConfig(),
+		TLSCfg:       setupTLSConfig(),
+		LoggerCfg:    setupLoggerConfig(),
+		PwdHasherCfg: setupPwdHasherConfig(),
+		RLimiterCfg:  setupRateLimiterConfig(),
 	}
 }
 
-func loadConfigForDB() DBCfg {
+func setupDBConfig() DBCfg {
 	return DBCfg{
 		Username:       envVar("DB_USERNAME", "root"),
 		Password:       envVar("DB_PASSWORD", ""),
@@ -66,14 +65,14 @@ func loadConfigForDB() DBCfg {
 	}
 }
 
-func loadConfigForJWT() JWTCfg {
+func setupJWTConfig() JWTCfg {
 	return JWTCfg{
 		Secret:      envVar("JWT_SECRET", "s0m3_s3cr37"),
 		SessionDays: envVar("JWT_SESSION_DAYS", 7),
 	}
 }
 
-func loadConfigForTLS() TLSCfg {
+func setupTLSConfig() TLSCfg {
 	return TLSCfg{
 		Enabled:  envVar("TLS_ENABLED", false),
 		CertPath: envVar("TLS_CERT_PATH", "./server.crt"),
@@ -81,7 +80,7 @@ func loadConfigForTLS() TLSCfg {
 	}
 }
 
-func loadConfigForLogger() LoggerCfg {
+func setupLoggerConfig() LoggerCfg {
 	return LoggerCfg{
 		Level:       LogLevels[envVar("LOGGER_LEVEL", "info")],
 		LevelStackT: LogLevels[envVar("LOGGER_LEVEL_STACKTRACE", "dpanic")],
@@ -89,11 +88,11 @@ func loadConfigForLogger() LoggerCfg {
 	}
 }
 
-func loadConfigForPwdHasher() PwdHasherCfg {
+func setupPwdHasherConfig() PwdHasherCfg {
 	return PwdHasherCfg{Salt: envVar("PWD_HASHER_SALT", "s0m3_s4l7")}
 }
 
-func loadConfigForRateLimiter() RLimiterCfg {
+func setupRateLimiterConfig() RLimiterCfg {
 	return RLimiterCfg{
 		MaxTokens:       envVar("RLIMITER_MAX_TOKENS", 40),
 		TokensPerSecond: envVar("RLIMITER_TOKENS_PER_SECOND", 10),

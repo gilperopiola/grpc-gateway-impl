@@ -17,11 +17,17 @@ type rateLimiter struct {
 	*rate.Limiter
 }
 
-func NewRateLimiter(cfg *core.RLimiterCfg) *rateLimiter {
+func NewRateLimiter(cfg *core.RLimiterCfg) core.RateLimiter {
 	limit := rate.Limit(cfg.TokensPerSecond)
 	limiter := rate.NewLimiter(limit, cfg.MaxTokens)
 	return &rateLimiter{limiter}
 }
+
+func (rl *rateLimiter) GetRateLimiter() core.RateLimiter {
+	return rl
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (rl *rateLimiter) LimitGRPC(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	if !rl.Allow() {

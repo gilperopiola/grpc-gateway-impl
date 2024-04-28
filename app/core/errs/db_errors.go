@@ -8,18 +8,18 @@ import (
 /*         - Database Errors -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-type DBError struct {
+type DBErr struct {
 	Err     error
 	Context string
 }
 
-func (e DBError) Error() string {
-	return fmt.Sprintf("%s -> %v", e.Context, e.Err)
+func (dberr DBErr) Error() string {
+	return fmt.Sprintf("%s -> %v", dberr.Context, dberr.Err)
 }
 
-func (e DBError) Unwrap() error {
-	if e.Err != nil {
-		return e.Err
+func (dberr DBErr) Unwrap() error {
+	if dberr.Err != nil {
+		return dberr.Err
 	}
-	return fmt.Errorf(e.Context)
+	return fmt.Errorf(dberr.Context)
 }
