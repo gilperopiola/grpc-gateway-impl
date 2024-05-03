@@ -27,6 +27,7 @@ func newHTTPGateway(serveMuxOpts []runtime.ServeMuxOption, middlewareFn middlewa
 	return &http.Server{
 		Addr:    core.HTTPPort,
 		Handler: middlewareFn(mux),
+		// TLSConfig: core.GetTLSConfig(core.GetCertPool(core.CertPath), core.GetServerName(core.ServerName)),
 	}
 }
 

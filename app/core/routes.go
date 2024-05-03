@@ -43,6 +43,14 @@ var Routes = map[string]Route{
 		Name: "GetUsers",
 		Auth: RouteAuthAdmin,
 	},
+	"CreateGroup": {
+		Name: "CreateGroup",
+		Auth: RouteAuthUser,
+	},
+	"GetGroup": {
+		Name: "GetGroup",
+		Auth: RouteAuthUser,
+	},
 }
 
 // Use this to get the route name from the HTTP Path.
@@ -51,6 +59,16 @@ var RouteNamesFromHTTP = map[string]string{
 	"POST /v1/login":  "Login",
 	"GET /v1/user":    "GetUser",
 	"GET /v1/users":   "GetUsers",
+	"POST /v1/groups": "CreateGroup",
+	"GET /v1/group":   "GetGroup",
+}
+
+func AuthForRoute(routeName string) RouteAuth {
+	if route, ok := Routes[routeName]; ok {
+		return route.Auth
+	}
+	LogWeirdBehaviour("Route not found: " + routeName)
+	return RouteAuthAdmin
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -100,5 +118,6 @@ func RouteNameFromCtx(ctx context.Context) string {
 	if method, ok := grpc.Method(ctx); ok {
 		return RouteNameFromGRPC(method)
 	}
+	LogWeirdBehaviour("No GRPC Method found in context")
 	return ""
 }

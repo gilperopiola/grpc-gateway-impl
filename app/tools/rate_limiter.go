@@ -23,10 +23,6 @@ func NewRateLimiter(cfg *core.RLimiterCfg) core.RateLimiter {
 	return &rateLimiter{limiter}
 }
 
-func (rl *rateLimiter) GetRateLimiter() core.RateLimiter {
-	return rl
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (rl *rateLimiter) LimitGRPC(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {

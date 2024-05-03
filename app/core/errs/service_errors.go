@@ -46,7 +46,8 @@ func (serr ServiceErr) Unwrap() error {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
-	GRPCUsersDBCall = func(err error, route string) error {
+	GRPCUsersDBCall = func(err error, route string, logFn func(error)) error {
+		logFn(err)
 		return NewGRPCServiceErr(codes.Unknown, err, route)
 	}
 	GRPCGeneratingToken = func(err error) error {

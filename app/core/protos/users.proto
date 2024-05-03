@@ -9,7 +9,7 @@ import "external/google/api/field_behavior.proto";
 import "external/protoc-gen-openapiv2/options/annotations.proto";
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Swagger Schema -          */
+/*         - Users Protofile -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -135,6 +135,8 @@ message SignupResponse {
   int32 id = 1;
 }
 
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
 message LoginRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "LoginRequest" } };
 
@@ -157,6 +159,8 @@ message LoginResponse {
   string token = 1;
 }
 
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
 message GetUserRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetUserRequest" } };
 
@@ -166,6 +170,8 @@ message GetUserRequest {
 message GetUserResponse {
   UserInfo user = 1 [ json_name = "user", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 message GetUsersRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetUsersRequest" } };
@@ -197,12 +203,12 @@ message GetUsersResponse {
 /*         - Custom Messages -         */ 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+// Output only ⬇️
+
 message PaginationInfo {
   int32 current = 1 [ json_name = "current",  (google.api.field_behavior) = OUTPUT_ONLY ];
   int32 total = 3   [ json_name = "total",    (google.api.field_behavior) = OUTPUT_ONLY ];
 }
-
-// Output only ⬇️
 
 message UserInfo {
   int32 id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];

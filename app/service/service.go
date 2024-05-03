@@ -1,39 +1,35 @@
 package service
 
 import (
-	"errors"
-
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"gorm.io/gorm"
 )
 
 var _ core.Service = (*service)(nil)
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*          - Service (v1) -           */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*             - Service -             */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
-// Main App Service.
-// Holds all the methods that the GRPC server will use.
+// -> Here lies... Our Service. It's the core of our application logic.
+// -> It holds all the methods that the GRPC and HTTP Servers will call.
 type service struct {
-	core.Toolbox // -> Our Service has a handy Toolbox.
+	pbs.UnimplementedUsersServiceServer
+	pbs.UnimplementedGroupsServiceServer
 
-	*pbs.UnimplementedUsersServiceServer
+	// -> DB and other stuff are here.
+	core.Actions
 }
 
-func Setup(toolbox core.Toolbox) *service {
+func Setup(actions core.Actions) core.Service {
 	return &service{
-		Toolbox: toolbox,
+		Actions: actions,
 	}
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// errIsNotFound checks if the error is a gorm.ErrRecordNotFound or a mongo.ErrNoDocuments.
-// T0D0 Move to storage?
-func errIsNotFound(err error) bool {
-	return errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, mongo.ErrNoDocuments)
-}
+var errNotFound = errs.GRPCNotFound
+var errAlreadyExists = errs.GRPCAlreadyExists
+var errUnauthenticated = errs.GRPCUnauthenticated

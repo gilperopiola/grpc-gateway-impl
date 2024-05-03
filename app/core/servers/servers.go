@@ -18,7 +18,7 @@ type Servers struct {
 }
 
 // Sets up both GRPC and HTTP servers.
-func Setup(service core.Service, toolbox core.Toolbox, tlsEnabled bool) core.Servers {
+func Setup(service core.Service, toolbox core.Actions, tlsEnabled bool) core.Servers {
 	var (
 		grpcServerOpts   = defaultGRPCServerOpts(toolbox, tlsEnabled)
 		grpcDialOpts     = defaultGRPCDialOpts(toolbox.GetClientCreds())

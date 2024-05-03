@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
@@ -18,18 +19,22 @@ import (
 // If the query fails (without a gorm.ErrRecordNotFound), then we return an unknown error.
 // If the query fails (with a gorm.ErrRecordNotFound), it means everything is OK, so we create the user and return its ID.
 func (s *service) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
-	user, err := s.GetDBTool().GetUser(ctx, sql.WithUsername(req.Username))
+	user, err := s.Actions.GetUser(ctx, sql.WithUsername(req.Username))
 	if err == nil && user != nil {
-		return nil, errs.GRPCAlreadyExists("user")
+		return nil, errUserAlreadyExists()
 	}
-	if !errIsNotFound(err) {
-		return nil, errInUsersDB(ctx, err)
+	if !s.Actions.IsNotFound(err) {
+		return nil, errCallingUsersDB(ctx, err)
 	}
 
-	// If we're here, we should have gotten a gorm.ErrRecordNotFound in the function above.
-	if user, err = s.GetDBTool().CreateUser(ctx, req.Username, s.Toolbox.HashPassword(req.Password)); err != nil {
-		return nil, errInUsersDB(ctx, err)
+	// If we're here, we should have gotten a not found in the function above.
+	if user, err = s.Actions.CreateUser(ctx, req.Username, s.Actions.HashPassword(req.Password)); err != nil {
+		return nil, errCallingUsersDB(ctx, err)
 	}
+
+	s.Actions.CreateFolders("data/users/user_" + strconv.Itoa(user.ID))
+
+	s.Actions.CreateGroup(ctx, user.Username+"'s First Group", user.ID)
 
 	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
 }
@@ -40,21 +45,21 @@ func (s *service) Signup(ctx context.Context, req *pbs.SignupRequest) (*pbs.Sign
 // Then we PasswordsMatch both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
 func (s *service) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
-	user, err := s.GetDBTool().GetUser(ctx, sql.WithUsername(req.Username))
-	if errIsNotFound(err) {
-		return nil, errs.GRPCNotFound("user")
+	user, err := s.Actions.GetUser(ctx, sql.WithUsername(req.Username))
+	if s.Actions.IsNotFound(err) {
+		return nil, errUserNotFound()
 	}
 	if err != nil || user == nil {
-		return nil, errInUsersDB(ctx, err)
+		return nil, errCallingUsersDB(ctx, err)
 	}
 
-	if !s.Toolbox.PasswordsMatch(req.Password, user.Password) {
-		return nil, errs.GRPCUnauthenticated()
+	if !s.Actions.PasswordsMatch(req.Password, user.Password) {
+		return nil, errUnauthenticated()
 	}
 
-	token, err := s.Toolbox.GenerateToken(user.ID, user.Username, user.Role)
+	token, err := s.Actions.GenerateToken(user.ID, user.Username, user.Role)
 	if err != nil {
-		return nil, errs.GRPCGeneratingToken(err)
+		return nil, errGeneratingToken(err)
 	}
 
 	return &pbs.LoginResponse{Token: token}, nil
@@ -65,12 +70,12 @@ func (s *service) Login(ctx context.Context, req *pbs.LoginRequest) (*pbs.LoginR
 // If the query fails (for some other reason), then it returns an unknown error.
 // If everything is OK, it returns the user.
 func (s *service) GetUser(ctx context.Context, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
-	user, err := s.GetDBTool().GetUser(ctx, sql.WithUserID(req.UserId))
-	if errIsNotFound(err) {
-		return nil, errs.GRPCNotFound("user")
+	user, err := s.Actions.GetUser(ctx, sql.WithUserID(req.UserId))
+	if s.Actions.IsNotFound(err) {
+		return nil, errUserNotFound()
 	}
 	if err != nil || user == nil {
-		return nil, errInUsersDB(ctx, err)
+		return nil, errCallingUsersDB(ctx, err)
 	}
 	return &pbs.GetUserResponse{User: user.ToUserInfoPB()}, nil
 }
@@ -80,12 +85,12 @@ func (s *service) GetUser(ctx context.Context, req *pbs.GetUserRequest) (*pbs.Ge
 // If everything is OK, it returns the users and the pagination info.
 func (s *service) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (*pbs.GetUsersResponse, error) {
 	page, pageSize := getPaginationFromRequest(req)
-	usernameFilter := sql.WithCondition(sql.Like, "username", req.GetFilter())
+	usernameFilterOpt := sql.WithCondition(sql.Like, "username", req.GetFilter())
 
 	// While our page is 0-based, gorm offsets are 1-based. That's why we subtract 1.
-	users, totalMatches, err := s.GetDBTool().GetUsers(ctx, page-1, pageSize, usernameFilter)
+	users, totalMatches, err := s.Actions.GetUsers(ctx, page-1, pageSize, usernameFilterOpt)
 	if err != nil {
-		return nil, errInUsersDB(ctx, err)
+		return nil, errCallingUsersDB(ctx, err)
 	}
 
 	return &pbs.GetUsersResponse{
@@ -96,7 +101,11 @@ func (s *service) GetUsers(ctx context.Context, req *pbs.GetUsersRequest) (*pbs.
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-var errInUsersDB = func(ctx context.Context, err error) error {
-	core.LogUnexpectedErr(err)
-	return errs.GRPCUsersDBCall(err, core.RouteNameFromCtx(ctx))
-}
+var (
+	errGeneratingToken   = errs.GRPCGeneratingToken
+	errUserNotFound      = func() error { return errNotFound("user") }
+	errUserAlreadyExists = func() error { return errAlreadyExists("user") }
+	errCallingUsersDB    = func(ctx context.Context, err error) error {
+		return errs.GRPCUsersDBCall(err, core.RouteNameFromCtx(ctx), core.LogUnexpectedErr)
+	}
+)

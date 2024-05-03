@@ -38,10 +38,6 @@ func NewTLSTool(cfg *core.TLSCfg) *tlsTool {
 	return tlsTool
 }
 
-func (t *tlsTool) GetTLSTool() core.TLSTool {
-	return t
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (t *tlsTool) GetServerCertificate() *x509.CertPool             { return t.ServerCert }

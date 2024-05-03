@@ -17,10 +17,6 @@ func NewPwdHasher(salt string) *pwdHasher {
 	return &pwdHasher{salt}
 }
 
-func (ph *pwdHasher) GetPwdHasher() core.PwdHasher {
-	return ph
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Returns a base64 encoded sha256 hash of the pwd + salt.

@@ -35,10 +35,19 @@ const (
 	PanicMsg       = "unexpected panic, something went wrong."
 	RateLimitedMsg = "too many requests in a very short time, try again later."
 
-	// Validation Errors
+	// Request Validation Errors
 	ValidatingRequest           = "request validation error -> %v."
 	ValidatingRequestRuntime    = "runtime validation error -> %v."
 	ValidatingRequestUnexpected = "unexpected validation error -> %v."
+
+	// Auth Errors
+	AuthGeneratingToken = "auth error -> generating token -> %v."
+	AuthRouteUnknown    = "auth error -> unknown route."
+	AuthUserIDInvalid   = "auth error -> user id invalid."
+	AuthRoleInvalid     = "auth error -> role invalid."
+	AuthTokenNotFound   = "auth error -> token not found."
+	AuthTokenMalformed  = "auth error -> token malformed."
+	AuthTokenInvalid    = "auth error -> token invalid."
 
 	// DB Errors
 	DBNoQueryOpts   = "db error -> no query options"

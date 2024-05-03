@@ -16,12 +16,11 @@ import (
 // When a GRPC/HTTP Request arrives, our Servers pass it through Interceptors, and then through the Service.
 // So: App -> Servers -> Interceptors -> Service.
 //
-// Our Service, assisted by our set of Tools (like TokenGenerator, PwdHasher, etc), interacts with our External Layer,
-// which in turn just holds our Storage and Clients. Storage holds our SQL Database. Clients is empty (for now).
-// So: Service (with Tools) -> External Layer -> Storage -> SQL Database.
+// Our Service, assisted by our set of Tools (TokenGenerator, PwdHasher, etc), performs Actions (like GetUser or GenerateToken).
+// These Actions sometimes let us communicate with external things, like a Database or the File System.
 //
 // To sum it all up:
-// * App -> Servers -> Interceptors -> Service (with Tools) -> External Layer -> Storage -> SQL Database.
+// * App -> Servers -> Interceptors -> Service -> Actions -> External Resources (SQL Database, File System, etc).
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - Interfaces -           */
@@ -33,6 +32,7 @@ import (
 // This interface is kind of our entire API. It has a method for each GRPC/HTTP endpoint we have.
 type Service interface {
 	pbs.UsersServiceServer
+	pbs.GroupsServiceServer
 }
 
 /* -~-~-~-~- Servers -~-~-~-~- */
@@ -42,70 +42,69 @@ type Servers interface {
 	Shutdown()
 }
 
-/* -~-~-~- Toolbox -~-~-~- */
-
-// Use this to avoid importing the tools pkg.
-// Our app.Toolbox fulfills this interface.
-type Toolbox interface {
-	APICaller
-	DBTool
-	PwdHasher
-	RateLimiter
-	RequestsValidator
-	TLSTool
-	TokenAuthenticator
-}
-
-// -> All our Tools have a Getter method, like GetDBTool for the DBTool.
-// -> May seem redundant, but we need them to be able to get each particular Tool from the Toolbox,
-// -> as the Toolbox interface abstracts them away.
+/* -~-~-~- Actions / Toolbox -~-~-~- */
 
 type (
+	// Use this to avoid importing the tools pkg.
+	// Our app.Actions fulfills this interface.
+	Actions interface {
+		APICaller
+		DBTool
+		FileCreator
+		PwdHasher
+		RateLimiter
+		RequestsValidator
+		TLSTool
+		TokenAuthenticator
+	}
+
+	/* -~-~-~-~- Tools -~-~-~-~- */
+
 	APICaller interface {
-		APICallerGetter
 		// We still don't have any Clients.
 	}
-	DBTool interface { // Connects with a Database. Has implementations for SQL and Mongo.
-		DBToolGetter
+
+	DBTool interface {
 		GetDB() DB
+		IsNotFound(err error) bool
+
+		// Users
 		CreateUser(ctx context.Context, username, hashedPwd string) (*User, error)
 		GetUser(ctx context.Context, opts ...any) (*User, error)
 		GetUsers(ctx context.Context, page, pageSize int, opts ...any) (Users, int, error)
+
+		// Groups
+		CreateGroup(ctx context.Context, name string, ownerID int) (*Group, error)
+		GetGroup(ctx context.Context, opts ...any) (*Group, error)
 	}
+
+	FileCreator interface {
+		CreateFolders(paths ...string) error
+	}
+
 	PwdHasher interface {
-		PwdHasherGetter
 		HashPassword(pwd string) string
 		PasswordsMatch(plainPwd, hashedPwd string) bool
 	}
+
 	RateLimiter interface {
-		RateLimiterGetter
 		LimitGRPC(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
+
 	RequestsValidator interface {
-		RequestsValidatorGetter
 		ValidateGRPC(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
+
 	TLSTool interface {
-		TLSToolGetter
 		GetServerCertificate() *x509.CertPool
 		GetServerCreds() credentials.TransportCredentials
 		GetClientCreds() credentials.TransportCredentials
 	}
+
 	TokenAuthenticator interface {
-		TokenAuthenticatorGetter
 		GenerateToken(id int, username string, role Role) (string, error)
 		ValidateToken(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
-)
-
-type (
-	APICallerGetter          interface{ GetAPICaller() APICaller }
-	DBToolGetter             interface{ GetDBTool() DBTool }
-	PwdHasherGetter          interface{ GetPwdHasher() PwdHasher }
-	RateLimiterGetter        interface{ GetRateLimiter() RateLimiter }
-	RequestsValidatorGetter  interface{ GetRequestsValidator() RequestsValidator }
-	TLSToolGetter            interface{ GetTLSTool() TLSTool }
-	TokenAuthenticatorGetter interface{ GetTokenAuthenticator() TokenAuthenticator }
 )
 
 /* -~-~-~ Databases ~-~-~- */
@@ -115,12 +114,13 @@ type DB interface {
 	GetInnerDB() any
 }
 
-/* -~-~-~ SQL Database ~-~-~- */
+/* -~-~-~ SQL ~-~-~- */
 
 // Low-level API for our SQL Database.
 // It's an adapter for Gorm. Concrete types sql.sqlAdapter and mocks.Gorm implement this.
 type SQLDB interface {
 	DB
+
 	AddError(err error) error
 	AutoMigrate(dst ...any) error
 	Close()
@@ -154,11 +154,12 @@ type SQLDB interface {
 
 type SQLDBOpt func(SQLDB) // Variadic func.
 
-/* -~-~-~ Mongo Database ~-~-~- */
+/* -~-~-~ Mongo ~-~-~- */
 
 // Low-level API for our Mongo Database.
 type MongoDB interface {
 	DB
+
 	Close(ctx context.Context)
 	InsertOne(ctx context.Context, colName string, document any) (*mongo.InsertOneResult, error)
 	Find(ctx context.Context, colName string, filter any, limit, offset int) (*mongo.Cursor, error)

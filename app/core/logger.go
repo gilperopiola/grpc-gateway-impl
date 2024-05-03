@@ -205,9 +205,17 @@ func newZapBuildOpts(levelStackT int) []zap.Option {
 // Returns a new zap.Config with the default options + *LoggerCfg settings.
 func newZapConfig(cfg *LoggerCfg) zap.Config {
 	zapCfg := newZapBaseConfig()
+
 	zapCfg.Level = zap.NewAtomicLevelAt(zapcore.Level(cfg.Level))
 	zapCfg.DisableCaller = !cfg.LogCaller
-	zapCfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) { enc.AppendString(t.Format(LogsTimeLayout)) }
+
+	zapCfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(t.Format(LogsTimeLayout))
+	}
+
+	zapCfg.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(d.Truncate(time.Millisecond).String())
+	}
 
 	return zapCfg
 }

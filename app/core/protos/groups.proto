@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package pbs;
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+
+import "users.proto";
+import "external/buf/validate/validate.proto";
+import "external/google/api/annotations.proto";
+import "external/google/api/field_behavior.proto";
+import "external/protoc-gen-openapiv2/options/annotations.proto";
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*         - Groups Protofile -        */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "grpc-gateway-impl";
+    version: "1.0"; // T0D0 - Use version from go.mod
+    contact: { email: "" };
+  };
+  host: "localhost:8083";
+  base_path: "";
+  schemes: [HTTP, HTTPS];
+  consumes: "application/json";
+  produces: "application/json";
+  responses: {
+    key: "400";
+    value: { schema: { example: '{"error":"validation error: name value length must be at least 4 characters."}'; }};
+  }
+  responses: {
+    key: "401";
+    value: { schema: { example: '{"error":"unauthorized."}'; }};
+  }
+  responses: {
+    key: "403";
+    value: { schema: { example: '{"error": "forbidden error."}'; }};
+  }
+  responses: {
+    key: "404";
+    value: { schema: { example: '{"error": "not found: group not found."}'; }};
+  }
+  responses: {
+    key: "500";
+    value: { schema: { example: '{"error": "internal server error, something went wrong on our end."}'; }};
+  }
+};
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*          - Groups Service -         */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+// Service for group management.
+service GroupsService {
+
+  // Creates a new group.
+  // Returns the created group's unique ID.
+  rpc CreateGroup (CreateGroupRequest) returns (CreateGroupResponse) {
+    option (google.api.http) = { post: "/v1/groups"; body: "*"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "create_group";
+      tags: ["Groups"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".groups.CreateGroupResponse"} } };
+      };
+    };
+  }
+
+  // Gets a group by ID. Returns the group's information.
+  // Requires a JWT Token with a matching group's ID.
+  rpc GetGroup (GetGroupRequest) returns (GetGroupResponse) {
+    option (google.api.http) = { get: "/v1/groups/{group_id}"; };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "get_group";
+      tags: ["Groups"];
+      responses: {
+        key: "200";
+        value: {schema: {json_schema: {ref: ".groups.GetGroupResponse"}}};
+      };
+    };
+  }
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*       - Requests & Responses -      */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+message CreateGroupRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "CreateGroupRequest" } };
+
+  string name = 1 [
+    json_name = "name",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 2, max_len: 48, pattern: "^[a-zA-Z0-9_]+$"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Name of the group to create.", }
+  ];
+}
+
+message CreateGroupResponse {
+  int32 id = 1;
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+
+message GetGroupRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetGroupRequest" } };
+
+  int32 group_id = 1;
+}
+
+message GetGroupResponse {
+  Group group = 1 [ json_name = "group", (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*         - Custom Messages -         */ 
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+message Group {
+  int32     id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    name = 2        [ json_name = "name",       (google.api.field_behavior) = OUTPUT_ONLY ];
+  UserInfo  owner = 3       [ json_name = "owner",      (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    created_at = 5  [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    updated_at = 7  [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+}

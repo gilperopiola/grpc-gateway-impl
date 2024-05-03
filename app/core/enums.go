@@ -13,6 +13,7 @@ type RouteAuth string
 
 const (
 	RouteAuthPublic RouteAuth = "public"
+	RouteAuthUser   RouteAuth = "user"
 	RouteAuthSelf   RouteAuth = "self"
 	RouteAuthAdmin  RouteAuth = "admin"
 )
