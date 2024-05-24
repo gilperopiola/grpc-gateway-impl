@@ -97,7 +97,6 @@
     },
     "/v1/groups/{groupId}": {
       "get": {
-        "summary": "Gets a group by ID. Returns the group's information.\nRequires a JWT Token with a matching group's ID.",
         "operationId": "get_group",
         "responses": {
           "200": {
@@ -165,16 +164,222 @@
         "tags": [
           "Groups"
         ]
+      },
+      "post": {
+        "operationId": "invite_to_group",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": ".groups.InviteToGroupResponse"
+            }
+          },
+          "400": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "validation error: name value length must be at least 4 characters."
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "unauthorized."
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "forbidden error."
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "not found: group not found."
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "internal server error, something went wrong on our end."
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GroupsServiceInviteToGroupBody"
+            }
+          }
+        ],
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/v1/groups/{groupId}/answer": {
+      "post": {
+        "operationId": "answer_group_invite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": ".groups.AnswerGroupInviteResponse"
+            }
+          },
+          "400": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "validation error: name value length must be at least 4 characters."
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "unauthorized."
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "forbidden error."
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "not found: group not found."
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "internal server error, something went wrong on our end."
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GroupsServiceAnswerGroupInviteBody"
+            }
+          }
+        ],
+        "tags": [
+          "Groups"
+        ]
       }
     }
   },
   "definitions": {
+    "GroupsServiceAnswerGroupInviteBody": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "accept": {
+          "type": "boolean"
+        }
+      },
+      "title": "AnswerGroupInviteRequest"
+    },
+    "GroupsServiceInviteToGroupBody": {
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "invitedUserIds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32",
+            "maxLength": 255,
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "title": "InviteToGroupRequest"
+    },
+    "pbsAnswerGroupInviteResponse": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "$ref": "#/definitions/pbsGroupInfo",
+          "readOnly": true
+        }
+      }
+    },
     "pbsCreateGroupRequest": {
       "type": "object",
       "properties": {
         "name": {
           "type": "string",
           "description": "Name of the group to create."
+        },
+        "invitedUserIds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32",
+            "maxLength": 255,
+            "pattern": "^[0-9]+$"
+          }
         }
       },
       "title": "CreateGroupRequest",
@@ -185,9 +390,9 @@
     "pbsCreateGroupResponse": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int32"
+        "group": {
+          "$ref": "#/definitions/pbsGroupInfo",
+          "readOnly": true
         }
       }
     },
@@ -195,12 +400,12 @@
       "type": "object",
       "properties": {
         "group": {
-          "$ref": "#/definitions/pbsGroup",
+          "$ref": "#/definitions/pbsGroupInfo",
           "readOnly": true
         }
       }
     },
-    "pbsGroup": {
+    "pbsGroupInfo": {
       "type": "object",
       "properties": {
         "id": {
@@ -222,6 +427,15 @@
         },
         "updated_at": {
           "type": "string",
+          "readOnly": true
+        }
+      }
+    },
+    "pbsInviteToGroupResponse": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "$ref": "#/definitions/pbsGroupInfo",
           "readOnly": true
         }
       }

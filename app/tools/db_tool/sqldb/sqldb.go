@@ -1,7 +1,8 @@
 package sqldb
 
 import (
-	"context"
+	"database/sql"
+	"fmt"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
@@ -27,14 +28,32 @@ type sqlDB struct {
 }
 
 // Returns a new connection to a SQL Database. It uses Gorm.
-func NewSQLDB(cfg *core.DBCfg) core.SQLDB {
-	gormCfg := &gorm.Config{
-		Logger:         newSQLDBLogger(zap.L(), cfg.LogLevel),
-		TranslateError: true,
+func NewSQLDB(cfg *core.DBCfg, retrier core.Retrier) core.SQLDB {
+	gormCfg := newGormCfg(cfg.LogLevel)
+
+	connectToDB := func() (any, error) {
+		connectionString := cfg.GetSQLConnString()
+		gormDB, err := gorm.Open(mysql.Open(connectionString), gormCfg)
+		return &sqlDB{gormDB}, err
 	}
 
-	gormDB, err := connectToSQLDBWithGorm(cfg.GetSQLConnString(), gormCfg)
+	onConnectionFailureDo := func() {
+		if db, err := sql.Open("mysql", cfg.GetSQLConnStringNoSchema()); err == nil {
+			defer db.Close()
+
+			_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", cfg.Schema))
+			core.LogOperationResult(cfg.Schema+" DB creation", err)
+		}
+	}
+
+	sqlDBAny, err := retrier.TryToConnectToDB(connectToDB, onConnectionFailureDo)
 	core.LogPanicIfErr(err)
+
+	gormDB := sqlDBAny.(*sqlDB)
+
+	if cfg.EraseAllData {
+		gormDB.Unscoped().Delete(core.AllModels, nil)
+	}
 
 	if cfg.MigrateModels {
 		gormDB.AutoMigrate(core.AllModels...)
@@ -47,10 +66,11 @@ func NewSQLDB(cfg *core.DBCfg) core.SQLDB {
 	return gormDB
 }
 
-// Calls gorm.Open and wraps the returned *gorm.DB with our concrete type.
-func connectToSQLDBWithGorm(dsn string, opts ...gorm.Option) (*sqlDB, error) {
-	gormDB, err := gorm.Open(mysql.Open(dsn), opts...)
-	return &sqlDB{gormDB}, err
+func newGormCfg(logLevel int) *gorm.Config {
+	return &gorm.Config{
+		Logger:         newSQLDBLogger(zap.L(), logLevel),
+		TranslateError: true,
+	}
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -58,6 +78,8 @@ func connectToSQLDBWithGorm(dsn string, opts ...gorm.Option) (*sqlDB, error) {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (sdb *sqlDB) GetInnerDB() any { return sdb.DB }
+
+func (sdb *sqlDB) Association(column string) *gorm.Association { return sdb.DB.Association(column) }
 
 func (sdb *sqlDB) Count(value *int64) core.SQLDB { return &sqlDB{sdb.DB.Count(value)} }
 
@@ -139,7 +161,7 @@ func (sdb *sqlDB) Scopes(fns ...func(core.SQLDB) core.SQLDB) core.SQLDB {
 	return &sqlDB{sdb.DB.Scopes(adaptedFns...)}
 }
 
-func (sdb *sqlDB) WithContext(ctx context.Context) core.SQLDB {
+func (sdb *sqlDB) WithContext(ctx core.Ctx) core.SQLDB {
 	// Calling the actual gorm WithContext func makes our SQLOptions fail to apply for some reason. T0D0.
 	return &sqlDB{sdb.DB}
 }

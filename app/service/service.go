@@ -2,34 +2,41 @@ package service
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
 
-var _ core.Service = (*service)(nil)
+var _ core.Service = (*Service)(nil)
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*             - Service -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
 // -> Here lies... Our Service. It's the core of our application logic.
-// -> It holds all the methods that the GRPC and HTTP Servers will call.
-type service struct {
+type Service struct {
+	Toolbox core.Toolbox
+
+	pbs.UnimplementedAuthServiceServer
 	pbs.UnimplementedUsersServiceServer
 	pbs.UnimplementedGroupsServiceServer
-
-	// -> DB and other stuff are here.
-	core.Actions
 }
 
-func Setup(actions core.Actions) core.Service {
-	return &service{
-		Actions: actions,
+func Setup(toolbox core.Toolbox) core.Service {
+	return &Service{
+		Toolbox: toolbox,
 	}
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+func (s *Service) RegisterGRPCServices(grpcServer core.GRPCServiceRegistrar) {
+	pbs.RegisterAuthServiceServer(grpcServer, s)
+	pbs.RegisterUsersServiceServer(grpcServer, s)
+	pbs.RegisterGroupsServiceServer(grpcServer, s)
+}
 
-var errNotFound = errs.GRPCNotFound
-var errAlreadyExists = errs.GRPCAlreadyExists
-var errUnauthenticated = errs.GRPCUnauthenticated
+func (s *Service) RegisterHTTPServices(mux *core.HTTPMultiplexer, opts core.GRPCDialOptions) {
+	ctx := core.NewCtx()
+	port := core.GRPCPort
+
+	core.LogPanicIfErr(pbs.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, port, opts))
+	core.LogPanicIfErr(pbs.RegisterUsersServiceHandlerFromEndpoint(ctx, mux, port, opts))
+	core.LogPanicIfErr(pbs.RegisterGroupsServiceHandlerFromEndpoint(ctx, mux, port, opts))
+}

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"google.golang.org/grpc"
 	gormLogger "gorm.io/gorm/logger"
 )
 
@@ -40,7 +38,7 @@ func SetupLogger(cfg *LoggerCfg) *zap.Logger {
 }
 
 // This func is a GRPC Interceptor. Or technically a grpc.UnaryServerInterceptor.
-func LogGRPCRequest(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+func LogGRPCRequest(ctx Ctx, req any, info *GRPCInfo, handler GRPCHandler) (any, error) {
 	start := time.Now()
 	resp, err := handler(ctx, req)
 	duration := time.Since(start)
@@ -72,6 +70,24 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+func LogOperationResult(operation string, err error) {
+	if err == nil {
+		LogImportant("✅ " + operation + " succeeded!")
+	} else {
+		zap.S().Error("❌ "+operation+" failed", ZapError(err))
+	}
+}
+
+func LogImportant(s string) {
+	zap.S().Info("⭐ Important! -> ", s)
+}
+
+func LogIfDebug(s string) {
+	if Debug {
+		zap.S().Info(s)
+	}
+}
+
 // Helps keeping code clean and readable, lets you omit the error check on the caller when you just need to log it.
 func LogIfErr(err error, optionalFmtMsg ...string) {
 	if err != nil {
@@ -79,7 +95,7 @@ func LogIfErr(err error, optionalFmtMsg ...string) {
 		if len(optionalFmtMsg) > 0 {
 			fmtMsg = optionalFmtMsg[0]
 		}
-		zap.S().Errorf(fmtMsg, err)
+		zap.S().Errorf("🛑 "+fmtMsg, err)
 	}
 }
 
@@ -90,7 +106,7 @@ func WarnIfErr(err error, optionalFmtMsg ...string) {
 		if len(optionalFmtMsg) > 0 {
 			fmtMsg = optionalFmtMsg[0]
 		}
-		zap.S().Warnf(fmtMsg, err)
+		zap.S().Warnf("🚨 "+fmtMsg, err)
 	}
 }
 
@@ -107,17 +123,17 @@ func LogPanicIfErr(err error, optionalFmtMsg ...string) {
 
 // Used to log unexpected errors, like panic recoveries or some connection errors.
 func LogUnexpectedErr(err error) {
-	zap.S().Error("Unexpected", ZapError(err), ZapStacktrace())
+	zap.S().Error("Unexpected 🛑", ZapError(err), ZapStacktrace())
 }
 
 // Used to log unexpected errors that also should trigger a panic.
 func LogUnexpectedAndPanic(err error) {
-	zap.S().Fatal("Unexpected Fatal", ZapError(err), ZapStacktrace())
+	zap.S().Fatal("Unexpected Fatal 🛑", ZapError(err), ZapStacktrace())
 }
 
 // Used to log things that shouldn't happen, like someone trying to access admin endpoints.
 func LogPotentialThreat(msg string) {
-	zap.S().Error("Threat", ZapMsg(msg))
+	zap.S().Error("Threat 🚨", ZapMsg(msg))
 }
 
 // Used to log strange behaviour that isn't necessarily bad or an error.

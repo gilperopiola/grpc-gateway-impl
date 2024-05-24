@@ -48,7 +48,11 @@ func (serr ServiceErr) Unwrap() error {
 var (
 	GRPCUsersDBCall = func(err error, route string, logFn func(error)) error {
 		logFn(err)
-		return NewGRPCServiceErr(codes.Unknown, err, route)
+		return NewGRPCServiceErr(codes.Unknown, err, route, "users")
+	}
+	GRPCGroupsDBCall = func(err error, route string, logFn func(error)) error {
+		logFn(err)
+		return NewGRPCServiceErr(codes.Unknown, err, route, "groups")
 	}
 	GRPCGeneratingToken = func(err error) error {
 		return NewGRPCServiceErr(codes.Unknown, err)
@@ -61,5 +65,8 @@ var (
 	}
 	GRPCAlreadyExists = func(resource string) error {
 		return NewGRPCServiceErr(codes.AlreadyExists, fmt.Errorf("%s already exists", resource))
+	}
+	GRPCInternal = func(msg string) error {
+		return NewGRPCServiceErr(codes.Internal, fmt.Errorf(msg))
 	}
 )

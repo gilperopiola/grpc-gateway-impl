@@ -1,16 +1,12 @@
 package servers
 
 import (
-	"context"
-
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 )
 
@@ -18,28 +14,21 @@ import (
 /*           - GRPC Server -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func newGRPCServer(service core.Service, serverOpts []grpc.ServerOption) *grpc.Server {
-	grpcServer := grpc.NewServer(serverOpts...)
-	pbs.RegisterUsersServiceServer(grpcServer, service)
-	return grpcServer
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // -> Server Options are used to configure the GRPC Server.
 // -> Our interceptors are actually added here, chained together as a single ServerOption.
 
 // Returns the GRPC Server Options, interceptors included.
-func defaultGRPCServerOpts(toolbox core.Actions, tlsEnabled bool) []grpc.ServerOption {
+func getGRPCServerOptions(toolbox core.Toolbox, tlsEnabled bool) core.GRPCServerOptions {
 	serverOpts := []grpc.ServerOption{}
 
-	// Add TLS Option if enabled.
 	if tlsEnabled {
 		serverOpts = append(serverOpts, grpc.Creds(toolbox.GetServerCreds()))
 	}
 
-	// Chain all Unary Interceptors into a single ServerOption and add it to the slice.
-	defaultInterceptors := defaultGRPCInterceptors(toolbox)
+	// Chain all Unary Interceptors into a single ServerOption and add it as a Server Opt.
+	defaultInterceptors := getGRPCInterceptors(toolbox)
 	serverOpts = append(serverOpts, grpc.ChainUnaryInterceptor(defaultInterceptors...))
 
 	return serverOpts
@@ -48,7 +37,7 @@ func defaultGRPCServerOpts(toolbox core.Actions, tlsEnabled bool) []grpc.ServerO
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Dial Options are used by the HTTP Gateway when connecting to the GRPC Server.
-func defaultGRPCDialOpts(tlsClientCreds credentials.TransportCredentials) []grpc.DialOption {
+func getGRPCDialOptions(tlsClientCreds core.TLSCredentials) core.GRPCDialOptions {
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(tlsClientCreds),
 		grpc.WithUserAgent(customUserAgent),
@@ -68,7 +57,7 @@ const customUserAgent = "by @gilperopiola"
 
 // Returns the GRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the GRPC Server as a grpc.ServerOption.
-func defaultGRPCInterceptors(toolbox core.Actions) []grpc.UnaryServerInterceptor {
+func getGRPCInterceptors(toolbox core.Toolbox) core.GRPCInterceptors {
 	return []grpc.UnaryServerInterceptor{
 		toolbox.LimitGRPC,
 		core.LogGRPCRequest,
@@ -80,7 +69,7 @@ func defaultGRPCInterceptors(toolbox core.Actions) []grpc.UnaryServerInterceptor
 }
 
 // Returns a GRPC Interceptor that checks if the context has been cancelled before processing the request.
-func handleContextCancellation(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+func handleContextCancellation(ctx core.Ctx, req any, _ *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
 	if ctx.Err() != nil {
 		core.LogWeirdBehaviour("Context cancelled early", req)
 		return nil, ctx.Err()
@@ -88,9 +77,9 @@ func handleContextCancellation(ctx context.Context, req any, _ *grpc.UnaryServer
 	return handler(ctx, req) // T0D0 Should we also check after the service call?
 }
 
-// Returns a GRPC Interceptor that recovers from panics and logs them.
-// -> This code below is adapted from the github.com/grpc-ecosystem/go-grpc-middleware/recovery package.
-func handlePanicsAndRecover(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+// Returns a GRPC Interceptor that recovers from panics and logs them
+// -> Adapted from github.com/grpc-ecosystem/go-grpc-middleware/recovery
+func handlePanicsAndRecover(ctx core.Ctx, req any, _ *core.GRPCInfo, handler core.GRPCHandler) (resp any, err error) {
 	handlerCalled := false
 
 	defer func() {

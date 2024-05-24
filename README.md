@@ -14,7 +14,7 @@
 
 ... ... ... But wasn't it... _$0.75_? 🤔
 
-**Yes, _BUUUT_** if you buy _~now~_ we'll throw in the **BEAUTIFUL. CHARMING. BREATHTAKING.........** **`HTTP Swagger Spec`** for your API. And I think I don't even need to say this, but I'll say it anyways... Th-The Swagger... The Swagger Spec. The Swagger Spec... is... au-tO-**GE-nE-RRA-ttTTTEDD** from annotations on the `.proto`. 🎉 Even request validations are configured on the protofile, so there is practically _no Transport Layer~_.
+**Yes, _BUUUT_** if you buy _~now~_ we'll throw in the **BEAUTIFUL. CHARMING. BREATHTAKING.........** **`HTTP Swagger Spec`** for your API. And I think I don't even need to say this, but I'll say it anyways... Th-The Swagger... The Swagger Spec. The Swagger Spec... is... au-tO-**GE-nE-RRA-ttTTTEDD** from annotations on the `.proto`. 🎉 Even request validations are configured on the protofile, so there is practically _no Transport Lyo ayer~_.
 
   ️️👁️👁️  **...** 🤔 **...** OK **...** 👁️🤔 ... That's actually... cool? ... Take my money.
 

@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package pbs;
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+
+import "external/buf/validate/validate.proto";
+import "external/google/api/annotations.proto";
+import "external/google/api/field_behavior.proto";
+import "external/protoc-gen-openapiv2/options/annotations.proto";
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*          - Auth Protofile -         */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "grpc-gateway-impl";
+    version: "1.0"; // T0D0 - Use version from go.mod
+    contact: { email: "" };
+  };
+  host: "localhost:8083";
+  base_path: "";
+  schemes: [HTTP, HTTPS];
+  consumes: "application/json";
+  produces: "application/json";
+  responses: {
+    key: "400";
+    value: { schema: { example: '{"error":"validation error: username value length must be at least 4 characters."}'; }};
+  }
+  responses: {
+    key: "401";
+    value: { schema: { example: '{"error":"unauthorized."}'; }};
+  }
+  responses: {
+    key: "403";
+    value: { schema: { example: '{"error": "forbidden error."}'; }};
+  }
+  responses: {
+    key: "404";
+    value: { schema: { example: '{"error": "not found: username not found."}'; }};
+  }
+  responses: {
+    key: "500";
+    value: { schema: { example: '{"error": "internal server error, something went wrong on our end."}'; }};
+  }
+};
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*           - Auth Service -          */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+// Service for user management.
+service AuthService {
+
+  // Creates a new user with username and password.
+  // Returns the created user's unique ID.
+  rpc Signup (SignupRequest) returns (SignupResponse) {
+    option (google.api.http) = { post: "/auth/v1/signup"; body: "*"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "signup";
+      tags: ["Auth", "Users"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".auth.SignupResponse"} } };
+      };
+    };
+  }
+
+  // Logs in a user with username and password.
+  // Returns a JWT token string.
+  rpc Login (LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = { post: "/auth/v1/login"; body: "*"; };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "login";
+      tags: ["Auth", "Users"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".auth.LoginResponse"} } };
+      };
+    };
+  }
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*       - Requests & Responses -      */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+message SignupRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "SignupRequest" } };
+
+  string username = 1 [
+    json_name = "username",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Username of the user to sign up.", }
+  ];
+
+  string password = 3 [
+    json_name = "password",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 6, max_len: 30, pattern: "[A-Za-z0-9]{6,}"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Password of the user to sign up.", }
+  ];
+}
+
+message SignupResponse {
+  int32 id = 1;
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+message LoginRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "LoginRequest" } };
+
+  string username = 1 [
+    json_name = "username",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Username of the user.", }
+  ];
+
+  string password = 3 [
+    json_name = "password",
+    (google.api.field_behavior) =                                 REQUIRED,
+    (buf.validate.field) =                                        { string: {min_len: 6, max_len: 30, pattern: "[A-Za-z0-9]{6,}"} },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Password of the user.", }
+  ];
+}
+
+message LoginResponse {
+  string token = 1;
+}
+

@@ -55,11 +55,34 @@ type Group struct {
 	ID        int       `gorm:"primaryKey" bson:"id"`
 	OwnerID   int       `gorm:"not null" bson:"owner_id"`
 	Name      string    `gorm:"not null" bson:"name"`
-	Users     []User    `gorm:"many2many:users_in_groups" bson:"users"`
+	Members   []User    `gorm:"many2many:users_in_groups" bson:"members"`
+	Invited   []User    `gorm:"many2many:users_in_groups" bson:"invited"`
 	CreatedAt time.Time `bson:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"`
 	Deleted   bool      `bson:"deleted"`
 }
+
+func (g Group) ToGroupInfoPB() *pbs.GroupInfo {
+	return &pbs.GroupInfo{
+		Id:        int32(g.ID),
+		Name:      g.Name,
+		Owner:     &pbs.UserInfo{Id: int32(g.OwnerID)},
+		CreatedAt: g.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: g.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+type Groups []*Group
+
+func (gs Groups) ToGroupsInfoPB() []*pbs.GroupInfo {
+	groupsInfo := make([]*pbs.GroupInfo, 0, len(gs))
+	for _, g := range gs {
+		groupsInfo = append(groupsInfo, g.ToGroupInfoPB())
+	}
+	return groupsInfo
+}
+
+/* -~-~-~-~-~- UsersInGroup ~-~-~-~-~-~ */
 
 type UsersInGroup struct {
 	UserID  int

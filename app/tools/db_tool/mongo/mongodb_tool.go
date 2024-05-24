@@ -1,12 +1,13 @@
 package mongo
 
 import (
-	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
@@ -33,18 +34,24 @@ func SetupDBTool(db core.MongoDB) *mongoDBTool {
 	return &mongoDBTool{db}
 }
 
-func (s *mongoDBTool) GetDB() core.DB {
-	return s.DB
+func (dbt *mongoDBTool) GetDB() core.DB {
+	return dbt.DB
 }
 
-func (s *mongoDBTool) IsNotFound(err error) bool {
+func (dbt *mongoDBTool) CloseDB() {
+	ctx, cancel := core.NewCtxWithTimeout(5 * time.Second)
+	dbt.DB.Close(ctx)
+	cancel()
+}
+
+func (dbt *mongoDBTool) IsNotFound(err error) bool {
 	return errors.Is(err, mongo.ErrNoDocuments) || errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (s *mongoDBTool) CreateGroup(ctx context.Context, name string, ownerID int) (*core.Group, error) {
+func (dbt *mongoDBTool) CreateGroup(ctx core.Ctx, name string, ownerID int, invitedUserIDs []int) (*core.Group, error) {
 	group := &core.Group{Name: name, OwnerID: ownerID}
 
-	result, err := s.DB.InsertOne(ctx, string(GroupsCollection), group)
+	result, err := dbt.DB.InsertOne(ctx, string(GroupsCollection), group)
 	if err != nil || result.InsertedID == nil {
 		return nil, errs.DBErr{err, "T0D0"}
 	}
@@ -52,7 +59,7 @@ func (s *mongoDBTool) CreateGroup(ctx context.Context, name string, ownerID int)
 	return group, nil
 }
 
-func (s *mongoDBTool) GetGroup(ctx context.Context, opts ...any) (*core.Group, error) {
+func (dbt *mongoDBTool) GetGroup(ctx core.Ctx, opts ...any) (*core.Group, error) {
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
 	}
@@ -62,7 +69,7 @@ func (s *mongoDBTool) GetGroup(ctx context.Context, opts ...any) (*core.Group, e
 		opt.(core.MongoDBOpt)(filter)
 	}
 
-	result := s.DB.FindOne(ctx, string(GroupsCollection), filter)
+	result := dbt.DB.FindOne(ctx, string(GroupsCollection), filter)
 	if err := result.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, errs.DBErr{mongo.ErrNoDocuments, "group not found"}
@@ -79,10 +86,10 @@ func (s *mongoDBTool) GetGroup(ctx context.Context, opts ...any) (*core.Group, e
 	return &group, nil
 }
 
-func (s *mongoDBTool) CreateUser(ctx context.Context, username, hashedPwd string) (*core.User, error) {
+func (dbt *mongoDBTool) CreateUser(ctx core.Ctx, username, hashedPwd string) (*core.User, error) {
 	user := &core.User{Username: username, Password: hashedPwd}
 
-	result, err := s.DB.InsertOne(ctx, string(UsersCollection), user)
+	result, err := dbt.DB.InsertOne(ctx, string(UsersCollection), user)
 	if err != nil || result.InsertedID == nil {
 		return nil, errs.DBErr{err, CreateUserErr}
 	}
@@ -90,7 +97,7 @@ func (s *mongoDBTool) CreateUser(ctx context.Context, username, hashedPwd string
 	return user, nil
 }
 
-func (s *mongoDBTool) GetUser(ctx context.Context, opts ...any) (*core.User, error) {
+func (dbt *mongoDBTool) GetUser(ctx core.Ctx, opts ...any) (*core.User, error) {
 
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
@@ -101,7 +108,7 @@ func (s *mongoDBTool) GetUser(ctx context.Context, opts ...any) (*core.User, err
 		opt.(core.MongoDBOpt)(filter)
 	}
 
-	result := s.DB.FindOne(ctx, string(UsersCollection), filter)
+	result := dbt.DB.FindOne(ctx, string(UsersCollection), filter)
 	if err := result.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, errs.DBErr{mongo.ErrNoDocuments, "user not found"}
@@ -117,13 +124,13 @@ func (s *mongoDBTool) GetUser(ctx context.Context, opts ...any) (*core.User, err
 	return &user, nil
 }
 
-func (s *mongoDBTool) GetUsers(ctx context.Context, page, pageSize int, opts ...any) (core.Users, int, error) {
+func (dbt *mongoDBTool) GetUsers(ctx core.Ctx, page, pageSize int, opts ...any) (core.Users, int, error) {
 	filter := &bson.D{}
 	for _, opt := range opts {
 		opt.(core.MongoDBOpt)(filter)
 	}
 
-	matches, err := s.DB.Count(ctx, string(UsersCollection), filter)
+	matches, err := dbt.DB.Count(ctx, string(UsersCollection), filter)
 	if err != nil {
 		return nil, 0, errs.DBErr{err, CountUsersErr}
 	}
@@ -131,7 +138,7 @@ func (s *mongoDBTool) GetUsers(ctx context.Context, page, pageSize int, opts ...
 		return nil, 0, nil
 	}
 
-	result, err := s.DB.Find(ctx, string(UsersCollection), filter, page, pageSize)
+	result, err := dbt.DB.Find(ctx, string(UsersCollection), filter, page, pageSize)
 	if err != nil {
 		return nil, 0, errs.DBErr{mongo.ErrNoDocuments, fmt.Sprintf("error finding users: %v", err)}
 	}

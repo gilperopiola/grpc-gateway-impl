@@ -25,8 +25,10 @@ DOCS_OUT_DIR := ./etc/docs
 PBS_OUT_DIR := ./app/core/pbs
 PROTOS_DIR := ./app/core/protos
 
-USERS_PROTO := $(PROTOS_DIR)/users.proto
+AUTH_PROTO := $(PROTOS_DIR)/auth.proto
 GROUPS_PROTO := $(PROTOS_DIR)/groups.proto
+USERS_PROTO := $(PROTOS_DIR)/users.proto
+OUTPUT_PROTO := $(PROTOS_DIR)/output.proto
 
 #-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
 #       - Main Targets -       #
@@ -65,11 +67,11 @@ generate:
 # -> go install google.golang.org/protobuf/cmd/protoc-gen-go 
 # -> go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
 generate-pbs:
-	protoc -I=$(PROTOS_DIR) --go_out=$(PBS_OUT_DIR) --go-grpc_out=$(PBS_OUT_DIR) --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative $(USERS_PROTO) $(GROUPS_PROTO)
-	protoc -I=$(PROTOS_DIR) --grpc-gateway_out=$(PBS_OUT_DIR) --grpc-gateway_opt=paths=source_relative $(USERS_PROTO) $(GROUPS_PROTO)
+	protoc -I=$(PROTOS_DIR) --go_out=$(PBS_OUT_DIR) --go-grpc_out=$(PBS_OUT_DIR) --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative $(AUTH_PROTO) $(GROUPS_PROTO) $(USERS_PROTO) $(OUTPUT_PROTO)
+	protoc -I=$(PROTOS_DIR) --grpc-gateway_out=$(PBS_OUT_DIR) --grpc-gateway_opt=paths=source_relative $(AUTH_PROTO) $(GROUPS_PROTO) $(USERS_PROTO) $(OUTPUT_PROTO)
  
 generate-swagger:
-	protoc -I=$(PROTOS_DIR) --openapiv2_out=$(DOCS_OUT_DIR) $(USERS_PROTO) $(GROUPS_PROTO)
+	protoc -I=$(PROTOS_DIR) --openapiv2_out=$(DOCS_OUT_DIR)  $(AUTH_PROTO) $(GROUPS_PROTO) $(USERS_PROTO) $(OUTPUT_PROTO)
 
 clean:
 	go clean -cache -modcache -testcache

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package pbs;
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+
+import "external/google/api/field_behavior.proto";
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*         - Output Messages -         */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+message PaginationInfo {
+  int32 current = 1 [ json_name = "current",  (google.api.field_behavior) = OUTPUT_ONLY ];
+  int32 total = 3   [ json_name = "total",    (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+message UserInfo {
+  int32 id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
+  string username = 3   [ json_name = "username",   (google.api.field_behavior) = OUTPUT_ONLY ];
+  string created_at = 5 [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+  string updated_at = 7 [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+message GroupInfo {
+  int32     id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    name = 2        [ json_name = "name",       (google.api.field_behavior) = OUTPUT_ONLY ];
+  UserInfo  owner = 3       [ json_name = "owner",      (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    created_at = 5  [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    updated_at = 7  [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+}

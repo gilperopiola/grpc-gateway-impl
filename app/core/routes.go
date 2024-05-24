@@ -1,10 +1,12 @@
 package core
 
 import (
-	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"google.golang.org/grpc"
 )
@@ -26,30 +28,53 @@ type Route struct {
 // -> So '/pbs.Service/Login' becomes 'Login' and that is the route for the Login endpoint.
 // -> For HTTP, we need to get the route name from the HTTP Path, so we have a map for that.
 
+// T0D0 This isn't automatically updated when the .proto changes. Could be a good fit for code gen.
 var Routes = map[string]Route{
-	"Signup": {
+	pbs.AuthService_ServiceDesc.Methods[0].MethodName: {
 		Name: "Signup",
 		Auth: RouteAuthPublic,
 	},
-	"Login": {
+	pbs.AuthService_ServiceDesc.Methods[1].MethodName: {
 		Name: "Login",
 		Auth: RouteAuthPublic,
 	},
-	"GetUser": {
+
+	pbs.UsersService_ServiceDesc.Methods[0].MethodName: {
 		Name: "GetUser",
 		Auth: RouteAuthSelf,
 	},
-	"GetUsers": {
+	pbs.UsersService_ServiceDesc.Methods[1].MethodName: {
 		Name: "GetUsers",
 		Auth: RouteAuthAdmin,
 	},
-	"CreateGroup": {
-		Name: "CreateGroup",
-		Auth: RouteAuthUser,
+	pbs.UsersService_ServiceDesc.Methods[2].MethodName: {
+		Name: "UpdateUser",
+		Auth: RouteAuthSelf,
 	},
-	"GetGroup": {
+	pbs.UsersService_ServiceDesc.Methods[3].MethodName: {
+		Name: "DeleteUser",
+		Auth: RouteAuthSelf,
+	},
+	pbs.UsersService_ServiceDesc.Methods[4].MethodName: {
+		Name: "GetMyGroups",
+		Auth: RouteAuthSelf,
+	},
+
+	pbs.GroupsService_ServiceDesc.Methods[0].MethodName: {
+		Name: "CreateGroup",
+		Auth: RouteAuthSelf,
+	},
+	pbs.GroupsService_ServiceDesc.Methods[1].MethodName: {
 		Name: "GetGroup",
 		Auth: RouteAuthUser,
+	},
+	pbs.GroupsService_ServiceDesc.Methods[2].MethodName: {
+		Name: "InviteToGroup",
+		Auth: RouteAuthSelf,
+	},
+	pbs.GroupsService_ServiceDesc.Methods[3].MethodName: {
+		Name: "AnswerGroupInvite",
+		Auth: RouteAuthSelf,
 	},
 }
 
@@ -80,41 +105,41 @@ func AuthForRoute(routeName string) RouteAuth {
 func RouteNameFromGRPC(method string) string {
 	i := strings.LastIndex(method, "/")
 	if i == -1 {
-		LogWeirdBehaviour("No '/' found in GRPC: " + method)
+		LogUnexpectedErr(errors.New("No '/' found in GRPC: " + method))
 		return method
 	}
 	return method[i+1:]
 }
 
-// The Route is not directly linked to the HTTP Path, so we need to get it from a map.
+// The Route is not derived from the HTTP Path, we need to get it from a map.
 func RouteNameFromHTTP(req *http.Request) string {
 	httpPath := req.Method + " " + req.URL.Path // -> e.g. 'GET /users/1' or 'POST /signup'
 
 	lastSlashIndex := strings.LastIndex(httpPath, "/")
 	if lastSlashIndex == -1 {
-		LogWeirdBehaviour("No '/' found in HTTP: " + httpPath)
+		LogUnexpectedErr(errors.New("No '/' found in HTTP: " + httpPath))
 		return httpPath
 	}
 
-	httpPathLastPart := httpPath[lastSlashIndex+1:] // -> e.g. '1' or 'signup'
+	lastPart := httpPath[lastSlashIndex+1:] // -> e.g. '1' or 'signup'
 
 	// If the last part of the HTTP Path is not a number, then it's a full path and we can use it directly to get the
 	// route name from the map. Otherwise, we need to remove the number from the end of the path, so '/users/1' becomes just '/users'
 	// and then we can get the route name from the map.
-	if _, err := strconv.Atoi(httpPathLastPart); err != nil {
+	if _, err := strconv.Atoi(lastPart); err != nil {
 		// -> httpPath = 'POST /signup'
-		// -> httpPathLastPart = 'signup' -> Not a number.
+		// -> lastPart = 'signup' -> Not a number.
 		return RouteNamesFromHTTP[httpPath]
 	}
 	// -> httpPath = 'GET /users/1'
-	// -> httpPathLastPart = '1' -> Number.
-	// -> httpPathWithoutLastPart = 'GET /users'
-	httpPathWithoutLastPart := httpPath[:lastSlashIndex-1]
-	return RouteNamesFromHTTP[httpPathWithoutLastPart]
+	// -> lastPart = '1' -> Number.
+	// -> pathWithoutLastPart = 'GET /users'
+	pathWithoutLastPart := httpPath[:lastSlashIndex-1]
+	return RouteNamesFromHTTP[pathWithoutLastPart]
 }
 
 // Returns the route name from the context.
-func RouteNameFromCtx(ctx context.Context) string {
+func RouteNameFromCtx(ctx Ctx) string {
 	if method, ok := grpc.Method(ctx); ok {
 		return RouteNameFromGRPC(method)
 	}

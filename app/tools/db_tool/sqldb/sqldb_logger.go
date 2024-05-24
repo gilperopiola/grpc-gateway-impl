@@ -1,11 +1,12 @@
 package sqldb
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -31,23 +32,23 @@ func newSQLDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (l *sqlDBLogger) Info(_ context.Context, msg string, data ...interface{}) {
-	l.InfoWarnOrError(l.LogLevel, gormLogger.Info, msg, zap.S().Infof, data...)
+func (l *sqlDBLogger) Info(_ core.Ctx, msg string, data ...interface{}) {
+	l.InfoWarnOrError(l.LogLevel, gormLogger.Info, "ℹ️ "+msg, zap.S().Infof, data...)
 }
 
-func (l *sqlDBLogger) Warn(_ context.Context, msg string, data ...interface{}) {
-	l.InfoWarnOrError(l.LogLevel, gormLogger.Warn, msg, zap.S().Warnf, data...)
+func (l *sqlDBLogger) Warn(_ core.Ctx, msg string, data ...interface{}) {
+	l.InfoWarnOrError(l.LogLevel, gormLogger.Warn, "🚨 "+msg, zap.S().Warnf, data...)
 }
 
-func (l *sqlDBLogger) Error(_ context.Context, msg string, data ...interface{}) {
-	l.InfoWarnOrError(l.LogLevel, gormLogger.Error, msg, zap.S().Errorf, data...)
+func (l *sqlDBLogger) Error(_ core.Ctx, msg string, data ...interface{}) {
+	l.InfoWarnOrError(l.LogLevel, gormLogger.Error, "🛑 "+msg, zap.S().Errorf, data...)
 }
 
 // -> This gets called after every query. -> It logs the query, the time it took to execute, and the number of rows affected.
 // -> If the log level is set to Silent, it doesn't log anything. -> If the log level is set to Info, it logs everything.
 // -> If the log level is set to Warn, it logs only slow queries. -> If the log level is set to Error, it logs only errors.
 // -> If the query returns an error, it logs the error. -> I'm not 100% sure about this :)
-func (l *sqlDBLogger) Trace(_ context.Context, begin time.Time, fnCall func() (string, int64), err error) {
+func (l *sqlDBLogger) Trace(_ core.Ctx, begin time.Time, fnCall func() (string, int64), err error) {
 	if l.LogLevel <= gormLogger.Silent {
 		return
 	}
@@ -68,14 +69,14 @@ func (l *sqlDBLogger) LogSQLError(err error, query string, rows int64, elapsed t
 	if errors.As(err, &netError) {
 		query = "DB Network Error" // We don't want to expose sensitive information.
 	}
-	zap.S().Errorf(newQueryInfoLog(elapsed.Nanoseconds(), rows, query), zap.Error(err))
+	zap.S().Errorf("🛑 "+newQueryInfoLog(elapsed.Nanoseconds(), rows, query), zap.Error(err))
 }
 
 func (l *sqlDBLogger) LogSQLQuery(query string, rows int64, elapsed time.Duration) {
 	queryWasSlow := elapsed > time.Second // T0D0 move to config
 
 	if l.LogLevel >= gormLogger.Info || queryWasSlow {
-		zap.S().Infof(newQueryInfoLog(elapsed.Nanoseconds(), rows, query))
+		zap.S().Infof("ℹ️ " + newQueryInfoLog(elapsed.Nanoseconds(), rows, query))
 	}
 }
 

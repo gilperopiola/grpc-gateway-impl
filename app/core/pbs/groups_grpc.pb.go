@@ -25,9 +25,9 @@ type GroupsServiceClient interface {
 	// Creates a new group.
 	// Returns the created group's unique ID.
 	CreateGroup(ctx context.Context, in *CreateGroupRequest, opts ...grpc.CallOption) (*CreateGroupResponse, error)
-	// Gets a group by ID. Returns the group's information.
-	// Requires a JWT Token with a matching group's ID.
 	GetGroup(ctx context.Context, in *GetGroupRequest, opts ...grpc.CallOption) (*GetGroupResponse, error)
+	InviteToGroup(ctx context.Context, in *InviteToGroupRequest, opts ...grpc.CallOption) (*InviteToGroupResponse, error)
+	AnswerGroupInvite(ctx context.Context, in *AnswerGroupInviteRequest, opts ...grpc.CallOption) (*AnswerGroupInviteResponse, error)
 }
 
 type groupsServiceClient struct {
@@ -56,6 +56,24 @@ func (c *groupsServiceClient) GetGroup(ctx context.Context, in *GetGroupRequest,
 	return out, nil
 }
 
+func (c *groupsServiceClient) InviteToGroup(ctx context.Context, in *InviteToGroupRequest, opts ...grpc.CallOption) (*InviteToGroupResponse, error) {
+	out := new(InviteToGroupResponse)
+	err := c.cc.Invoke(ctx, "/pbs.GroupsService/InviteToGroup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *groupsServiceClient) AnswerGroupInvite(ctx context.Context, in *AnswerGroupInviteRequest, opts ...grpc.CallOption) (*AnswerGroupInviteResponse, error) {
+	out := new(AnswerGroupInviteResponse)
+	err := c.cc.Invoke(ctx, "/pbs.GroupsService/AnswerGroupInvite", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GroupsServiceServer is the server API for GroupsService service.
 // All implementations must embed UnimplementedGroupsServiceServer
 // for forward compatibility
@@ -63,9 +81,9 @@ type GroupsServiceServer interface {
 	// Creates a new group.
 	// Returns the created group's unique ID.
 	CreateGroup(context.Context, *CreateGroupRequest) (*CreateGroupResponse, error)
-	// Gets a group by ID. Returns the group's information.
-	// Requires a JWT Token with a matching group's ID.
 	GetGroup(context.Context, *GetGroupRequest) (*GetGroupResponse, error)
+	InviteToGroup(context.Context, *InviteToGroupRequest) (*InviteToGroupResponse, error)
+	AnswerGroupInvite(context.Context, *AnswerGroupInviteRequest) (*AnswerGroupInviteResponse, error)
 	mustEmbedUnimplementedGroupsServiceServer()
 }
 
@@ -78,6 +96,12 @@ func (UnimplementedGroupsServiceServer) CreateGroup(context.Context, *CreateGrou
 }
 func (UnimplementedGroupsServiceServer) GetGroup(context.Context, *GetGroupRequest) (*GetGroupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGroup not implemented")
+}
+func (UnimplementedGroupsServiceServer) InviteToGroup(context.Context, *InviteToGroupRequest) (*InviteToGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InviteToGroup not implemented")
+}
+func (UnimplementedGroupsServiceServer) AnswerGroupInvite(context.Context, *AnswerGroupInviteRequest) (*AnswerGroupInviteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AnswerGroupInvite not implemented")
 }
 func (UnimplementedGroupsServiceServer) mustEmbedUnimplementedGroupsServiceServer() {}
 
@@ -128,6 +152,42 @@ func _GroupsService_GetGroup_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GroupsService_InviteToGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteToGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupsServiceServer).InviteToGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pbs.GroupsService/InviteToGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupsServiceServer).InviteToGroup(ctx, req.(*InviteToGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GroupsService_AnswerGroupInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AnswerGroupInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupsServiceServer).AnswerGroupInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pbs.GroupsService/AnswerGroupInvite",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupsServiceServer).AnswerGroupInvite(ctx, req.(*AnswerGroupInviteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GroupsService_ServiceDesc is the grpc.ServiceDesc for GroupsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -142,6 +202,14 @@ var GroupsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGroup",
 			Handler:    _GroupsService_GetGroup_Handler,
+		},
+		{
+			MethodName: "InviteToGroup",
+			Handler:    _GroupsService_InviteToGroup_Handler,
+		},
+		{
+			MethodName: "AnswerGroupInvite",
+			Handler:    _GroupsService_AnswerGroupInvite_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

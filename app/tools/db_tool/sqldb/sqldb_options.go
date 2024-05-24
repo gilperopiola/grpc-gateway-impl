@@ -20,8 +20,8 @@ const (
 /*      - High Level SQL Options -     */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func WithUserID(userID int32) core.SQLDBOpt {
-	return WithCondition(Where, "id", strconv.Itoa(int(userID)))
+func WithID(id int32) core.SQLDBOpt {
+	return WithCondition(Where, "id", strconv.Itoa(int(id)))
 }
 
 func WithUsername(username string) core.SQLDBOpt {

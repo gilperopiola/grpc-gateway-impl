@@ -39,5 +39,8 @@ func newResponsePagination(currentPage, pageSize, totalRecords int) *pbs.Paginat
 		totalPages++
 	}
 
-	return &pbs.PaginationInfo{Current: int32(currentPage), Total: int32(totalPages)}
+	return &pbs.PaginationInfo{
+		Current: int32(currentPage),
+		Total:   int32(totalPages),
+	}
 }

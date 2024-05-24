@@ -3,7 +3,8 @@ syntax = "proto3";
 package pbs;
 option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
 
-import "users.proto";
+import "output.proto";
+
 import "external/buf/validate/validate.proto";
 import "external/google/api/annotations.proto";
 import "external/google/api/field_behavior.proto";
@@ -52,7 +53,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 
 // Service for group management.
 service GroupsService {
-
   // Creates a new group.
   // Returns the created group's unique ID.
   rpc CreateGroup (CreateGroupRequest) returns (CreateGroupResponse) {
@@ -67,8 +67,6 @@ service GroupsService {
     };
   }
 
-  // Gets a group by ID. Returns the group's information.
-  // Requires a JWT Token with a matching group's ID.
   rpc GetGroup (GetGroupRequest) returns (GetGroupResponse) {
     option (google.api.http) = { get: "/v1/groups/{group_id}"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -77,6 +75,30 @@ service GroupsService {
       responses: {
         key: "200";
         value: {schema: {json_schema: {ref: ".groups.GetGroupResponse"}}};
+      };
+    };
+  }
+
+  rpc InviteToGroup (InviteToGroupRequest) returns (InviteToGroupResponse) {
+    option (google.api.http) = { post: "/v1/groups/{group_id}"; body: "*" };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "invite_to_group";
+      tags: ["Groups"];
+      responses: {
+        key: "200";
+        value: {schema: {json_schema: {ref: ".groups.InviteToGroupResponse"}}};
+      };
+    };
+  }
+  
+  rpc AnswerGroupInvite (AnswerGroupInviteRequest) returns (AnswerGroupInviteResponse) {
+    option (google.api.http) = { post: "/v1/groups/{group_id}/answer"; body: "*" };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "answer_group_invite";
+      tags: ["Groups"];
+      responses: {
+        key: "200";
+        value: {schema: {json_schema: {ref: ".groups.AnswerGroupInviteResponse"}}};
       };
     };
   }
@@ -89,16 +111,25 @@ service GroupsService {
 message CreateGroupRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "CreateGroupRequest" } };
 
+  // owner ID is gotten from the JWT token
+
   string name = 1 [
     json_name = "name",
     (google.api.field_behavior) =                                 REQUIRED,
     (buf.validate.field) =                                        { string: {min_len: 2, max_len: 48, pattern: "^[a-zA-Z0-9_]+$"} },
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Name of the group to create.", }
   ];
+
+  repeated int32 invited_user_ids = 3 [
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    pattern: "^[0-9]+$"
+    max_length: 255
+    min_length: 0
+  }];
 }
 
 message CreateGroupResponse {
-  int32 id = 1;
+  GroupInfo group = 1 [ json_name = "group", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -111,17 +142,39 @@ message GetGroupRequest {
 }
 
 message GetGroupResponse {
-  Group group = 1 [ json_name = "group", (google.api.field_behavior) = OUTPUT_ONLY ];
+  GroupInfo group = 1 [ json_name = "group", (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+message InviteToGroupRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "InviteToGroupRequest" } };
+
+  int32 group_id = 1;
+
+  int32 owner_id = 3;
+
+  repeated int32 invited_user_ids = 5[(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    pattern: "^[0-9]+$"
+    max_length: 255
+    min_length: 0
+  }];
+}
+
+message InviteToGroupResponse {
+  GroupInfo group = 1 [ json_name = "group", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Custom Messages -         */ 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-message Group {
-  int32     id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
-  string    name = 2        [ json_name = "name",       (google.api.field_behavior) = OUTPUT_ONLY ];
-  UserInfo  owner = 3       [ json_name = "owner",      (google.api.field_behavior) = OUTPUT_ONLY ];
-  string    created_at = 5  [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
-  string    updated_at = 7  [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+message AnswerGroupInviteRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "AnswerGroupInviteRequest" } };
+
+  int32 group_id = 1;
+
+  int32 user_id = 3;
+
+  bool accept = 5;
+}
+
+message AnswerGroupInviteResponse {
+  GroupInfo group = 1 [ json_name = "group", (google.api.field_behavior) = OUTPUT_ONLY ];
 }

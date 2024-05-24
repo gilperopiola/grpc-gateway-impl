@@ -6,51 +6,64 @@ import (
 	"strconv"
 )
 
-// Globals! Because why not?
-// If Zap uses globals then I can too :) -> **gets decapitated by the Go community**
-var AppName = "grpc-gateway-impl"
-var AppAlias = "GGWI"
-var Env = "local"
-var EnvIsProd = false
-var GRPCPort = ":50053"
-var HTTPPort = ":8083"
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*             - Config -              */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Holds the configurable settings of our app.
+// Our most used Configs are... -> 🌍 Globals!~
+// -> Just call them like core.Whatever from anywhere and you're good to go.
+
+var AppName = "grpc-gateway-impl"
+var AppAlias = "GGWI"
+var AppEmoji = "📱"
+
+var Env = "local"
+var EnvIsProd = false
+var Debug = true
+
+var GRPCPort = ":50053"
+var HTTPPort = ":8083"
+var TLSEnabled = false
+
+// These are our non-global Configs 🌍❌
+// -> The App loads an instance of this on startup and passes it around.
 type Config struct {
-	DBCfg
-	JWTCfg
-	TLSCfg
-	LoggerCfg
-	PwdHasherCfg
-	RLimiterCfg
+	DBCfg        // -> DB Credentials and such
+	JWTCfg       // -> JWT Secret
+	TLSCfg       // -> TLS Certs paths
+	LoggerCfg    // -> Logger settings
+	PwdHasherCfg // -> Salt
+	RetrierCfg   // -> N° Retries
+	RLimiterCfg  // -> Rate settings
 }
 
-// Loads all settings from environment variables.
-func SetupConfig() *Config {
+func LoadConfig() *Config {
 
-	// Globals
+	// -> 🌍 Globals
 	AppName = envVar("APP_NAME", AppName)
-	AppAlias = envVar("APP_ACRONYM", AppAlias)
-	Env = envVar("ENV_NAME", Env)
+	AppAlias = envVar("APP_ALIAS", AppAlias)
+	AppEmoji = envVar("APP_EMOJI", AppEmoji)
+
+	Env = envVar("ENV", Env)
 	EnvIsProd = Env == "prod" || Env == "production" || Env == "live"
+	Debug = envVar("DEBUG", Debug)
+
 	GRPCPort = envVar("GRPC_PORT", GRPCPort)
 	HTTPPort = envVar("HTTP_PORT", HTTPPort)
+	TLSEnabled = envVar("TLS_ENABLED", TLSEnabled)
 
 	return &Config{
-		DBCfg:        setupDBConfig(),
-		JWTCfg:       setupJWTConfig(),
-		TLSCfg:       setupTLSConfig(),
-		LoggerCfg:    setupLoggerConfig(),
-		PwdHasherCfg: setupPwdHasherConfig(),
-		RLimiterCfg:  setupRateLimiterConfig(),
+		DBCfg:        loadDBConfig(),
+		JWTCfg:       loadJWTConfig(),
+		TLSCfg:       loadTLSConfig(),
+		LoggerCfg:    loadLoggerConfig(),
+		PwdHasherCfg: loadPwdHasherConfig(),
+		RetrierCfg:   loadRetrierConfig(),
+		RLimiterCfg:  loadRateLimiterConfig(),
 	}
 }
 
-func setupDBConfig() DBCfg {
+func loadDBConfig() DBCfg {
 	return DBCfg{
 		Username:       envVar("DB_USERNAME", "root"),
 		Password:       envVar("DB_PASSWORD", ""),
@@ -58,6 +71,7 @@ func setupDBConfig() DBCfg {
 		Port:           envVar("DB_PORT", "3306"),
 		Schema:         envVar("DB_SCHEMA", "grpc-gateway-impl"),
 		Params:         envVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
+		EraseAllData:   envVar("DB_ERASE_ALL_DATA", false),
 		MigrateModels:  envVar("DB_MIGRATE_MODELS", true),
 		InsertAdmin:    envVar("DB_INSERT_ADMIN", true),
 		InsertAdminPwd: envVar("DB_INSERT_ADMIN_PWD", "n8zAyv96oAtfQoNof-_ulH4pS0Dqf61VThTZbbOLXCU="), // T0D0 unsafe!!!! But it's local so...
@@ -65,22 +79,21 @@ func setupDBConfig() DBCfg {
 	}
 }
 
-func setupJWTConfig() JWTCfg {
+func loadJWTConfig() JWTCfg {
 	return JWTCfg{
 		Secret:      envVar("JWT_SECRET", "s0m3_s3cr37"),
 		SessionDays: envVar("JWT_SESSION_DAYS", 7),
 	}
 }
 
-func setupTLSConfig() TLSCfg {
+func loadTLSConfig() TLSCfg {
 	return TLSCfg{
-		Enabled:  envVar("TLS_ENABLED", false),
 		CertPath: envVar("TLS_CERT_PATH", "./server.crt"),
 		KeyPath:  envVar("TLS_KEY_PATH", "./server.key"),
 	}
 }
 
-func setupLoggerConfig() LoggerCfg {
+func loadLoggerConfig() LoggerCfg {
 	return LoggerCfg{
 		Level:       LogLevels[envVar("LOGGER_LEVEL", "info")],
 		LevelStackT: LogLevels[envVar("LOGGER_LEVEL_STACKTRACE", "dpanic")],
@@ -88,11 +101,15 @@ func setupLoggerConfig() LoggerCfg {
 	}
 }
 
-func setupPwdHasherConfig() PwdHasherCfg {
+func loadPwdHasherConfig() PwdHasherCfg {
 	return PwdHasherCfg{Salt: envVar("PWD_HASHER_SALT", "s0m3_s4l7")}
 }
 
-func setupRateLimiterConfig() RLimiterCfg {
+func loadRetrierConfig() RetrierCfg {
+	return RetrierCfg{DBConnRetries: envVar("RETRIES_DB_CONN", 7)}
+}
+
+func loadRateLimiterConfig() RLimiterCfg {
 	return RLimiterCfg{
 		MaxTokens:       envVar("RLIMITER_MAX_TOKENS", 40),
 		TokensPerSecond: envVar("RLIMITER_TOKENS_PER_SECOND", 10),
@@ -110,6 +127,7 @@ type (
 		Schema   string
 		Params   string
 
+		EraseAllData   bool
 		MigrateModels  bool
 		InsertAdmin    bool
 		InsertAdminPwd string // hashed with our PwdHasher
@@ -121,7 +139,6 @@ type (
 		SessionDays int
 	}
 	TLSCfg struct {
-		Enabled  bool
 		CertPath string
 		KeyPath  string
 	}
@@ -133,9 +150,12 @@ type (
 	PwdHasherCfg struct {
 		Salt string
 	}
+	RetrierCfg struct {
+		DBConnRetries int
+	}
 	RLimiterCfg struct {
-		MaxTokens       int // Max tokens the bucket can hold.
-		TokensPerSecond int // Tokens reloaded per second.
+		MaxTokens       int // Max tokens the bucket can hold
+		TokensPerSecond int // Tokens reloaded per second
 	}
 )
 
@@ -163,4 +183,9 @@ func envVar[T string | bool | int](key string, fallback T) T {
 
 func (c *DBCfg) GetSQLConnString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s", c.Username, c.Password, c.Hostname, c.Port, c.Schema, c.Params)
+}
+
+// Used on init if the DB we need is not yet created
+func (c *DBCfg) GetSQLConnStringNoSchema() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", c.Username, c.Password, c.Hostname, c.Port, c.Params)
 }

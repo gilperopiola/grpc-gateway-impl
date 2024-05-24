@@ -1,132 +1,129 @@
 package app
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
 
 	"go.uber.org/zap"
 )
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ */
-/* -~-~-~-~-~ GRPC Gateway Implementation -~-~-~-~-~- */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ */
-
-// -> Welcome to this lovely project :) 🌈
-
-func NewApp() *App {
-	fmt.Println()
-	app := App{}.Setup()
-	return app
-}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*               - App -               */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
-var _ core.Actions = (*Actions)(nil)
-
 type (
 	App struct {
+		*core.Config // -> Config.
 		core.Servers // -> GRPC & HTTP.
 		core.Service // -> Business logic.
-		*core.Config // -> Config.
-		*Actions     // -> Handy tools.
-	}
-
-	// Actions = Toolbox.
-	// These below are our Tools, and with this struct we can perform any action we want.
-	// Powerful.
-	Actions struct {
-		core.APICaller          // -> Clients (GRPC, HTTP, etc).
-		core.DBTool             // -> Storage (DB, Cache, etc)
-		core.FileCreator        // -> Creates folders and files.
-		core.PwdHasher          // -> Hashes and compares passwords.
-		core.RateLimiter        // -> Limits rate of requests.
-		core.RequestsValidator  // -> Validates GRPC requests.
-		core.TLSTool            // -> Holds and retrieves data for TLS communication.
-		core.TokenAuthenticator // -> Generates & Validates JWT Tokens.
+		*Tools       // -> Handy tools.
 	}
 )
 
-/* -~-~-~-~-~ Setup App -~-~-~-~-~- */
+// te bajé la luna, te llevé a parís, te di mi arcoiris y me quede gris
 
-func (app App) Setup() *App {
-	app.SetupConfig()
-	app.SetupLogger()
-	app.SetupActions()
-	app.SetupService()
-	app.SetupServers()
-	return &app
-}
+// pero para mi por vos todo lo di
 
-func (app *App) SetupConfig() {
-	app.Config = core.SetupConfig()
-}
+// si decía que no, me
 
-func (app App) SetupLogger() {
-	// The Logger lives globally on the zap pkg,
-	// so we just initialize it here and forget about it.
-	_ = core.SetupLogger(&app.LoggerCfg)
-}
+// te dije que no, te dije que sí, te di mi palabra y también la cumplí
+// me banqué tus miedos me dejaste traumas y ahora de esa mierda quien mierda me salva
+//
 
-func (app *App) SetupActions() {
-	cfg := app.Config
+// un beso pa tu cola, decile que laextraño
 
-	app.Actions = &Actions{}
-	app.Actions.APICaller = tools.NewAPICaller()
-	app.Actions.DBTool = sqldb.NewDBTool(sqldb.NewSQLDB(&cfg.DBCfg))
-	app.Actions.FileCreator = tools.NewFileCreator()
-	app.Actions.PwdHasher = tools.NewPwdHasher(cfg.PwdHasherCfg.Salt)
-	app.Actions.RateLimiter = tools.NewRateLimiter(&cfg.RLimiterCfg)
-	app.Actions.RequestsValidator = tools.NewRequestsValidator()
-	app.Actions.TLSTool = tools.NewTLSTool(&cfg.TLSCfg)
-	app.Actions.TokenAuthenticator = tools.NewJWTAuthenticator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
-}
+// ahora me pides que te deje ir, que no te retenga, que te deje ser
+// pero no me pidas que te olvide, que te deje de amar, que te deje de ver
+// porque no puedo, porque no quiero, porque no sé cómo hacer
 
-func (app *App) SetupService() {
-	app.Service = service.Setup(app.Actions)
-}
+// loca ese tatuaje que tenés abajo de las tetas
 
-func (app *App) SetupServers() {
-	app.Servers = servers.Setup(app.Service, app.Actions, app.TLSCfg.Enabled)
-}
+// si miro a los ojos / de la muerte misma / juro que no me tiembla la voz
+// pero con verte a los tuyos / se muere mi orgullo / y mi cerebro pierde la razón
+// y no es lo que quiero / pero soy sincero / hago lo que puedo y ya no puedo más
+// y bajo la luna / no me hagas preguntas / que no sé qué contestar
 
-/* -~-~-~-~-~ Run App -~-~-~-~-~- */
+func NewApp() (runAppFn runAppFunc, cleanupFn cleanupFunc) {
 
-func (app *App) Run() {
-	app.Servers.Run()
-}
+	// -> Our App is like a little house 🏠
+	//
+	// It has 2 main entrances:
+	// -> One for GRPC 🪟 and another for HTTP 🪟. These doors are the 2 PORTS in which the app is run.
+	// And each entrance leads to a different room:
+	// -> The GRPC Room 💻 and the HTTP Room 💻. Our SERVERS struct represents these 2 rooms.
+	//
+	// -> So, when someone arrives at the GRPC entrance 🤓 and decides to come in, he only sees a corridor with a door
+	// at the end that reads SERVICE. That is our GRPC Server, a corridor, a small room leading to our SERVICE.
+	//
+	// -> Not so simple though, the GRPC corridor is divided into sections, each with a different purpose.
+	// They are all laid out one after the other, so our guest has to go through all of them to reach the end.
+	// He slowly starts reading each section's label: 'RATE LIMITER', 'LOGGER', 'TOKEN_VALIDATION', 'PWD_HASHER', etc...
+	// -> Each section is a GRPC INTERCEPTOR. Each section performs an action based on whoever is trying to get through,
+	// sometimes blocking his path and making him return back to the entrance with an error.
+	//
+	// -> And when he reaches the end of the INTERCEPTORS... Well, there's the door to our beloved SERVICE.
+	// And as he enters the Service, he is redirected to one of many small but different rooms, each one being a GRPC Service Method.
+	// There's the Login Room, Signup Room, etc.
+	//
+	// -> And then on the Service, he just uses the TOOLS stored in there to complete his mission.
+	// For example, he uses the DB Tool to retrieve and update data, or the Token Generator to get a new JWT on Login.
+	// In case he cannot continue due to an error, or if he just completed his task, then it returns with the obtained results.
+	//
+	// -> He goes back to the GRPC Room, traces back his steps through the Interceptors and goes out of the door.
+	//
+	// -> HTTP is another story. The HTTP Room actually has a quite similar structure to the GRPC one. It's a corridor, with a door at
+	// the end that reads GRPC Room. It's also divided into sections, but these are called MIDDLEWARE instead. And the logic is the same:
+	// Our guy Ronald 🤓 enters our App through Port :8081, accessing the HTTP Room. There he crosses sections like the CORS Handler,
+	// and reaches the door to the GRPC Room at the end. He enters, and has to go through all Interceptors, to reach the Service and
+	// fulfill his mission. When it's over, he heads back to the entrance of the GRPC Room, returns to the HTTP Room (converting the response)
+	// gotten on the Service from a GRPC format to an HTTP one.
+	//
 
-/* -~-~-~-~-~ Shutdown App -~-~-~-~-~- */
-
-func (app *App) WaitForShutdown() { // Waits for SIGINT or SIGTERM to gracefully shutdown servers.
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
-
-	zap.S().Infoln("GRPC Gateway Implementation | Shutting down servers 🛑")
-
-	// Close SQL and Mongo connections.
-	db := app.Actions.GetDB()
-	if sqlDB, ok := db.(core.SQLDB); ok {
-		sqlDB.Close()
+	// ⭐️ This is our core App. This holds everything.
+	app := &App{
+		Config:  &core.Config{},     // 🗺️
+		Servers: &servers.Servers{}, // 🌐
+		Service: &service.Service{}, // 🌟
+		Tools:   &Tools{},           // 🛠️
 	}
-	if mongoDB, ok := db.(core.MongoDB); ok {
-		mongoDB.Close(context.Background())
-	}
 
-	// Stop servers.
-	app.Servers.Shutdown()
+	// Setup Config
+	func() {
+		app.Config = core.LoadConfig()
+	}()
 
-	zap.S().Infoln("GRPC Gateway Implementation | Servers stopped 🛑 Bye bye ~ ")
-	zap.L().Sync()
+	// Setup Logger. It lives globally on zap.L()
+	func() {
+		_ = core.SetupLogger(&app.LoggerCfg)
+	}()
+
+	// Setup Tools
+	func() {
+		app.SetupTools()
+	}()
+
+	// Setup Service & Servers
+	func() {
+		app.Service = service.Setup(app.Tools)
+		app.Servers = servers.Setup(app.Service, app.Tools)
+	}()
+
+	// Setup Cleanup Funcs
+	func() {
+		app.Tools.ShutdownJanitor.AddCleanupFunc(app.CloseDB)
+		app.Tools.ShutdownJanitor.AddCleanupFunc(app.Servers.Shutdown)
+		app.Tools.ShutdownJanitor.AddCleanupFuncWithErr(zap.L().Sync)
+	}()
+
+	return app.Servers.Run, app.Tools.ShutdownJanitor.Cleanup
 }
+
+// -> While our Config is a simple pointer to struct, our Servers, Service and Tools are both structs and interfaces.
+var _ *core.Config
+var _ core.Servers = (*servers.Servers)(nil)
+var _ core.Service = (*service.Service)(nil)
+var _ core.Toolbox = (*Tools)(nil)
+
+type runAppFunc func()
+type cleanupFunc func()

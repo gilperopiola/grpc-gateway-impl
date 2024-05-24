@@ -1,17 +1,14 @@
 package servers
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 )
 
@@ -19,30 +16,32 @@ import (
 /*          - HTTP Gateway -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func newHTTPGateway(serveMuxOpts []runtime.ServeMuxOption, middlewareFn middlewareFunc, grpcDialOpts []grpc.DialOption) *http.Server {
-	mux := runtime.NewServeMux(serveMuxOpts...)
-	err := pbs.RegisterUsersServiceHandlerFromEndpoint(context.Background(), mux, core.GRPCPort, grpcDialOpts)
-	core.LogPanicIfErr(err)
-
-	return &http.Server{
-		Addr:    core.HTTPPort,
-		Handler: middlewareFn(mux),
-		// TLSConfig: core.GetTLSConfig(core.GetCertPool(core.CertPath), core.GetServerName(core.ServerName)),
-	}
-}
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
 type middlewareFunc func(http.Handler) http.Handler
 
 // Returns the middleware to be wrapped around the HTTP Gateway's Mux.
-func defaultHTTPMiddleware() middlewareFunc {
+func getHTTPMiddleware() middlewareFunc {
 	return func(handler http.Handler) http.Handler {
 		return handleCORS(core.LogHTTPRequest(setResponseHeaders(handler)))
 	}
 }
 
-// Middleware.
+// Middleware. Adds CORS headers to the response and handles preflight requests
+var handleCORS middlewareFunc = func(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		core.LogIfDebug("Handling CORS | " + req.Method + " request from " + req.RemoteAddr)
+
+		for key, value := range corsHeaders {
+			rw.Header().Set(key, value)
+		}
+		if req.Method == "OPTIONS" { // Preflight
+			rw.WriteHeader(http.StatusOK)
+			return
+		}
+		handler.ServeHTTP(rw, req)
+	})
+}
+
+// Middleware
 var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(rw, req)
@@ -55,31 +54,22 @@ var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler 
 	})
 }
 
-// Middleware. Adds CORS headers to the response and handles preflight requests.
-var handleCORS middlewareFunc = func(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		for key, value := range corsHeaders {
-			rw.Header().Set(key, value)
-		}
-		if req.Method == "OPTIONS" { // Preflight
-			rw.WriteHeader(http.StatusOK)
-			return
-		}
-		handler.ServeHTTP(rw, req)
-	})
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // ServeMuxOptions are applied to the HTTP Gateway's Mux on creation.
 // For now there's only an error handler.
 
 // Returns our ServeMuxOptions.
-func defaultHTTPServeMuxOpts() []runtime.ServeMuxOption {
-	return []runtime.ServeMuxOption{runtime.WithErrorHandler(handleHTTPError)}
+func getHTTPServeMuxOptions() []runtime.ServeMuxOption {
+	return []runtime.ServeMuxOption{
+		runtime.WithErrorHandler(handleHTTPError),
+		runtime.WithRoutingErrorHandler(func(c core.Ctx, m *runtime.ServeMux, marsh runtime.Marshaler, rw http.ResponseWriter, req *http.Request, idk int) {
+			core.LogWeirdBehaviour("Route not found")
+		}),
+	}
 }
 
-func handleHTTPError(c context.Context, mux *runtime.ServeMux, m runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
+func handleHTTPError(c core.Ctx, mux *runtime.ServeMux, m runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
 
 	// HTTP Errors stop the HTTP Middleware execution chain, so we call forwardResponseOptions to set the headers.
 	for _, forwardResponseFn := range mux.GetForwardResponseOptions() {
@@ -90,17 +80,17 @@ func handleHTTPError(c context.Context, mux *runtime.ServeMux, m runtime.Marshal
 	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
 	httpBody := newHTTPErrorRespBody(grpcStatus.Message())
 
-	modifyHTTPErrorBodyOrHeaders(rw, httpStatus, &httpBody)
+	updateHTTPErrorResponse(rw, httpStatus, &httpBody)
 
 	rw.WriteHeader(httpStatus)
 	rw.Write([]byte(httpBody))
 }
 
 // Modifies the HTTP Error response body and headers based on the HTTP Status.
-func modifyHTTPErrorBodyOrHeaders(rw http.ResponseWriter, status int, body *string) {
+func updateHTTPErrorResponse(rw http.ResponseWriter, status int, body *string) {
 	switch status {
 	case http.StatusBadRequest:
-		// Do nothing.
+		// Return as is
 	case http.StatusUnauthorized:
 		rw.Header().Set("WWW-Authenticate", "Bearer")
 		*body = newHTTPErrorRespBody(errs.HTTPUnauthorized)

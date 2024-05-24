@@ -28,7 +28,13 @@ func NewDBTool(db core.SQLDB) core.DBTool {
 	return &sqlDBTool{db}
 }
 
-func (sdbt sqlDBTool) GetDB() core.DB { return sdbt.DB }
+func (sdbt sqlDBTool) GetDB() core.DB {
+	return sdbt.DB
+}
+
+func (sdbt sqlDBTool) CloseDB() {
+	sdbt.DB.Close()
+}
 
 func (sdbt sqlDBTool) IsNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, mongo.ErrNoDocuments)

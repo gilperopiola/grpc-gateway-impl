@@ -13,7 +13,7 @@ type pwdHasher struct {
 	salt string
 }
 
-func NewPwdHasher(salt string) *pwdHasher {
+func NewPwdHasher(salt string) core.PwdHasher {
 	return &pwdHasher{salt}
 }
 

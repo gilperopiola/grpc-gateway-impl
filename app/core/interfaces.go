@@ -1,16 +1,14 @@
 package core
 
 import (
-	"context"
 	"crypto/x509"
 	"database/sql"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/other"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	"gorm.io/gorm"
 )
 
 // When a GRPC/HTTP Request arrives, our Servers pass it through Interceptors, and then through the Service.
@@ -26,60 +24,59 @@ import (
 /*            - Interfaces -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-/* -~-~-~-~- Service -~-~-~-~- */
-
-// Embed all PB Services here! For now we only have 1.
-// This interface is kind of our entire API. It has a method for each GRPC/HTTP endpoint we have.
-type Service interface {
-	pbs.UsersServiceServer
-	pbs.GroupsServiceServer
-}
-
-/* -~-~-~-~- Servers -~-~-~-~- */
+/* -~-~-~-~- Main Interfaces -~-~-~-~- */
 
 type Servers interface {
 	Run()
 	Shutdown()
 }
 
-/* -~-~-~- Actions / Toolbox -~-~-~- */
+// This interface is kind of our entire API. It has a method for each GRPC/HTTP endpoint we have.
+type Service interface {
+	AuthSvc
+	UsersSvc
+	GroupsSvc
+
+	RegisterGRPCServices(GRPCServiceRegistrar)
+	RegisterHTTPServices(*HTTPMultiplexer, GRPCDialOptions)
+}
+
+// Used to kinda unify our SQL and Mongo DB Interfaces. Also lets us get the inner DB object which may be useful.
+type DB interface {
+	GetInnerDB() any
+}
+
+// With this you can avoid importing the tools pkg.
+// Remember to add new tools on the app.go file as well.
+type Toolbox interface {
+	APIs
+
+	DBTool
+	TLSTool
+
+	FileManager
+	MetadataGetter
+	PwdHasher
+	RateLimiter
+	RequestsValidator
+	ShutdownJanitor
+	TokenGenerator
+	TokenValidator
+}
+
+/* -~-~-~-~- Toolbox: Tools -~-~-~-~- */
 
 type (
-	// Use this to avoid importing the tools pkg.
-	// Our app.Actions fulfills this interface.
-	Actions interface {
-		APICaller
-		DBTool
-		FileCreator
-		PwdHasher
-		RateLimiter
-		RequestsValidator
-		TLSTool
-		TokenAuthenticator
-	}
-
-	/* -~-~-~-~- Tools -~-~-~-~- */
-
-	APICaller interface {
-		// We still don't have any Clients.
-	}
-
-	DBTool interface {
-		GetDB() DB
-		IsNotFound(err error) bool
-
-		// Users
-		CreateUser(ctx context.Context, username, hashedPwd string) (*User, error)
-		GetUser(ctx context.Context, opts ...any) (*User, error)
-		GetUsers(ctx context.Context, page, pageSize int, opts ...any) (Users, int, error)
-
-		// Groups
-		CreateGroup(ctx context.Context, name string, ownerID int) (*Group, error)
-		GetGroup(ctx context.Context, opts ...any) (*Group, error)
-	}
-
-	FileCreator interface {
+	FileManager interface {
+		CreateFolder(path string) error
 		CreateFolders(paths ...string) error
+	}
+
+	// MetadataGetter is a really powerful interface, we use it to abstract access to headers and metadata.
+	// It can be used with any key-value pair storage.
+	// Can this be improved with generics?
+	MetadataGetter interface {
+		GetMD(Ctx, string) (string, error)
 	}
 
 	PwdHasher interface {
@@ -88,41 +85,83 @@ type (
 	}
 
 	RateLimiter interface {
-		LimitGRPC(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) // grpc.UnaryServerInterceptor
+		LimitGRPC(c Ctx, r any, i *GRPCInfo, h GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+	}
+
+	ShutdownJanitor interface {
+		AddCleanupFunc(fn func())
+		AddCleanupFuncWithErr(fn func() error)
+		Cleanup()
+	}
+
+	Retrier interface {
+		TryToConnectToDB(connectToDB func() (any, error), execOnFailure func()) (any, error)
 	}
 
 	RequestsValidator interface {
-		ValidateGRPC(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) // grpc.UnaryServerInterceptor
+		ValidateGRPC(c Ctx, r any, i *GRPCInfo, h GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+	}
+
+	RouteAuthenticator interface {
+		CanAccessRoute(route, userID string, role Role, req any) error
 	}
 
 	TLSTool interface {
 		GetServerCertificate() *x509.CertPool
-		GetServerCreds() credentials.TransportCredentials
-		GetClientCreds() credentials.TransportCredentials
+		GetServerCreds() TLSCredentials
+		GetClientCreds() TLSCredentials
 	}
 
-	TokenAuthenticator interface {
+	TokenGenerator interface {
 		GenerateToken(id int, username string, role Role) (string, error)
-		ValidateToken(c context.Context, r any, i *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) // grpc.UnaryServerInterceptor
+	}
+
+	TokenValidator interface {
+		ValidateToken(c Ctx, r any, i *GRPCInfo, h GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+	}
+
+	DBTool interface {
+		GetDB() DB
+		CloseDB()
+		IsNotFound(err error) bool
+
+		// Users
+		CreateUser(ctx Ctx, username, hashedPwd string) (*User, error)
+		GetUser(ctx Ctx, opts ...any) (*User, error)
+		GetUsers(ctx Ctx, page, pageSize int, opts ...any) (Users, int, error)
+
+		// Groups
+		CreateGroup(ctx Ctx, name string, ownerID int, invitedUserIDs []int) (*Group, error)
+		GetGroup(ctx Ctx, opts ...any) (*Group, error)
 	}
 )
 
-/* -~-~-~ Databases ~-~-~- */
+type (
+	APIs interface {
+		InternalAPIs
+		ExternalAPIs
+	}
 
-// Used to kinda unify our SQL and Mongo DB Interfaces. Also lets us get the inner DB object which may be useful.
-type DB interface {
-	GetInnerDB() any
-}
+	InternalAPIs interface{}
 
-/* -~-~-~ SQL ~-~-~- */
+	ExternalAPIs interface {
+		WeatherAPI
+	}
+
+	WeatherAPI interface {
+		GetCurrentWeather(ctx Ctx, lat, lon float64) (other.GetWeatherResponse, error)
+	}
+)
+
+/* -~-~-~ SQL DB ~-~-~- */
 
 // Low-level API for our SQL Database.
 // It's an adapter for Gorm. Concrete types sql.sqlAdapter and mocks.Gorm implement this.
 type SQLDB interface {
 	DB
-
 	AddError(err error) error
 	AutoMigrate(dst ...any) error
+	Association(column string) *gorm.Association
 	Close()
 	Count(value *int64) SQLDB
 	Create(value any) SQLDB
@@ -148,24 +187,25 @@ type SQLDB interface {
 	Save(value any) SQLDB
 	Scan(dest any) SQLDB
 	Scopes(funcs ...func(SQLDB) SQLDB) SQLDB
-	WithContext(ctx context.Context) SQLDB
+	WithContext(ctx Ctx) SQLDB
 	Where(query any, args ...any) SQLDB
 }
 
-type SQLDBOpt func(SQLDB) // Variadic func.
+type SQLDBOpt func(SQLDB) // Variadic options
 
-/* -~-~-~ Mongo ~-~-~- */
+/* -~-~-~ Mongo DB ~-~-~- */
 
 // Low-level API for our Mongo Database.
 type MongoDB interface {
 	DB
-
-	Close(ctx context.Context)
-	InsertOne(ctx context.Context, colName string, document any) (*mongo.InsertOneResult, error)
-	Find(ctx context.Context, colName string, filter any, limit, offset int) (*mongo.Cursor, error)
-	FindOne(ctx context.Context, colName string, filter any) *mongo.SingleResult
-	DeleteOne(ctx context.Context, colName string, filter any) (*mongo.DeleteResult, error)
-	Count(ctx context.Context, colName string, filter any) (int64, error)
+	Close(ctx Ctx)
+	InsertOne(ctx Ctx, colName string, document any) (*mongo.InsertOneResult, error)
+	Find(ctx Ctx, colName string, filter any, limit, offset int) (*mongo.Cursor, error)
+	FindOne(ctx Ctx, colName string, filter any) *mongo.SingleResult
+	DeleteOne(ctx Ctx, colName string, filter any) (*mongo.DeleteResult, error)
+	Count(ctx Ctx, colName string, filter any) (int64, error)
 }
 
-type MongoDBOpt func(*bson.D) // Variadic func.
+type MongoDBOpt func(*bson.D) // Variadic options
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

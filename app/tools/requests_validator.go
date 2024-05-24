@@ -1,17 +1,15 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
-	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
+	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/bufbuild/protovalidate-go"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -30,7 +28,7 @@ type protoRequestsValidator struct {
 }
 
 // New instance of *protoValidator. This panics on failure.
-func NewRequestsValidator() *protoRequestsValidator {
+func NewRequestsValidator() core.RequestsValidator {
 	validator, err := protovalidate.New()
 	core.LogPanicIfErr(err, errs.FailedToCreateProtoVal)
 	return &protoRequestsValidator{validator}
@@ -39,7 +37,7 @@ func NewRequestsValidator() *protoRequestsValidator {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Wraps the proto validation logic with a GRPC Interceptor.
-func (prv protoRequestsValidator) ValidateGRPC(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+func (prv protoRequestsValidator) ValidateGRPC(ctx core.Ctx, req any, _ *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
 	if err := prv.Validate(req.(protoreflect.ProtoMessage)); err != nil {
 		return nil, validationErrToGRPC(err)
 	}
