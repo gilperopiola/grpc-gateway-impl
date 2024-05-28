@@ -42,12 +42,12 @@ func NewSQLDB(cfg *core.DBCfg, retrier core.Retrier) core.SQLDB {
 			defer db.Close()
 
 			_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", cfg.Schema))
-			core.LogOperationResult(cfg.Schema+" DB creation", err)
+			core.LogResult(cfg.Schema+" DB creation", err)
 		}
 	}
 
 	sqlDBAny, err := retrier.TryToConnectToDB(connectToDB, onConnectionFailureDo)
-	core.LogPanicIfErr(err)
+	core.LogFatalIfErr(err)
 
 	gormDB := sqlDBAny.(*sqlDB)
 

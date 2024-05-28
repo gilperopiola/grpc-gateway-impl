@@ -1,19 +1,18 @@
 package core
 
 import (
-	"errors"
-	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// All data that we need on a per-route basis lives here. For now it's just the Auth type.
+// All settings we need on a per-route basis lives here. For now it's just the Auth type.
 type Route struct {
-	Name string
 	Auth RouteAuth
 }
 
@@ -26,66 +25,27 @@ type Route struct {
 // -> We're calling both of them 'routes'.
 // -> Each route is just the last part of the corresponding GRPC method.
 // -> So '/pbs.Service/Login' becomes 'Login' and that is the route for the Login endpoint.
-// -> For HTTP, we need to get the route name from the HTTP Path, so we have a map for that.
+// -> And HTTP calls GRPC, so we're covered.
 
-// T0D0 This isn't automatically updated when the .proto changes. Could be a good fit for code gen.
+// T0D0 generate this based on the .proto file.
 var Routes = map[string]Route{
-	pbs.AuthService_ServiceDesc.Methods[0].MethodName: {
-		Name: "Signup",
-		Auth: RouteAuthPublic,
-	},
-	pbs.AuthService_ServiceDesc.Methods[1].MethodName: {
-		Name: "Login",
-		Auth: RouteAuthPublic,
-	},
 
-	pbs.UsersService_ServiceDesc.Methods[0].MethodName: {
-		Name: "GetUser",
-		Auth: RouteAuthSelf,
-	},
-	pbs.UsersService_ServiceDesc.Methods[1].MethodName: {
-		Name: "GetUsers",
-		Auth: RouteAuthAdmin,
-	},
-	pbs.UsersService_ServiceDesc.Methods[2].MethodName: {
-		Name: "UpdateUser",
-		Auth: RouteAuthSelf,
-	},
-	pbs.UsersService_ServiceDesc.Methods[3].MethodName: {
-		Name: "DeleteUser",
-		Auth: RouteAuthSelf,
-	},
-	pbs.UsersService_ServiceDesc.Methods[4].MethodName: {
-		Name: "GetMyGroups",
-		Auth: RouteAuthSelf,
-	},
+	// Auth Service
+	"Signup": {RouteAuthPublic},
+	"Login":  {RouteAuthPublic},
 
-	pbs.GroupsService_ServiceDesc.Methods[0].MethodName: {
-		Name: "CreateGroup",
-		Auth: RouteAuthSelf,
-	},
-	pbs.GroupsService_ServiceDesc.Methods[1].MethodName: {
-		Name: "GetGroup",
-		Auth: RouteAuthUser,
-	},
-	pbs.GroupsService_ServiceDesc.Methods[2].MethodName: {
-		Name: "InviteToGroup",
-		Auth: RouteAuthSelf,
-	},
-	pbs.GroupsService_ServiceDesc.Methods[3].MethodName: {
-		Name: "AnswerGroupInvite",
-		Auth: RouteAuthSelf,
-	},
-}
+	// Users Service
+	"GetUser":     {RouteAuthSelf},
+	"GetUsers":    {RouteAuthAdmin},
+	"UpdateUser":  {RouteAuthSelf},
+	"DeleteUser":  {RouteAuthSelf},
+	"GetMyGroups": {RouteAuthSelf},
 
-// Use this to get the route name from the HTTP Path.
-var RouteNamesFromHTTP = map[string]string{
-	"POST /v1/signup": "Signup",
-	"POST /v1/login":  "Login",
-	"GET /v1/user":    "GetUser",
-	"GET /v1/users":   "GetUsers",
-	"POST /v1/groups": "CreateGroup",
-	"GET /v1/group":   "GetGroup",
+	// Groups Service
+	"CreateGroup":       {RouteAuthSelf},
+	"GetGroup":          {RouteAuthUser},
+	"InviteToGroup":     {RouteAuthSelf},
+	"AnswerGroupInvite": {RouteAuthSelf},
 }
 
 func AuthForRoute(routeName string) RouteAuth {
@@ -96,46 +56,48 @@ func AuthForRoute(routeName string) RouteAuth {
 	return RouteAuthAdmin
 }
 
+func CanAccessRoute(route, userID string, role Role, req any) error {
+	switch AuthForRoute(route) {
+
+	case RouteAuthPublic:
+		return nil
+
+	case RouteAuthSelf:
+		type PBReqWithUserID interface {
+			GetUserId() int32
+		}
+		reqUserID := req.(PBReqWithUserID).GetUserId()
+		if userID != strconv.Itoa(int(reqUserID)) {
+			return status.Errorf(codes.PermissionDenied, errs.AuthUserIDInvalid)
+		}
+
+	case RouteAuthAdmin:
+		if role != AdminRole {
+			LogPotentialThreat("User " + userID + " tried to access admin route: " + route)
+			return status.Errorf(codes.PermissionDenied, errs.AuthRoleInvalid)
+		}
+
+	default:
+		LogWeirdBehaviour("Route unknown: " + route)
+		return status.Errorf(codes.Unknown, errs.AuthRouteUnknown)
+	}
+
+	return nil
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// The Route is the last part of the GRPC Method.
+// A Route is the last part of a GRPC Method.
 //
 // -> Method = /pbs.Service/Signup
 // -> Route  = Signup
 func RouteNameFromGRPC(method string) string {
 	i := strings.LastIndex(method, "/")
 	if i == -1 {
-		LogUnexpectedErr(errors.New("No '/' found in GRPC: " + method))
+		LogWeirdBehaviour("No '/' found in GRPC: " + method)
 		return method
 	}
 	return method[i+1:]
-}
-
-// The Route is not derived from the HTTP Path, we need to get it from a map.
-func RouteNameFromHTTP(req *http.Request) string {
-	httpPath := req.Method + " " + req.URL.Path // -> e.g. 'GET /users/1' or 'POST /signup'
-
-	lastSlashIndex := strings.LastIndex(httpPath, "/")
-	if lastSlashIndex == -1 {
-		LogUnexpectedErr(errors.New("No '/' found in HTTP: " + httpPath))
-		return httpPath
-	}
-
-	lastPart := httpPath[lastSlashIndex+1:] // -> e.g. '1' or 'signup'
-
-	// If the last part of the HTTP Path is not a number, then it's a full path and we can use it directly to get the
-	// route name from the map. Otherwise, we need to remove the number from the end of the path, so '/users/1' becomes just '/users'
-	// and then we can get the route name from the map.
-	if _, err := strconv.Atoi(lastPart); err != nil {
-		// -> httpPath = 'POST /signup'
-		// -> lastPart = 'signup' -> Not a number.
-		return RouteNamesFromHTTP[httpPath]
-	}
-	// -> httpPath = 'GET /users/1'
-	// -> lastPart = '1' -> Number.
-	// -> pathWithoutLastPart = 'GET /users'
-	pathWithoutLastPart := httpPath[:lastSlashIndex-1]
-	return RouteNamesFromHTTP[pathWithoutLastPart]
 }
 
 // Returns the route name from the context.

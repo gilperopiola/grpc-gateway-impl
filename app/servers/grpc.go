@@ -60,11 +60,11 @@ const customUserAgent = "by @gilperopiola"
 func getGRPCInterceptors(toolbox core.Toolbox) core.GRPCInterceptors {
 	return []grpc.UnaryServerInterceptor{
 		toolbox.LimitGRPC,
+		handlePanicsAndRecover,
 		core.LogGRPCRequest,
 		toolbox.ValidateToken,
 		toolbox.ValidateGRPC,
 		handleContextCancellation,
-		handlePanicsAndRecover,
 	}
 }
 

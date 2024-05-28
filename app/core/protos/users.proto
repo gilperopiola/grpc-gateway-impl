@@ -3,7 +3,7 @@ syntax = "proto3";
 package pbs;
 option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
 
-import "output.proto";
+import "common.proto";
 
 import "external/buf/validate/validate.proto";
 import "external/google/api/annotations.proto";
@@ -54,24 +54,9 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 // Service for user management.
 service UsersService {
 
-  // Gets a user by ID. Returns the user's information.
-  // Requires a JWT Token with a matching user's ID.
-  rpc GetUser (GetUserRequest) returns (GetUserResponse) {
-    option (google.api.http) = { get: "/users/v1/{user_id}"; };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "get_user";
-      tags: ["Users"];
-      responses: {
-        key: "200";
-        value: {schema: {json_schema: {ref: ".users.GetUserResponse"}}};
-      };
-    };
-  }
-
-  // Gets a list of users, with optional pagination and filtering.
-  // Requires a JWT Token with admin privileges.
+  // Gets a list of users, with optional pagination and filtering. Admin only.
   rpc GetUsers (GetUsersRequest) returns (GetUsersResponse) {
-    option (google.api.http) = { get: "/users/v1"; };
+    option (google.api.http) = { get: "/v1/users"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "get_users";
       tags: ["Users"];
@@ -82,8 +67,23 @@ service UsersService {
     };
   }
 
+  // Gets a user by ID. Returns the user's information.
+  // Requires a JWT Token with a matching user's ID.
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = { get: "/v1/users/{user_id}"; };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "get_user";
+      tags: ["Users"];
+      responses: {
+        key: "200";
+        value: {schema: {json_schema: {ref: ".users.GetUserResponse"}}};
+      };
+    };
+  }
+
+
   rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse) {
-    option (google.api.http) = { put: "/users/v1/{user_id}"; body: "*"; };
+    option (google.api.http) = { put: "/v1/users/{user_id}"; body: "*"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "update_user";
       tags: ["Users"];
@@ -95,7 +95,7 @@ service UsersService {
   }
 
   rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse) {
-    option (google.api.http) = { delete: "/users/v1/{user_id}"; };
+    option (google.api.http) = { delete: "/v1/users/{user_id}"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "delete_user";
       tags: ["Users"];
@@ -107,7 +107,7 @@ service UsersService {
   }
 
   rpc GetMyGroups (GetMyGroupsRequest) returns (GetMyGroupsResponse) {
-    option (google.api.http) = { get: "/users/v1/{user_id}/groups"; };
+    option (google.api.http) = { get: "/v1/users/{user_id}/groups"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "get_my_groups";
       tags: ["Groups"];

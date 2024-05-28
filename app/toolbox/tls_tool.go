@@ -1,4 +1,4 @@
-package tools
+package toolbox
 
 import (
 	"crypto/x509"
@@ -53,11 +53,11 @@ func newTLSCertPool(certPath string) *x509.CertPool {
 	}
 
 	cert, err := os.ReadFile(certPath)
-	core.LogPanicIfErr(err, errs.FailedToReadTLSCert)
+	core.LogFatalIfErr(err, errs.FailedToReadTLSCert)
 
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(cert) {
-		core.LogUnexpectedAndPanic(errors.New(errs.FailedToAppendTLSCert))
+		core.LogFatal(errors.New(errs.FailedToAppendTLSCert))
 	}
 
 	return certPool
@@ -69,7 +69,7 @@ func newServerTransportCreds(certPath, keyPath string) credentials.TransportCred
 		return nil
 	}
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
-	core.LogPanicIfErr(err, errs.FailedToLoadTLSCreds)
+	core.LogFatalIfErr(err, errs.FailedToLoadTLSCreds)
 	return creds
 }
 

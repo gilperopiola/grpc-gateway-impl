@@ -24,7 +24,7 @@
   "paths": {
     "/v1/users": {
       "get": {
-        "summary": "Gets a list of users, with optional pagination and filtering.\nRequires a JWT Token with admin privileges.",
+        "summary": "Gets a list of users, with optional pagination and filtering. Admin only.",
         "operationId": "get_users",
         "responses": {
           "200": {

@@ -20,18 +20,19 @@ type Servers struct {
 }
 
 func Setup(service core.Service, toolbox core.Toolbox) core.Servers {
-	var (
-		grpcServerOpts   = getGRPCServerOptions(toolbox, core.TLSEnabled)
-		grpcDialOpts     = getGRPCDialOptions(toolbox.GetClientCreds())
-		httpServeMuxOpts = getHTTPServeMuxOptions()
-		httpMiddleware   = getHTTPMiddleware()
-	)
 
 	zap.S().Info(logPrefix + " 🚀 Starting Servers")
 
+	var (
+		grpcServerOpts   = getGRPCServerOptions(toolbox, core.TLSEnabled)
+		grpcDialOpts     = getGRPCDialOptions(toolbox.GetClientCreds())
+		httpMiddleware   = getHTTPMiddlewareChain()
+		httpServeMuxOpts = getHTTPServeMuxOptions()
+	)
+
 	return &Servers{
-		setupGRPCServer(service, grpcServerOpts),
-		setupHTTPGateway(service, httpServeMuxOpts, httpMiddleware, grpcDialOpts),
+		GRPC: setupGRPCServer(service, grpcServerOpts),
+		HTTP: setupHTTPGateway(service, httpServeMuxOpts, httpMiddleware, grpcDialOpts),
 	}
 }
 
@@ -59,15 +60,15 @@ func (s *Servers) Run() {
 
 	go func() {
 		time.Sleep(time.Second) // T0D0 healtcheck??
-		zap.S().Infoln(logPrefix + " 🚀 Servers OK\n")
+		zap.S().Infoln("\n" + logPrefix + " 🚀 ALL OK!\n")
 	}()
 }
 
 func runGRPC(grpcServer *grpc.Server) {
-	zap.S().Infof(logPrefix+" 🚀 GRPC Port %s", core.GRPCPort)
+	zap.S().Infof(logPrefix+" 🚀 GRPC OK! Running on Port %s", core.GRPCPort)
 
 	lis, err := net.Listen("tcp", core.GRPCPort)
-	core.LogPanicIfErr(err)
+	core.LogFatalIfErr(err)
 
 	for _, info := range grpcServer.GetServiceInfo() {
 		zap.S().Infof(logPrefix+" 🐸 Service Loaded: %s", info.Metadata)
@@ -77,16 +78,16 @@ func runGRPC(grpcServer *grpc.Server) {
 	}
 
 	go func() {
-		core.LogPanicIfErr(grpcServer.Serve(lis))
+		core.LogFatalIfErr(grpcServer.Serve(lis))
 	}()
 }
 
 func runHTTP(httpGateway *http.Server) {
-	zap.S().Infof(logPrefix+" 🚀 HTTP Port %s", core.HTTPPort)
+	zap.S().Infof(logPrefix+" 🚀 HTTP OK! Running on Port %s", core.HTTPPort)
 
 	go func() {
 		if err := httpGateway.ListenAndServe(); err != http.ErrServerClosed {
-			core.LogUnexpectedAndPanic(err)
+			core.LogFatal(err)
 		}
 	}()
 }
@@ -100,5 +101,5 @@ func (s *Servers) Shutdown() {
 	zap.S().Info(logPrefix + " 🛑 Shutting down HTTP")
 	ctx, cancel := core.NewCtxWithTimeout(5 * time.Second)
 	defer cancel()
-	core.LogPanicIfErr(s.HTTP.Shutdown(ctx))
+	core.LogFatalIfErr(s.HTTP.Shutdown(ctx))
 }

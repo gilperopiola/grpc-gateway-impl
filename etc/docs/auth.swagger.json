@@ -22,7 +22,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/login": {
+    "/v1/auth/login": {
       "post": {
         "summary": "Logs in a user with username and password.\nReturns a JWT token string.",
         "operationId": "login",
@@ -30,7 +30,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": ".users.LoginResponse"
+              "$ref": ".auth.LoginResponse"
             }
           },
           "400": {
@@ -91,11 +91,12 @@
           }
         ],
         "tags": [
+          "Auth",
           "Users"
         ]
       }
     },
-    "/v1/signup": {
+    "/v1/auth/signup": {
       "post": {
         "summary": "Creates a new user with username and password.\nReturns the created user's unique ID.",
         "operationId": "signup",
@@ -103,7 +104,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": ".users.SignupResponse"
+              "$ref": ".auth.SignupResponse"
             }
           },
           "400": {
@@ -164,6 +165,7 @@
           }
         ],
         "tags": [
+          "Auth",
           "Users"
         ]
       }

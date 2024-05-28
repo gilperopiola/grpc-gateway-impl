@@ -1,4 +1,4 @@
-package tools
+package toolbox
 
 import (
 	"errors"
@@ -30,7 +30,7 @@ type protoRequestsValidator struct {
 // New instance of *protoValidator. This panics on failure.
 func NewRequestsValidator() core.RequestsValidator {
 	validator, err := protovalidate.New()
-	core.LogPanicIfErr(err, errs.FailedToCreateProtoVal)
+	core.LogFatalIfErr(err, errs.FailedToCreateProtoVal)
 	return &protoRequestsValidator{validator}
 }
 

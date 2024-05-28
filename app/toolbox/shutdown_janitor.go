@@ -1,4 +1,4 @@
-package tools
+package toolbox
 
 import "github.com/gilperopiola/grpc-gateway-impl/app/core"
 

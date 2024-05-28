@@ -1,7 +1,6 @@
-package tools
+package toolbox
 
 import (
-	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -45,21 +44,21 @@ func NewJWTGenerator(secret string, sessionDays int) core.TokenGenerator {
 }
 
 // GenerateToken returns a JWT token with the given user id, username and role.
-func (jwtgen jwtGenerator) GenerateToken(id int, username string, role core.Role) (string, error) {
+func (g jwtGenerator) GenerateToken(id int, username string, role core.Role) (string, error) {
 	var (
 		now    = time.Now()
 		claims = &jwtClaims{
 			jwt.RegisteredClaims{
 				ID:        strconv.Itoa(id),
 				IssuedAt:  jwt.NewNumericDate(now),
-				ExpiresAt: jwtgen.expAtFn(now),
+				ExpiresAt: g.expAtFn(now),
 			},
 			username,
 			role,
 		}
 	)
 
-	token, err := jwt.NewWithClaims(jwtgen.signingMethod, claims).SignedString([]byte(jwtgen.secret))
+	token, err := jwt.NewWithClaims(g.signingMethod, claims).SignedString([]byte(g.secret))
 	if err != nil {
 		core.LogUnexpectedErr(err)
 		return "", status.Errorf(codes.Internal, errs.AuthGeneratingToken, err)
@@ -73,26 +72,22 @@ func (jwtgen jwtGenerator) GenerateToken(id int, username string, role core.Role
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type jwtValidator struct {
-	mdGetter           core.MetadataGetter
-	routeAuthenticator core.RouteAuthenticator
-	keyFn              func(*jwt.Token) (any, error)
+	ctxManager core.CtxManager
+	keyFn      func(*jwt.Token) (any, error)
 }
 
-func NewJWTValidator(mdGetter core.MetadataGetter, routeAuther core.RouteAuthenticator, secret string) core.TokenValidator {
+func NewJWTValidator(ctxManager core.CtxManager, secret string) core.TokenValidator {
 	return &jwtValidator{
-		mdGetter:           mdGetter,
-		routeAuthenticator: routeAuther,
-		keyFn:              defaultKeyFn(secret),
+		ctxManager: ctxManager,
+		keyFn:      defaultKeyFn(secret),
 	}
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
 // Returns a GRPC interceptor that validates a JWT token inside of the context.
-func (jwtval jwtValidator) ValidateToken(ctx core.Ctx, req any, grpcInfo *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
+func (v jwtValidator) ValidateToken(ctx core.Ctx, req any, grpcInfo *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
 	route := core.RouteNameFromGRPC(grpcInfo.FullMethod)
 
-	bearer, err := jwtval.getBearer(ctx)
+	bearer, err := v.getBearer(ctx)
 	if err != nil {
 		if core.AuthForRoute(route) == core.RouteAuthPublic {
 			// If failed to get token but route is public: OK!
@@ -101,23 +96,25 @@ func (jwtval jwtValidator) ValidateToken(ctx core.Ctx, req any, grpcInfo *core.G
 		return nil, err
 	}
 
-	claims, err := jwtval.getClaims(bearer)
+	claims, err := v.getClaims(bearer)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := jwtval.routeAuthenticator.CanAccessRoute(route, claims.ID, claims.Role, req); err != nil {
+	if err := core.CanAccessRoute(route, claims.ID, claims.Role, req); err != nil {
 		return nil, err
 	}
 
-	ctx = jwtval.newContextWithUserInfo(ctx, claims.ID, claims.Username)
+	ctx = v.ctxManager.AddUserInfo(ctx, claims.ID, claims.Username)
 
 	return handler(ctx, req)
 }
 
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
 // Returns the authorization field on the Metadata that lives the context.
-func (jwtval jwtValidator) getBearer(ctx core.Ctx) (string, error) {
-	bearer, err := jwtval.mdGetter.GetMD(ctx, "authorization")
+func (v jwtValidator) getBearer(ctx core.Ctx) (string, error) {
+	bearer, err := v.ctxManager.ExtractMetadata(ctx, "authorization")
 	if err != nil {
 		return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenNotFound)
 	}
@@ -132,8 +129,8 @@ func (jwtval jwtValidator) getBearer(ctx core.Ctx) (string, error) {
 
 // Parses the token object into *jwtClaims and validates said claims.
 // Returns an error if claims are not valid.
-func (jwtval jwtValidator) getClaims(bearer string) (*jwtClaims, error) {
-	token, err := jwt.ParseWithClaims(bearer, &jwtClaims{}, jwtval.keyFn)
+func (v jwtValidator) getClaims(bearer string) (*jwtClaims, error) {
+	token, err := jwt.ParseWithClaims(bearer, &jwtClaims{}, v.keyFn)
 	if err == nil && token != nil && token.Valid {
 		if claims, ok := token.Claims.(*jwtClaims); ok && claims.Valid() == nil {
 			return claims, nil
@@ -142,20 +139,7 @@ func (jwtval jwtValidator) getClaims(bearer string) (*jwtClaims, error) {
 	return nil, status.Errorf(codes.Unauthenticated, errs.AuthTokenInvalid)
 }
 
-// Returns a new context with the user ID and username inside.
-func (jwtval jwtValidator) newContextWithUserInfo(ctx core.Ctx, userID, username string) core.Ctx {
-	ctx = context.WithValue(ctx, &ContextKeyUserID{}, userID)
-	ctx = context.WithValue(ctx, &ContextKeyUsername{}, username)
-	return ctx
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// These are used as keys to store the user ID and username in the context (it's a key-value store).
-type (
-	ContextKeyUserID   struct{}
-	ContextKeyUsername struct{}
-)
 
 // Gets the key to decrypt the token. Key = JWT Secret.
 var defaultKeyFn = func(key string) func(*jwt.Token) (any, error) {

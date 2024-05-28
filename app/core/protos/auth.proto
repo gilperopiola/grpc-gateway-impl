@@ -55,7 +55,7 @@ service AuthService {
   // Creates a new user with username and password.
   // Returns the created user's unique ID.
   rpc Signup (SignupRequest) returns (SignupResponse) {
-    option (google.api.http) = { post: "/auth/v1/signup"; body: "*"};
+    option (google.api.http) = { post: "/v1/auth/signup"; body: "*"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "signup";
       tags: ["Auth", "Users"];
@@ -69,7 +69,7 @@ service AuthService {
   // Logs in a user with username and password.
   // Returns a JWT token string.
   rpc Login (LoginRequest) returns (LoginResponse) {
-    option (google.api.http) = { post: "/auth/v1/login"; body: "*"; };
+    option (google.api.http) = { post: "/v1/auth/login"; body: "*"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "login";
       tags: ["Auth", "Users"];

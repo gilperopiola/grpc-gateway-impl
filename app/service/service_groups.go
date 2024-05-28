@@ -4,7 +4,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/toolbox/db_tool/sqldb"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -12,7 +12,7 @@ import (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (s *Service) CreateGroup(ctx core.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
-	groupOwnerID, err := core.ToIntAndErr(s.Toolbox.GetMD(ctx, "user_id"))
+	groupOwnerID, err := core.ToIntAndErr(s.Toolbox.ExtractMetadata(ctx, "user_id"))
 	if err != nil {
 		return nil, errs.GRPCInternal(err.Error())
 	}

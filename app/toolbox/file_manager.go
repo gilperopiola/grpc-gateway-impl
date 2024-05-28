@@ -1,4 +1,4 @@
-package tools
+package toolbox
 
 import (
 	"os"
@@ -18,13 +18,13 @@ func NewFileManager(basePath string) core.FileManager {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (fc fileManager) CreateFolder(path string) error {
-	return os.Mkdir(fc.basePath+path, os.ModePerm)
+func (fm fileManager) CreateFolder(path string) error {
+	return os.Mkdir(fm.basePath+path, os.ModePerm)
 }
 
-func (fc fileManager) CreateFolders(paths ...string) error {
+func (fm fileManager) CreateFolders(paths ...string) error {
 	for _, path := range paths {
-		if err := fc.CreateFolder(path); err != nil {
+		if err := fm.CreateFolder(path); err != nil {
 			return err
 		}
 	}

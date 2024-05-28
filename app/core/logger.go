@@ -43,50 +43,33 @@ func LogGRPCRequest(ctx Ctx, req any, info *GRPCInfo, handler GRPCHandler) (any,
 	resp, err := handler(ctx, req)
 	duration := time.Since(start)
 
-	if err != nil {
-		zap.S().Errorw("GRPC Error", ZapRouteFromGRPC(info.FullMethod), ZapDuration(duration), ZapError(err))
+	if err == nil {
+		zap.S().Infow("GRPC Request", ZapGRPCRoute(info.FullMethod), ZapDuration(duration))
 	} else {
-		zap.S().Infow("GRPC Request", ZapRouteFromGRPC(info.FullMethod), ZapDuration(duration))
+		zap.S().Errorw("GRPC Error", ZapGRPCRoute(info.FullMethod), ZapDuration(duration), ZapError(err))
 	}
 
 	return resp, err
 }
 
-// Why log both HTTP and GRPC? Because we can. And it's cool.
+// We log both GRPC and HTTP requests, just because.
 func LogHTTPRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		start := time.Now()
 		handler.ServeHTTP(rw, req)
 		duration := time.Since(start)
 
-		zap.S().Infow("HTTP Request", ZapRouteFromHTTP(req), ZapDuration(duration))
+		if rw.(*CustomResponseWriter).Status < 400 {
+			zap.S().Infow("HTTP Request", ZapHTTPRoute(req), ZapDuration(duration))
+		} else {
+			zap.S().Errorw("HTTP Error", ZapHTTPRoute(req), ZapDuration(duration))
+		}
 
-		// Most HTTP logs come with a GRPC log before, as HTTP acts as a gateway to GRPC.
-		// As such, we add a new line to separate the logs and easily identify different requests.
-		// The only exception would be if there was an error before calling the GRPC handlers.
-		zap.L().Info("\n") // T0D0 is this ok?
+		zap.L().Info("\n")
 	})
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-func LogOperationResult(operation string, err error) {
-	if err == nil {
-		LogImportant("✅ " + operation + " succeeded!")
-	} else {
-		zap.S().Error("❌ "+operation+" failed", ZapError(err))
-	}
-}
-
-func LogImportant(s string) {
-	zap.S().Info("⭐ Important! -> ", s)
-}
-
-func LogIfDebug(s string) {
-	if Debug {
-		zap.S().Info(s)
-	}
-}
 
 // Helps keeping code clean and readable, lets you omit the error check on the caller when you just need to log it.
 func LogIfErr(err error, optionalFmtMsg ...string) {
@@ -110,15 +93,46 @@ func WarnIfErr(err error, optionalFmtMsg ...string) {
 	}
 }
 
+// Used to log unexpected errors that also should trigger a panic.
+func LogFatal(err error) {
+	zap.S().Fatal("Unexpected Fatal 🛑", ZapError(err), ZapStacktrace())
+}
+
 // Helps keeping code clean and readable, lets you omit the error check on the caller.
-func LogPanicIfErr(err error, optionalFmtMsg ...string) {
-	if err != nil {
-		fmtMsg := "untyped panic: %v"
-		if len(optionalFmtMsg) > 0 {
-			fmtMsg = optionalFmtMsg[0]
-		}
-		LogUnexpectedAndPanic(fmt.Errorf(fmtMsg, err))
+func LogFatalIfErr(err error, optionalFormat ...string) {
+	if err == nil {
+		return
 	}
+
+	format := "untyped panic: %v"
+	if len(optionalFormat) > 0 {
+		format = optionalFormat[0]
+	}
+
+	LogFatal(fmt.Errorf(format, err))
+}
+
+func LogIfDebug(s string) {
+	if Debug {
+		zap.S().Info(s)
+	}
+}
+
+func LogImportant(s string) {
+	zap.S().Info("⭐ Important! -> ", s)
+}
+
+func LogResult(operation string, err error) {
+	if err == nil {
+		LogImportant("✅ " + operation + " succeeded!")
+	} else {
+		zap.S().Error("❌ "+operation+" failed", ZapError(err))
+	}
+}
+
+// Used to log strange behaviour that isn't necessarily bad or an error.
+func LogWeirdBehaviour(msg string, info ...any) {
+	zap.S().Warn("Weird", ZapMsg(msg), ZapInfo(info...))
 }
 
 // Used to log unexpected errors, like panic recoveries or some connection errors.
@@ -126,19 +140,9 @@ func LogUnexpectedErr(err error) {
 	zap.S().Error("Unexpected 🛑", ZapError(err), ZapStacktrace())
 }
 
-// Used to log unexpected errors that also should trigger a panic.
-func LogUnexpectedAndPanic(err error) {
-	zap.S().Fatal("Unexpected Fatal 🛑", ZapError(err), ZapStacktrace())
-}
-
 // Used to log things that shouldn't happen, like someone trying to access admin endpoints.
 func LogPotentialThreat(msg string) {
 	zap.S().Error("Threat 🚨", ZapMsg(msg))
-}
-
-// Used to log strange behaviour that isn't necessarily bad or an error.
-func LogWeirdBehaviour(msg string, info ...any) {
-	zap.S().Warn("Weird", ZapMsg(msg), ZapInfo(info...))
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -154,18 +158,6 @@ func ZapInfo(info ...any) zap.Field {
 		return zap.Skip()
 	}
 	return zap.Any("info", info)
-}
-
-// Routes apply to both GRPC and HTTP.
-//
-//	-> In GRPC, it's the last part of the Method -> '/users.UsersService/GetUsers'.
-func ZapRouteFromGRPC(method string) zap.Field {
-	return zap.String("route", RouteNameFromGRPC(method))
-}
-
-// -> In HTTP, we join Method and Path -> 'GET /users'.
-func ZapRouteFromHTTP(req *http.Request) zap.Field {
-	return zap.String("route", RouteNameFromHTTP(req))
 }
 
 // Logs a duration.
@@ -186,26 +178,16 @@ func ZapStacktrace() zap.Field {
 	return zap.Stack("stack")
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// Only log messages with a level equal or higher than the one we set in the config.
-var LogLevels = map[string]int{
-	"debug":  int(zap.DebugLevel),
-	"info":   int(zap.InfoLevel),
-	"warn":   int(zap.WarnLevel),
-	"error":  int(zap.ErrorLevel),
-	"dpanic": int(zap.DPanicLevel),
-	"panic":  int(zap.PanicLevel),
-	"fatal":  int(zap.FatalLevel),
+// Routes apply to both GRPC and HTTP.
+//
+//	-> In GRPC, it's the last part of the Method -> '/users.UsersService/GetUsers'.
+func ZapGRPCRoute(method string) zap.Field {
+	return zap.String("route", RouteNameFromGRPC(method))
 }
 
-// The selected DB Log Level will be used to log all SQL queries.
-// 'silent' disables all logs, 'error' will only log errors, 'warn' logs errors and warnings, and 'info' logs everything.
-var DBLogLevels = map[string]int{
-	"silent": int(gormLogger.Silent),
-	"error":  int(gormLogger.Error),
-	"warn":   int(gormLogger.Warn),
-	"info":   int(gormLogger.Info),
+// -> In HTTP, we join Method and Path -> 'GET /users'.
+func ZapHTTPRoute(req *http.Request) zap.Field {
+	return zap.String("route", req.Method+" "+req.URL.Path)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -228,7 +210,6 @@ func newZapConfig(cfg *LoggerCfg) zap.Config {
 	zapCfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format(LogsTimeLayout))
 	}
-
 	zapCfg.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(d.Truncate(time.Millisecond).String())
 	}
@@ -242,4 +223,26 @@ func newZapBaseConfig() zap.Config {
 		return zap.NewProductionConfig()
 	}
 	return zap.NewDevelopmentConfig()
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+// Only log messages with a level equal or higher than the one we set in the config.
+var LogLevels = map[string]int{
+	"debug":  int(zap.DebugLevel),
+	"info":   int(zap.InfoLevel),
+	"warn":   int(zap.WarnLevel),
+	"error":  int(zap.ErrorLevel),
+	"dpanic": int(zap.DPanicLevel),
+	"panic":  int(zap.PanicLevel),
+	"fatal":  int(zap.FatalLevel),
+}
+
+// The selected DB Log Level will be used to log all SQL queries.
+// 'silent' disables all logs, 'error' will only log errors, 'warn' logs errors and warnings, and 'info' logs everything.
+var DBLogLevels = map[string]int{
+	"silent": int(gormLogger.Silent),
+	"error":  int(gormLogger.Error),
+	"warn":   int(gormLogger.Warn),
+	"info":   int(gormLogger.Info),
 }

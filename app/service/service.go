@@ -36,7 +36,7 @@ func (s *Service) RegisterHTTPServices(mux *core.HTTPMultiplexer, opts core.GRPC
 	ctx := core.NewCtx()
 	port := core.GRPCPort
 
-	core.LogPanicIfErr(pbs.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, port, opts))
-	core.LogPanicIfErr(pbs.RegisterUsersServiceHandlerFromEndpoint(ctx, mux, port, opts))
-	core.LogPanicIfErr(pbs.RegisterGroupsServiceHandlerFromEndpoint(ctx, mux, port, opts))
+	core.LogFatalIfErr(pbs.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, port, opts))
+	core.LogFatalIfErr(pbs.RegisterUsersServiceHandlerFromEndpoint(ctx, mux, port, opts))
+	core.LogFatalIfErr(pbs.RegisterGroupsServiceHandlerFromEndpoint(ctx, mux, port, opts))
 }

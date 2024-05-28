@@ -23,8 +23,8 @@ message UserInfo {
 
 message GroupInfo {
   int32     id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
-  string    name = 2        [ json_name = "name",       (google.api.field_behavior) = OUTPUT_ONLY ];
-  UserInfo  owner = 3       [ json_name = "owner",      (google.api.field_behavior) = OUTPUT_ONLY ];
-  string    created_at = 5  [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
-  string    updated_at = 7  [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    name = 3        [ json_name = "name",       (google.api.field_behavior) = OUTPUT_ONLY ];
+  UserInfo  owner = 5       [ json_name = "owner",      (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    created_at = 7  [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+  string    updated_at = 9  [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
 }

@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -53,6 +54,27 @@ func IfErrThen(err error, do func()) {
 	}
 }
 
+func ToIntAndErr(s string, err error) (int, error) {
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(s)
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+var _ http.ResponseWriter = (*CustomResponseWriter)(nil)
+
+type CustomResponseWriter struct {
+	http.ResponseWriter
+	Status int
+}
+
+func (crw *CustomResponseWriter) WriteHeader(statusCode int) {
+	crw.Status = statusCode
+	crw.ResponseWriter.WriteHeader(statusCode)
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type Int32Slice []int32
@@ -65,11 +87,4 @@ func (int32Slice Int32Slice) ToIntSlice() []int {
 	return intSlice
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func ToIntAndErr(s string, err error) (int, error) {
-	if err != nil {
-		return 0, err
-	}
-	return strconv.Atoi(s)
-}

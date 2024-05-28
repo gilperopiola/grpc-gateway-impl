@@ -50,33 +50,30 @@ type DB interface {
 // Remember to add new tools on the app.go file as well.
 type Toolbox interface {
 	APIs
-
 	DBTool
 	TLSTool
-
+	CtxManager
 	FileManager
-	MetadataGetter
-	PwdHasher
-	RateLimiter
-	RequestsValidator
-	ShutdownJanitor
 	TokenGenerator
 	TokenValidator
+	RequestsValidator
+	ShutdownJanitor
+	RateLimiter
+	PwdHasher
+	Retrier
 }
 
 /* -~-~-~-~- Toolbox: Tools -~-~-~-~- */
 
 type (
+	CtxManager interface {
+		AddUserInfo(ctx Ctx, userID, username string) Ctx
+		ExtractMetadata(ctx Ctx, key string) (string, error)
+	}
+
 	FileManager interface {
 		CreateFolder(path string) error
 		CreateFolders(paths ...string) error
-	}
-
-	// MetadataGetter is a really powerful interface, we use it to abstract access to headers and metadata.
-	// It can be used with any key-value pair storage.
-	// Can this be improved with generics?
-	MetadataGetter interface {
-		GetMD(Ctx, string) (string, error)
 	}
 
 	PwdHasher interface {
@@ -94,16 +91,12 @@ type (
 		Cleanup()
 	}
 
-	Retrier interface {
-		TryToConnectToDB(connectToDB func() (any, error), execOnFailure func()) (any, error)
-	}
-
 	RequestsValidator interface {
 		ValidateGRPC(c Ctx, r any, i *GRPCInfo, h GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
 
-	RouteAuthenticator interface {
-		CanAccessRoute(route, userID string, role Role, req any) error
+	Retrier interface {
+		TryToConnectToDB(connectToDB func() (any, error), execOnFailure func()) (any, error)
 	}
 
 	TLSTool interface {

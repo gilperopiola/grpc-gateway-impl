@@ -6,7 +6,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
+	sql "github.com/gilperopiola/grpc-gateway-impl/app/toolbox/db_tool/sqldb"
 
 	"go.uber.org/zap"
 )
@@ -30,16 +30,18 @@ func (s *Service) Signup(ctx core.Ctx, req *pbs.SignupRequest) (*pbs.SignupRespo
 		return nil, errCallingUsersDB(ctx, err)
 	}
 
-	s.Toolbox.CreateFolder("users/user_" + strconv.Itoa(user.ID))
+	go s.doAfterSignup(ctx, user)
 
+	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
+}
+
+func (s *Service) doAfterSignup(ctx core.Ctx, user *core.User) {
+	s.Toolbox.CreateFolder("users/user_" + strconv.Itoa(user.ID))
 	s.Toolbox.CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 
 	w, err := s.Toolbox.GetCurrentWeather(ctx, 44.34, 10.99)
 	core.LogIfErr(err)
-
-	zap.S().Infow("Weather", w)
-
-	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
+	zap.S().Info("Weather", w)
 }
 
 // Login first tries to get the user with the given username.

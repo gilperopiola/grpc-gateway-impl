@@ -4,7 +4,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
+	sql "github.com/gilperopiola/grpc-gateway-impl/app/toolbox/db_tool/sqldb"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

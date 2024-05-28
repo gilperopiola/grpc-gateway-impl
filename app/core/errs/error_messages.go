@@ -60,10 +60,10 @@ const (
 	DBCountingUsers = "db error -> counting users"
 
 	// HTTP Errors
-	HTTPNotFound     = "resource not found."
-	HTTPUnauthorized = "unauthorized, authenticate first."
-	HTTPForbidden    = "access to this resource is forbidden."
-	HTTPInternal     = "internal server error, something failed on our end."
-	HTTPUnavailable  = "service unavailable, try again later."
-	HTTPConflict     = "resource already exists."
+	HTTPRouteNotFound = "route not found, URL usually follows .../v1/service/endpoint format."
+	HTTPUnauthorized  = "unauthorized, authenticate first."
+	HTTPForbidden     = "access to this resource is forbidden."
+	HTTPInternal      = "internal server error, something failed on our end."
+	HTTPUnavailable   = "service unavailable, try again later."
+	HTTPConflict      = "resource already exists."
 )
