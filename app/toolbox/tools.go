@@ -9,7 +9,7 @@ import (
 var _ core.Toolbox = (*Toolbox)(nil)
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*              - Toolbox -              */
+/*            - Toolbox -              */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
 // 🛠️ Things that perform actions 🛠️
@@ -19,6 +19,7 @@ type Toolbox struct {
 	core.TLSTool           // -> Holds and retrieves data for TLS communication.
 	core.CtxManager        // -> Manages context.
 	core.FileManager       // -> Creates folders and files.
+	core.ModelConverter    // -> Converts between models and PBs.
 	core.PwdHasher         // -> Hashes and compares passwords.
 	core.RateLimiter       // -> Limits rate of requests.
 	core.Retrier           // -> Executes a fn and retries if it fails.
@@ -29,28 +30,29 @@ type Toolbox struct {
 }
 
 func Setup(cfg *core.Config) core.Toolbox {
-	t := &Toolbox{}
+	toolbox := &Toolbox{}
 
-	t.Retrier = NewRetrier(&cfg.RetrierCfg)
-	t.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
+	toolbox.Retrier = NewRetrier(&cfg.RetrierCfg)
+	toolbox.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
 
-	sqlDB := sqldb.NewSQLDB(&cfg.DBCfg, t.Retrier)
-	t.DBTool = sqldb.NewDBTool(sqlDB)
+	sqlDB := sqldb.NewSQLDB(&cfg.DBCfg, toolbox.Retrier)
+	toolbox.DBTool = sqldb.NewDBTool(sqlDB)
 
-	t.APIs = api_clients.NewAPIClients()
+	toolbox.APIs = api_clients.NewAPIClients()
 
-	t.CtxManager = NewCtxManager()
-	t.FileManager = NewFileManager("etc/data/")
+	toolbox.CtxManager = NewCtxManager()
+	toolbox.FileManager = NewFileManager("etc/data/")
 
-	t.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
-	t.RequestsValidator = NewRequestsValidator()
+	toolbox.ModelConverter = NewModelConverter()
+	toolbox.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
+	toolbox.RequestsValidator = NewRequestsValidator()
 
-	t.TLSTool = NewTLSTool(&cfg.TLSCfg)
+	toolbox.TLSTool = NewTLSTool(&cfg.TLSCfg)
 
-	t.TokenGenerator = NewJWTGenerator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
-	t.TokenValidator = NewJWTValidator(t.CtxManager, cfg.JWTCfg.Secret)
+	toolbox.TokenGenerator = NewJWTGenerator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
+	toolbox.TokenValidator = NewJWTValidator(toolbox.CtxManager, cfg.JWTCfg.Secret)
 
-	t.ShutdownJanitor = NewShutdownJanitor()
+	toolbox.ShutdownJanitor = NewShutdownJanitor()
 
-	return t
+	return toolbox
 }

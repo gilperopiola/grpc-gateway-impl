@@ -6,8 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-
+	"github.com/gilperopiola/god"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -32,15 +31,15 @@ func newSQLDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (l *sqlDBLogger) Info(_ core.Ctx, msg string, data ...interface{}) {
+func (l *sqlDBLogger) Info(_ god.Ctx, msg string, data ...interface{}) {
 	l.InfoWarnOrError(l.LogLevel, gormLogger.Info, "ℹ️ "+msg, zap.S().Infof, data...)
 }
 
-func (l *sqlDBLogger) Warn(_ core.Ctx, msg string, data ...interface{}) {
+func (l *sqlDBLogger) Warn(_ god.Ctx, msg string, data ...interface{}) {
 	l.InfoWarnOrError(l.LogLevel, gormLogger.Warn, "🚨 "+msg, zap.S().Warnf, data...)
 }
 
-func (l *sqlDBLogger) Error(_ core.Ctx, msg string, data ...interface{}) {
+func (l *sqlDBLogger) Error(_ god.Ctx, msg string, data ...interface{}) {
 	l.InfoWarnOrError(l.LogLevel, gormLogger.Error, "🛑 "+msg, zap.S().Errorf, data...)
 }
 
@@ -48,7 +47,7 @@ func (l *sqlDBLogger) Error(_ core.Ctx, msg string, data ...interface{}) {
 // -> If the log level is set to Silent, it doesn't log anything. -> If the log level is set to Info, it logs everything.
 // -> If the log level is set to Warn, it logs only slow queries. -> If the log level is set to Error, it logs only errors.
 // -> If the query returns an error, it logs the error. -> I'm not 100% sure about this :)
-func (l *sqlDBLogger) Trace(_ core.Ctx, begin time.Time, fnCall func() (string, int64), err error) {
+func (l *sqlDBLogger) Trace(_ god.Ctx, begin time.Time, fnCall func() (string, int64), err error) {
 	if l.LogLevel <= gormLogger.Silent {
 		return
 	}

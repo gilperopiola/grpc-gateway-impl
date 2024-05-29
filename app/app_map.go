@@ -62,6 +62,7 @@ var (
 	_ core.TLSTool
 	_ core.CtxManager
 	_ core.FileManager
+	_ core.ModelConverter
 	_ core.PwdHasher
 	_ core.RateLimiter
 	_ core.Retrier
@@ -69,17 +70,6 @@ var (
 	_ core.ShutdownJanitor
 	_ core.TokenGenerator
 	_ core.TokenValidator
-)
-
-var (
-	// -> These are just Type Aliases.
-	_ core.GRPCInfo
-	_ core.GRPCHandler
-	_ core.GRPCInterceptors
-	_ core.GRPCServerOptions
-	_ core.GRPCDialOptions
-	_ core.GRPCServiceRegistrar
-	_ core.HTTPMultiplexer
 )
 
 // -> DB Layer and Service Layer Errors.

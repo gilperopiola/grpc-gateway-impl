@@ -1,6 +1,7 @@
 package sqldb
 
 import (
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 )
@@ -18,7 +19,7 @@ var (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // CreateUser creates a new user in the database.
-func (sdbt *sqlDBTool) CreateUser(ctx core.Ctx, username, hashedPwd string) (*core.User, error) {
+func (sdbt *sqlDBTool) CreateUser(ctx god.Ctx, username, hashedPwd string) (*core.User, error) {
 	user := core.User{Username: username, Password: hashedPwd}
 
 	if err := sdbt.DB.WithContext(ctx).Create(&user).Error(); err != nil {
@@ -30,7 +31,7 @@ func (sdbt *sqlDBTool) CreateUser(ctx core.Ctx, username, hashedPwd string) (*co
 
 // GetUser returns a user from the database.
 // At least one option must be provided, otherwise an error will be returned.
-func (sdbt *sqlDBTool) GetUser(ctx core.Ctx, opts ...any) (*core.User, error) {
+func (sdbt *sqlDBTool) GetUser(ctx god.Ctx, opts ...any) (*core.User, error) {
 	if len(opts) == 0 {
 		return nil, &errs.DBErr{nil, NoOptionsErr}
 	}
@@ -49,7 +50,7 @@ func (sdbt *sqlDBTool) GetUser(ctx core.Ctx, opts ...any) (*core.User, error) {
 }
 
 // GetUsers returns a list of users from the database.
-func (sdbt *sqlDBTool) GetUsers(ctx core.Ctx, page, pageSize int, opts ...any) (core.Users, int, error) {
+func (sdbt *sqlDBTool) GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (core.Users, int, error) {
 	query := sdbt.DB.Model(&core.User{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SQLDBOpt)(query)

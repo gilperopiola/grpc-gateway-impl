@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
@@ -11,23 +12,23 @@ import (
 /*          - Groups Service -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (s *Service) CreateGroup(ctx core.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
-	groupOwnerID, err := core.ToIntAndErr(s.Toolbox.ExtractMetadata(ctx, "user_id"))
+func (s *Service) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
+	groupOwnerID, err := god.ToIntAndErr(s.Toolbox.ExtractMetadata(ctx, "user_id"))
 	if err != nil {
 		return nil, errs.GRPCInternal(err.Error())
 	}
 
-	invitedUserIDs := core.Int32Slice(req.InvitedUserIds).ToIntSlice()
+	invitedUserIDs := god.Int32Slice(req.InvitedUserIds).ToIntSlice()
 
 	group, err := s.Toolbox.CreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
 	if err != nil {
 		return nil, errCallingGroupsDB(ctx, err)
 	}
 
-	return &pbs.CreateGroupResponse{Group: group.ToGroupInfoPB()}, nil
+	return &pbs.CreateGroupResponse{Group: s.Toolbox.GroupToGroupInfoPB(group)}, nil
 }
 
-func (s *Service) GetGroup(ctx core.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGroupResponse, error) {
+func (s *Service) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGroupResponse, error) {
 	group, err := s.Toolbox.GetGroup(ctx, sqldb.WithID(req.GroupId))
 	if err != nil {
 		if s.Toolbox.IsNotFound(err) {
@@ -36,14 +37,14 @@ func (s *Service) GetGroup(ctx core.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGrou
 		return nil, errCallingGroupsDB(ctx, err)
 	}
 
-	return &pbs.GetGroupResponse{Group: group.ToGroupInfoPB()}, nil
+	return &pbs.GetGroupResponse{Group: s.Toolbox.GroupToGroupInfoPB(group)}, nil
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
 	errGroupNotFound   = func() error { return errs.GRPCNotFound("group") }
-	errCallingGroupsDB = func(ctx core.Ctx, err error) error {
+	errCallingGroupsDB = func(ctx god.Ctx, err error) error {
 		return errs.GRPCGroupsDBCall(err, core.RouteNameFromCtx(ctx), core.LogUnexpectedErr)
 	}
 )

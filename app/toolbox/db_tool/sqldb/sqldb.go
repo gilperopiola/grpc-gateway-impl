@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -161,7 +162,7 @@ func (sdb *sqlDB) Scopes(fns ...func(core.SQLDB) core.SQLDB) core.SQLDB {
 	return &sqlDB{sdb.DB.Scopes(adaptedFns...)}
 }
 
-func (sdb *sqlDB) WithContext(ctx core.Ctx) core.SQLDB {
+func (sdb *sqlDB) WithContext(ctx god.Ctx) core.SQLDB {
 	// Calling the actual gorm WithContext func makes our SQLOptions fail to apply for some reason. T0D0.
 	return &sqlDB{sdb.DB}
 }

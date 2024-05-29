@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -36,13 +37,13 @@ func Setup(service core.Service, toolbox core.Toolbox) core.Servers {
 	}
 }
 
-func setupGRPCServer(service core.Service, serverOpts core.GRPCServerOptions) *grpc.Server {
+func setupGRPCServer(service core.Service, serverOpts god.GRPCServerOpts) *grpc.Server {
 	grpcServer := grpc.NewServer(serverOpts...)
 	service.RegisterGRPCServices(grpcServer)
 	return grpcServer
 }
 
-func setupHTTPGateway(service core.Service, serveMuxOpts []runtime.ServeMuxOption, middlewareFn middlewareFunc, grpcDialOpts core.GRPCDialOptions) *http.Server {
+func setupHTTPGateway(service core.Service, serveMuxOpts []runtime.ServeMuxOption, middlewareFn middlewareFunc, grpcDialOpts god.GRPCDialOpts) *http.Server {
 	mux := runtime.NewServeMux(serveMuxOpts...)
 	service.RegisterHTTPServices(mux, grpcDialOpts)
 	return &http.Server{
@@ -73,7 +74,7 @@ func runGRPC(grpcServer *grpc.Server) {
 	for _, info := range grpcServer.GetServiceInfo() {
 		zap.S().Infof(logPrefix+" 🐸 Service Loaded: %s", info.Metadata)
 		for _, method := range info.Methods {
-			zap.S().Infof(logPrefix+" \tEndpoint Loaded: %s", method.Name)
+			zap.S().Infof(logPrefix+" \t - Endpoint Loaded: %s", method.Name)
 		}
 	}
 
@@ -99,7 +100,7 @@ func (s *Servers) Shutdown() {
 	s.GRPC.GracefulStop()
 
 	zap.S().Info(logPrefix + " 🛑 Shutting down HTTP")
-	ctx, cancel := core.NewCtxWithTimeout(5 * time.Second)
+	ctx, cancel := god.NewCtxWithTimeout(5 * time.Second)
 	defer cancel()
 	core.LogFatalIfErr(s.HTTP.Shutdown(ctx))
 }

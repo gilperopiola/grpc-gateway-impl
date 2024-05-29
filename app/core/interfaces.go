@@ -4,8 +4,11 @@ import (
 	"crypto/x509"
 	"database/sql"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/other"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
@@ -37,8 +40,8 @@ type Service interface {
 	UsersSvc
 	GroupsSvc
 
-	RegisterGRPCServices(GRPCServiceRegistrar)
-	RegisterHTTPServices(*HTTPMultiplexer, GRPCDialOptions)
+	RegisterGRPCServices(god.GRPCSvcRegistrar)
+	RegisterHTTPServices(*runtime.ServeMux, god.GRPCDialOpts)
 }
 
 // Used to kinda unify our SQL and Mongo DB Interfaces. Also lets us get the inner DB object which may be useful.
@@ -54,6 +57,7 @@ type Toolbox interface {
 	TLSTool
 	CtxManager
 	FileManager
+	ModelConverter
 	TokenGenerator
 	TokenValidator
 	RequestsValidator
@@ -67,13 +71,21 @@ type Toolbox interface {
 
 type (
 	CtxManager interface {
-		AddUserInfo(ctx Ctx, userID, username string) Ctx
-		ExtractMetadata(ctx Ctx, key string) (string, error)
+		AddUserInfo(ctx god.Ctx, userID, username string) god.Ctx
+		ExtractMetadata(ctx god.Ctx, key string) (string, error)
 	}
 
 	FileManager interface {
 		CreateFolder(path string) error
 		CreateFolders(paths ...string) error
+	}
+
+	ModelConverter interface {
+		UserToUserInfoPB(*User) *pbs.UserInfo
+		UsersToUsersInfoPB(Users) []*pbs.UserInfo
+
+		GroupToGroupInfoPB(*Group) *pbs.GroupInfo
+		GroupsToGroupsInfoPB(Groups) []*pbs.GroupInfo
 	}
 
 	PwdHasher interface {
@@ -82,7 +94,7 @@ type (
 	}
 
 	RateLimiter interface {
-		LimitGRPC(c Ctx, r any, i *GRPCInfo, h GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+		LimitGRPC(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
 
 	ShutdownJanitor interface {
@@ -92,7 +104,7 @@ type (
 	}
 
 	RequestsValidator interface {
-		ValidateGRPC(c Ctx, r any, i *GRPCInfo, h GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+		ValidateGRPC(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
 
 	Retrier interface {
@@ -101,8 +113,8 @@ type (
 
 	TLSTool interface {
 		GetServerCertificate() *x509.CertPool
-		GetServerCreds() TLSCredentials
-		GetClientCreds() TLSCredentials
+		GetServerCreds() god.TLSCreds
+		GetClientCreds() god.TLSCreds
 	}
 
 	TokenGenerator interface {
@@ -110,7 +122,7 @@ type (
 	}
 
 	TokenValidator interface {
-		ValidateToken(c Ctx, r any, i *GRPCInfo, h GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+		ValidateToken(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
 
 	DBTool interface {
@@ -119,13 +131,13 @@ type (
 		IsNotFound(err error) bool
 
 		// Users
-		CreateUser(ctx Ctx, username, hashedPwd string) (*User, error)
-		GetUser(ctx Ctx, opts ...any) (*User, error)
-		GetUsers(ctx Ctx, page, pageSize int, opts ...any) (Users, int, error)
+		CreateUser(ctx god.Ctx, username, hashedPwd string) (*User, error)
+		GetUser(ctx god.Ctx, opts ...any) (*User, error)
+		GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (Users, int, error)
 
 		// Groups
-		CreateGroup(ctx Ctx, name string, ownerID int, invitedUserIDs []int) (*Group, error)
-		GetGroup(ctx Ctx, opts ...any) (*Group, error)
+		CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*Group, error)
+		GetGroup(ctx god.Ctx, opts ...any) (*Group, error)
 	}
 )
 
@@ -142,7 +154,7 @@ type (
 	}
 
 	WeatherAPI interface {
-		GetCurrentWeather(ctx Ctx, lat, lon float64) (other.GetWeatherResponse, error)
+		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (other.GetWeatherResponse, error)
 	}
 )
 
@@ -180,7 +192,7 @@ type SQLDB interface {
 	Save(value any) SQLDB
 	Scan(dest any) SQLDB
 	Scopes(funcs ...func(SQLDB) SQLDB) SQLDB
-	WithContext(ctx Ctx) SQLDB
+	WithContext(ctx god.Ctx) SQLDB
 	Where(query any, args ...any) SQLDB
 }
 
@@ -191,12 +203,12 @@ type SQLDBOpt func(SQLDB) // Variadic options
 // Low-level API for our Mongo Database.
 type MongoDB interface {
 	DB
-	Close(ctx Ctx)
-	InsertOne(ctx Ctx, colName string, document any) (*mongo.InsertOneResult, error)
-	Find(ctx Ctx, colName string, filter any, limit, offset int) (*mongo.Cursor, error)
-	FindOne(ctx Ctx, colName string, filter any) *mongo.SingleResult
-	DeleteOne(ctx Ctx, colName string, filter any) (*mongo.DeleteResult, error)
-	Count(ctx Ctx, colName string, filter any) (int64, error)
+	Close(ctx god.Ctx)
+	InsertOne(ctx god.Ctx, colName string, document any) (*mongo.InsertOneResult, error)
+	Find(ctx god.Ctx, colName string, filter any, limit, offset int) (*mongo.Cursor, error)
+	FindOne(ctx god.Ctx, colName string, filter any) *mongo.SingleResult
+	DeleteOne(ctx god.Ctx, colName string, filter any) (*mongo.DeleteResult, error)
+	Count(ctx god.Ctx, colName string, filter any) (int64, error)
 }
 
 type MongoDBOpt func(*bson.D) // Variadic options

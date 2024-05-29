@@ -1,6 +1,7 @@
 package sqldb
 
 import (
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 )
@@ -9,7 +10,7 @@ import (
 /*       - SQL DB Tool: Groups -       */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (sdbt *sqlDBTool) CreateGroup(ctx core.Ctx, name string, ownerID int, invitedUserIDs []int) (*core.Group, error) {
+func (sdbt *sqlDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*core.Group, error) {
 	group := core.Group{Name: name, OwnerID: ownerID}
 
 	if err := sdbt.DB.WithContext(ctx).Create(&group).Error(); err != nil {
@@ -25,7 +26,7 @@ func (sdbt *sqlDBTool) CreateGroup(ctx core.Ctx, name string, ownerID int, invit
 	return &group, nil
 }
 
-func (sdbt *sqlDBTool) GetGroup(ctx core.Ctx, opts ...any) (*core.Group, error) {
+func (sdbt *sqlDBTool) GetGroup(ctx god.Ctx, opts ...any) (*core.Group, error) {
 	if len(opts) == 0 {
 		return nil, &errs.DBErr{nil, NoOptionsErr}
 	}

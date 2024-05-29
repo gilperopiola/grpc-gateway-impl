@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -67,9 +68,7 @@ var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler 
 		for key, value := range defaultHeaders {
 			rw.Header().Set(key, value)
 		}
-
 		handler.ServeHTTP(rw, req)
-
 		rw.Header().Del(grpcHeader)
 	})
 }
@@ -82,25 +81,23 @@ var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler 
 // ServeMuxOptions are applied to the HTTP Gateway's Mux on creation.
 // For now there's only an error handler.
 func getHTTPServeMuxOptions() []runtime.ServeMuxOption {
-
-	var deleteGRPCHeader = func(_ core.Ctx, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
+	var deleteGRPCHeader = func(_ god.Ctx, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
 		rw.Header().Del(grpcHeader)
 		return nil
 	}
-
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
 		runtime.WithForwardResponseOption(deleteGRPCHeader),
 	}
 }
 
-func handleHTTPError(_ core.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
+func handleHTTPError(_ god.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
 	grpcStatus := status.Convert(err)
 
 	httpRespStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
-	httpRespBody := formatHTTPErr(grpcStatus.Message())
+	httpRespBody := grpcStatus.Message()
 
-	modifyHTTPErrorRespByStatus(rw, httpRespStatus, &httpRespBody)
+	modifyAndFormatErrorResponse(rw, httpRespStatus, &httpRespBody)
 
 	rw.Header().Del(grpcHeader)
 	rw.WriteHeader(httpRespStatus)
@@ -108,34 +105,41 @@ func handleHTTPError(_ core.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw ht
 }
 
 // Modifies the HTTP Error response body and headers based on the HTTP Status.
-func modifyHTTPErrorRespByStatus(rw http.ResponseWriter, status int, body *string) {
+func modifyAndFormatErrorResponse(rw http.ResponseWriter, status int, body *string) {
+	errMsg := *body
+
 	switch status {
 	case http.StatusBadRequest:
-		// Return as is
+		// Return as is.
+
 	case http.StatusUnauthorized:
 		rw.Header().Set("WWW-Authenticate", "Bearer")
-		*body = formatHTTPErr(errs.HTTPUnauthorized)
+		errMsg = errs.HTTPUnauthorized
+
 	case http.StatusForbidden:
-		*body = formatHTTPErr(errs.HTTPForbidden)
+		errMsg = errs.HTTPForbidden
+
 	case http.StatusNotFound, http.StatusMethodNotAllowed:
 		// GRPC Gateway returns this ⬇️ for not-found routes.
-		if *body == `{"error": "Not Found"}` {
-			*body = formatHTTPErr(errs.HTTPRouteNotFound)
+		if errMsg == `{"error": "Not Found"}` {
+			errMsg = errs.HTTPRouteNotFound
 		}
 		// If we get a not-found from the service, we return the message as is.
+
 	case http.StatusConflict:
-		*body = formatHTTPErr(errs.HTTPConflict)
+		errMsg = errs.HTTPConflict
+
 	case http.StatusInternalServerError:
-		*body = formatHTTPErr(errs.HTTPInternal)
+		errMsg = errs.HTTPInternal
+
 	case http.StatusServiceUnavailable:
-		*body = formatHTTPErr(errs.HTTPUnavailable)
+		errMsg = errs.HTTPUnavailable
+
 	default:
 		core.LogWeirdBehaviour("HTTP Error Status: " + strconv.Itoa(status))
 	}
-}
 
-func formatHTTPErr(msg string) string {
-	return fmt.Sprintf(`{"error": "%s"}`, msg)
+	*body = fmt.Sprintf(`{"error": "%s"}`, errMsg)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

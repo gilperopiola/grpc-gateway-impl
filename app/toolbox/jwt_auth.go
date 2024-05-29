@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -84,7 +85,7 @@ func NewJWTValidator(ctxManager core.CtxManager, secret string) core.TokenValida
 }
 
 // Returns a GRPC interceptor that validates a JWT token inside of the context.
-func (v jwtValidator) ValidateToken(ctx core.Ctx, req any, grpcInfo *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
+func (v jwtValidator) ValidateToken(ctx god.Ctx, req any, grpcInfo *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
 	route := core.RouteNameFromGRPC(grpcInfo.FullMethod)
 
 	bearer, err := v.getBearer(ctx)
@@ -113,7 +114,7 @@ func (v jwtValidator) ValidateToken(ctx core.Ctx, req any, grpcInfo *core.GRPCIn
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Returns the authorization field on the Metadata that lives the context.
-func (v jwtValidator) getBearer(ctx core.Ctx) (string, error) {
+func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
 	bearer, err := v.ctxManager.ExtractMetadata(ctx, "authorization")
 	if err != nil {
 		return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenNotFound)

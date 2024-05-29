@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -37,7 +38,7 @@ func NewRequestsValidator() core.RequestsValidator {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Wraps the proto validation logic with a GRPC Interceptor.
-func (prv protoRequestsValidator) ValidateGRPC(ctx core.Ctx, req any, _ *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
+func (prv protoRequestsValidator) ValidateGRPC(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
 	if err := prv.Validate(req.(protoreflect.ProtoMessage)); err != nil {
 		return nil, validationErrToGRPC(err)
 	}

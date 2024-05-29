@@ -1,7 +1,5 @@
 package core
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
 type Role string
 
 const (

@@ -3,6 +3,7 @@ package service
 import (
 	"strconv"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
@@ -15,7 +16,7 @@ import (
 /*           - Auth Service -          */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (s *Service) Signup(ctx core.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
+func (s *Service) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
 	user, err := s.Toolbox.GetUser(ctx, sql.WithUsername(req.Username))
 	if err == nil && user != nil {
 		return nil, errUserAlreadyExists()
@@ -35,7 +36,7 @@ func (s *Service) Signup(ctx core.Ctx, req *pbs.SignupRequest) (*pbs.SignupRespo
 	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
 }
 
-func (s *Service) doAfterSignup(ctx core.Ctx, user *core.User) {
+func (s *Service) doAfterSignup(ctx god.Ctx, user *core.User) {
 	s.Toolbox.CreateFolder("users/user_" + strconv.Itoa(user.ID))
 	s.Toolbox.CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 
@@ -49,7 +50,7 @@ func (s *Service) doAfterSignup(ctx core.Ctx, user *core.User) {
 // If the query fails (for some other reason), then we return an unknown error.
 // Then we PasswordsMatch both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
-func (s *Service) Login(ctx core.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
+func (s *Service) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
 	user, err := s.Toolbox.GetUser(ctx, sql.WithUsername(req.Username))
 	if s.Toolbox.IsNotFound(err) {
 		return nil, errUserNotFound()

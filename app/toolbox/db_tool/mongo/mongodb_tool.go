@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -39,7 +40,7 @@ func (dbt *mongoDBTool) GetDB() core.DB {
 }
 
 func (dbt *mongoDBTool) CloseDB() {
-	ctx, cancel := core.NewCtxWithTimeout(5 * time.Second)
+	ctx, cancel := god.NewCtxWithTimeout(5 * time.Second)
 	dbt.DB.Close(ctx)
 	cancel()
 }
@@ -48,7 +49,7 @@ func (dbt *mongoDBTool) IsNotFound(err error) bool {
 	return errors.Is(err, mongo.ErrNoDocuments) || errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (dbt *mongoDBTool) CreateGroup(ctx core.Ctx, name string, ownerID int, invitedUserIDs []int) (*core.Group, error) {
+func (dbt *mongoDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*core.Group, error) {
 	group := &core.Group{Name: name, OwnerID: ownerID}
 
 	result, err := dbt.DB.InsertOne(ctx, string(GroupsCollection), group)
@@ -59,7 +60,7 @@ func (dbt *mongoDBTool) CreateGroup(ctx core.Ctx, name string, ownerID int, invi
 	return group, nil
 }
 
-func (dbt *mongoDBTool) GetGroup(ctx core.Ctx, opts ...any) (*core.Group, error) {
+func (dbt *mongoDBTool) GetGroup(ctx god.Ctx, opts ...any) (*core.Group, error) {
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
 	}
@@ -86,7 +87,7 @@ func (dbt *mongoDBTool) GetGroup(ctx core.Ctx, opts ...any) (*core.Group, error)
 	return &group, nil
 }
 
-func (dbt *mongoDBTool) CreateUser(ctx core.Ctx, username, hashedPwd string) (*core.User, error) {
+func (dbt *mongoDBTool) CreateUser(ctx god.Ctx, username, hashedPwd string) (*core.User, error) {
 	user := &core.User{Username: username, Password: hashedPwd}
 
 	result, err := dbt.DB.InsertOne(ctx, string(UsersCollection), user)
@@ -97,7 +98,7 @@ func (dbt *mongoDBTool) CreateUser(ctx core.Ctx, username, hashedPwd string) (*c
 	return user, nil
 }
 
-func (dbt *mongoDBTool) GetUser(ctx core.Ctx, opts ...any) (*core.User, error) {
+func (dbt *mongoDBTool) GetUser(ctx god.Ctx, opts ...any) (*core.User, error) {
 
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
@@ -124,7 +125,7 @@ func (dbt *mongoDBTool) GetUser(ctx core.Ctx, opts ...any) (*core.User, error) {
 	return &user, nil
 }
 
-func (dbt *mongoDBTool) GetUsers(ctx core.Ctx, page, pageSize int, opts ...any) (core.Users, int, error) {
+func (dbt *mongoDBTool) GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (core.Users, int, error) {
 	filter := &bson.D{}
 	for _, opt := range opts {
 		opt.(core.MongoDBOpt)(filter)

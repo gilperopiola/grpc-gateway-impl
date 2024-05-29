@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -20,7 +21,7 @@ import (
 // -> Our interceptors are actually added here, chained together as a single ServerOption.
 
 // Returns the GRPC Server Options, interceptors included.
-func getGRPCServerOptions(toolbox core.Toolbox, tlsEnabled bool) core.GRPCServerOptions {
+func getGRPCServerOptions(toolbox core.Toolbox, tlsEnabled bool) god.GRPCServerOpts {
 	serverOpts := []grpc.ServerOption{}
 
 	if tlsEnabled {
@@ -37,7 +38,7 @@ func getGRPCServerOptions(toolbox core.Toolbox, tlsEnabled bool) core.GRPCServer
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Dial Options are used by the HTTP Gateway when connecting to the GRPC Server.
-func getGRPCDialOptions(tlsClientCreds core.TLSCredentials) core.GRPCDialOptions {
+func getGRPCDialOptions(tlsClientCreds god.TLSCreds) god.GRPCDialOpts {
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(tlsClientCreds),
 		grpc.WithUserAgent(customUserAgent),
@@ -57,7 +58,7 @@ const customUserAgent = "by @gilperopiola"
 
 // Returns the GRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the GRPC Server as a grpc.ServerOption.
-func getGRPCInterceptors(toolbox core.Toolbox) core.GRPCInterceptors {
+func getGRPCInterceptors(toolbox core.Toolbox) god.GRPCInterceptors {
 	return []grpc.UnaryServerInterceptor{
 		toolbox.LimitGRPC,
 		handlePanicsAndRecover,
@@ -69,7 +70,7 @@ func getGRPCInterceptors(toolbox core.Toolbox) core.GRPCInterceptors {
 }
 
 // Returns a GRPC Interceptor that checks if the context has been cancelled before processing the request.
-func handleContextCancellation(ctx core.Ctx, req any, _ *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
+func handleContextCancellation(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
 	if ctx.Err() != nil {
 		core.LogWeirdBehaviour("Context cancelled early", req)
 		return nil, ctx.Err()
@@ -79,7 +80,7 @@ func handleContextCancellation(ctx core.Ctx, req any, _ *core.GRPCInfo, handler 
 
 // Returns a GRPC Interceptor that recovers from panics and logs them
 // -> Adapted from github.com/grpc-ecosystem/go-grpc-middleware/recovery
-func handlePanicsAndRecover(ctx core.Ctx, req any, _ *core.GRPCInfo, handler core.GRPCHandler) (resp any, err error) {
+func handlePanicsAndRecover(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (resp any, err error) {
 	handlerCalled := false
 
 	defer func() {
@@ -96,5 +97,3 @@ func handlePanicsAndRecover(ctx core.Ctx, req any, _ *core.GRPCInfo, handler cor
 
 	return resp, err
 }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

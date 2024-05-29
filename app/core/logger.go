@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
 	"go.uber.org/zap"
@@ -38,7 +39,7 @@ func SetupLogger(cfg *LoggerCfg) *zap.Logger {
 }
 
 // This func is a GRPC Interceptor. Or technically a grpc.UnaryServerInterceptor.
-func LogGRPCRequest(ctx Ctx, req any, info *GRPCInfo, handler GRPCHandler) (any, error) {
+func LogGRPCRequest(ctx god.Ctx, req any, info *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
 	start := time.Now()
 	resp, err := handler(ctx, req)
 	duration := time.Since(start)

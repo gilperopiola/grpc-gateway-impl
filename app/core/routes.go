@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
 	"google.golang.org/grpc"
@@ -101,7 +102,7 @@ func RouteNameFromGRPC(method string) string {
 }
 
 // Returns the route name from the context.
-func RouteNameFromCtx(ctx Ctx) string {
+func RouteNameFromCtx(ctx god.Ctx) string {
 	if method, ok := grpc.Method(ctx); ok {
 		return RouteNameFromGRPC(method)
 	}

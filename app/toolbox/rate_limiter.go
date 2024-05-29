@@ -3,6 +3,7 @@ package toolbox
 import (
 	"errors"
 
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -25,7 +26,7 @@ func NewRateLimiter(cfg *core.RLimiterCfg) core.RateLimiter {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (rl *rateLimiter) LimitGRPC(ctx core.Ctx, req any, _ *core.GRPCInfo, handler core.GRPCHandler) (any, error) {
+func (rl *rateLimiter) LimitGRPC(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
 	if !rl.Allow() {
 		core.LogUnexpectedErr(errors.New("rate limit exceeded"))
 		return nil, status.Errorf(codes.ResourceExhausted, errs.RateLimitedMsg)

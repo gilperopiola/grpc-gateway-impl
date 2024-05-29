@@ -1,8 +1,10 @@
 package service
 
 import (
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
 var _ core.Service = (*Service)(nil)
@@ -26,14 +28,14 @@ func Setup(toolbox core.Toolbox) core.Service {
 	}
 }
 
-func (s *Service) RegisterGRPCServices(grpcServer core.GRPCServiceRegistrar) {
+func (s *Service) RegisterGRPCServices(grpcServer god.GRPCSvcRegistrar) {
 	pbs.RegisterAuthServiceServer(grpcServer, s)
 	pbs.RegisterUsersServiceServer(grpcServer, s)
 	pbs.RegisterGroupsServiceServer(grpcServer, s)
 }
 
-func (s *Service) RegisterHTTPServices(mux *core.HTTPMultiplexer, opts core.GRPCDialOptions) {
-	ctx := core.NewCtx()
+func (s *Service) RegisterHTTPServices(mux *runtime.ServeMux, opts god.GRPCDialOpts) {
+	ctx := god.NewCtx()
 	port := core.GRPCPort
 
 	core.LogFatalIfErr(pbs.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, port, opts))

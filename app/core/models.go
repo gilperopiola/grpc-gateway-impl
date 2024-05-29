@@ -2,8 +2,6 @@ package core
 
 import (
 	"time"
-
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -30,24 +28,7 @@ type User struct {
 	Deleted   bool      `bson:"deleted"`
 }
 
-func (u User) ToUserInfoPB() *pbs.UserInfo {
-	return &pbs.UserInfo{
-		Id:        int32(u.ID),
-		Username:  u.Username,
-		CreatedAt: u.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: u.UpdatedAt.Format(time.RFC3339),
-	}
-}
-
 type Users []*User
-
-func (us Users) ToUsersInfoPB() []*pbs.UserInfo {
-	usersInfo := make([]*pbs.UserInfo, 0, len(us))
-	for _, u := range us {
-		usersInfo = append(usersInfo, u.ToUserInfoPB())
-	}
-	return usersInfo
-}
 
 /* -~-~-~-~-~- Groups ~-~-~-~-~-~ */
 
@@ -62,25 +43,7 @@ type Group struct {
 	Deleted   bool      `bson:"deleted"`
 }
 
-func (g Group) ToGroupInfoPB() *pbs.GroupInfo {
-	return &pbs.GroupInfo{
-		Id:        int32(g.ID),
-		Name:      g.Name,
-		Owner:     &pbs.UserInfo{Id: int32(g.OwnerID)},
-		CreatedAt: g.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: g.UpdatedAt.Format(time.RFC3339),
-	}
-}
-
 type Groups []*Group
-
-func (gs Groups) ToGroupsInfoPB() []*pbs.GroupInfo {
-	groupsInfo := make([]*pbs.GroupInfo, 0, len(gs))
-	for _, g := range gs {
-		groupsInfo = append(groupsInfo, g.ToGroupInfoPB())
-	}
-	return groupsInfo
-}
 
 /* -~-~-~-~-~- UsersInGroup ~-~-~-~-~-~ */
 
