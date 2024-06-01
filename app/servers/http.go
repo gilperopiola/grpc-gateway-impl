@@ -81,14 +81,17 @@ var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler 
 // ServeMuxOptions are applied to the HTTP Gateway's Mux on creation.
 // For now there's only an error handler.
 func getHTTPServeMuxOptions() []runtime.ServeMuxOption {
-	var deleteGRPCHeader = func(_ god.Ctx, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
-		rw.Header().Del(grpcHeader)
-		return nil
-	}
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
-		runtime.WithForwardResponseOption(deleteGRPCHeader),
+		runtime.WithForwardResponseOption(func(_ god.Ctx, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
+			deleteGRPCHeader(rw)
+			return nil
+		}),
 	}
+}
+
+func deleteGRPCHeader(rw http.ResponseWriter) {
+	rw.Header().Del(grpcHeader)
 }
 
 func handleHTTPError(_ god.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
@@ -130,9 +133,11 @@ func modifyAndFormatErrorResponse(rw http.ResponseWriter, status int, body *stri
 		errMsg = errs.HTTPConflict
 
 	case http.StatusInternalServerError:
+		core.LogWeirdBehaviour("HTTP Error 500: " + errMsg)
 		errMsg = errs.HTTPInternal
 
 	case http.StatusServiceUnavailable:
+		core.LogWeirdBehaviour("HTTP Error 503: " + errMsg)
 		errMsg = errs.HTTPUnavailable
 
 	default:

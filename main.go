@@ -18,6 +18,7 @@ func main() {
 
 	// -> Init app
 	runAppFn, cleanupFn := app.NewApp()
+	defer cleanupFn()
 
 	// -> Run app
 	runAppFn()
@@ -28,8 +29,6 @@ func main() {
 		signal.Notify(ch, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		<-ch
 	}()
-
-	cleanupFn()
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
