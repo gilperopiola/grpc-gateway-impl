@@ -116,7 +116,7 @@ message CreateGroupRequest {
   string name = 1 [
     json_name = "name",
     (google.api.field_behavior) =                                 REQUIRED,
-    (buf.validate.field) =                                        { string: {min_len: 2, max_len: 48, pattern: "^[a-zA-Z0-9_]+$"} },
+    (buf.validate.field) =                                        { string: {min_len: 2, max_len: 80, pattern: "^[a-zA-Z0-9_]+$"} },
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Name of the group to create.", }
   ];
 

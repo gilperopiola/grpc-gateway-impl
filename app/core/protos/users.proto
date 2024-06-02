@@ -176,7 +176,7 @@ message UpdateUserRequest {
 
   string username = 3 [
     json_name = "username",
-    (buf.validate.field) = { string: {min_len: 4, max_len: 20, pattern: "^[a-zA-Z0-9_]+$"} },
+    (buf.validate.field) = { string: {min_len: 4, max_len: 40, pattern: "^[a-zA-Z0-9_]+$"} },
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Username of the user to update.", }
   ];
 }
@@ -224,5 +224,5 @@ message GetMyGroupsRequest {
 
 message GetMyGroupsResponse {
   repeated GroupInfo groups = 1     [ json_name = "groups",     (google.api.field_behavior) = OUTPUT_ONLY ];
-  PaginationInfo pagination = 3 [ json_name = "pagination", (google.api.field_behavior) = OUTPUT_ONLY ];
+  PaginationInfo pagination = 3     [ json_name = "pagination", (google.api.field_behavior) = OUTPUT_ONLY ];
 }

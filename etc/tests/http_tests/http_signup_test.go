@@ -1,36 +1,76 @@
 package http_tests
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
+
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHTTPSignup(t *testing.T) {
-	testy := NewTesty(t, "Signup", "/v1/auth/signup")
 
-	for _, tc := range []struct {
+	testy := NewTesty(t, "Signup", "/v1/auth/signup")
+	defer testy.Clean()
+
+	type testCase struct {
 		name     string
-		username any
+		username any // -> By default it's the testID
 		password any
 		status   int
-	}{
-		{name: "OK", username: "test", password: "password", status: http.StatusOK},
-		{name: "UsrnmExists", username: "test", password: "password", status: http.StatusOK}, // This helps the next test
-		{name: "UsrnmExists", username: "test", password: "password", status: http.StatusConflict},
-		{name: "PwdTooShrt", username: "test", password: "pass", status: http.StatusBadRequest},
+	}
+
+	for _, tc := range []testCase{
+		{
+			name: "OK", password: "password", status: http.StatusOK,
+		},
+		{
+			name: "UsrEmpty", username: "", password: "password", status: http.StatusBadRequest,
+		},
+		{
+			name: "PwdEmpty", password: "", status: http.StatusBadRequest,
+		},
+		{
+			name: "PwdNil", status: http.StatusBadRequest,
+		},
+		{
+			name: "UsrTooShrt", username: "Tc", password: "password", status: http.StatusBadRequest, // -> Overrides username
+		},
+		{
+			name: "PwdTooShrt", password: "pwd", status: http.StatusBadRequest,
+		},
+		{
+			name: "UsrExists", password: "password", status: http.StatusOK, // -> Prep for next test
+		},
+		{
+			name: "UsrExists", password: "password", status: http.StatusConflict,
+		},
 	} {
 
 		// -> 🏠 Prepare
-		txxID := testy.Prep(tc.name)
+		testID := testy.Prep(tc.name)
+		username := testID
+		if tmp, ok := tc.username.(string); ok {
+			username = tmp
+		}
 
 		// -> 🚀 Act
-		testy.Run("username", txxID, "password", tc.password)
+		_, body, _ := testy.Run("username", username, "password", tc.password)
 
 		// -> 📡 Assert
 		testy.AssertStatus(tc.status)
 		testy.AssertHeaders()
 
-		// -> 🧹 defer can s*ck my di*k
-		testy.Clean()
+		if tc.status >= 400 {
+			continue
+		}
+
+		var typedBody pbs.SignupResponse
+		if err := json.Unmarshal([]byte(body), &typedBody); err != nil {
+			t.Errorf("Error unmarshaling response: %s", body)
+		}
+
+		assert.Greater(t, typedBody.Id, int32(0))
 	}
 }
