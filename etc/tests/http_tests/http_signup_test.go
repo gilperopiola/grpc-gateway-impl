@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+
 	"github.com/stretchr/testify/assert"
 )
 
