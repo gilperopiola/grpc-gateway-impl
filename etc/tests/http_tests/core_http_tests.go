@@ -17,7 +17,7 @@ import (
 func newID() string {
 	id := ""
 	for i := 0; i < 3; i++ {
-		id += god.MapIntToLetter(rand.Intn(26) + 1)
+		id += god.MapIntToLetter(rand.Intn(26))
 	}
 	return strings.ToUpper(id)
 }

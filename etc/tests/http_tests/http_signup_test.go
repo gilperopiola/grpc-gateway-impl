@@ -51,10 +51,8 @@ func TestHTTPSignup(t *testing.T) {
 
 		// -> 🏠 Prepare
 		testID := testy.Prep(tc.name)
-		username := testID
-		if tmp, ok := tc.username.(string); ok {
-			username = tmp
-		}
+
+		username := assertTo[string](tc.username).OrDefaultTo(testID)
 
 		// -> 🚀 Act
 		_, body, _ := testy.Run("username", username, "password", tc.password)
@@ -63,7 +61,7 @@ func TestHTTPSignup(t *testing.T) {
 		testy.AssertStatus(tc.status)
 		testy.AssertHeaders()
 
-		if tc.status >= 400 {
+		if tc.status >= http.StatusBadRequest {
 			continue
 		}
 
