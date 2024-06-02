@@ -10,14 +10,15 @@ func TestHTTPSignup(t *testing.T) {
 
 	for _, tc := range []struct {
 		name     string
-		username any
 		password any
 		status   int
 	}{
-		{name: "OK", username: "test", password: "password", status: http.StatusOK},
-		{name: "UsrnmExists", username: "test", password: "password", status: http.StatusOK}, // This helps the next test
-		{name: "UsrnmExists", username: "test", password: "password", status: http.StatusConflict},
-		{name: "PwdTooShrt", username: "test", password: "pass", status: http.StatusBadRequest},
+		{name: "OK", password: "password", status: http.StatusOK}, // Signup: OK
+
+		{name: "UsrnmExists", password: "password", status: http.StatusOK}, // Signup: Username Exists
+		{name: "UsrnmExists", password: "password", status: http.StatusConflict},
+
+		{name: "PwdTooShrt", password: "pass", status: http.StatusBadRequest}, // Signup:x Password Too Short
 	} {
 
 		// -> 🏠 Prepare
