@@ -10,17 +10,16 @@ import (
 	"testing"
 
 	"github.com/gilperopiola/god"
-	"github.com/labstack/gommon/log"
 )
 
 /* -~-~-~-~-~    Test Setup    ~-~-~-~-~-~- */
 
 func newID() string {
-	testID := "T_"
-	for i := 0; i < 8; i++ {
-		testID += god.MapIntToLetter(rand.Intn(26) + 1)
+	id := ""
+	for i := 0; i < 3; i++ {
+		id += god.MapIntToLetter(rand.Intn(26) + 1)
 	}
-	return testID
+	return strings.ToUpper(id)
 }
 
 /* -~-~-~-~-~    HTTP    ~-~-~-~-~-~- */
@@ -45,14 +44,6 @@ func POST(t *testing.T, url, request string) (int, string, http.Header) {
 }
 
 /* -~-~-~-~-~    JSON    ~-~-~-~-~-~- */
-
-func JSON(pairs ...interface{}) string {
-	jsonData, err := JSONFromPairs(pairs...)
-	if err != nil {
-		log.Error(err)
-	}
-	return jsonData
-}
 
 // JSON creates a JSON string from key-value pairs
 func JSONFromPairs(pairs ...interface{}) (string, error) {
