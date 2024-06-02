@@ -15,6 +15,7 @@ func TestHTTPSignup(t *testing.T) {
 		status   int
 	}{
 		{name: "OK", username: "test", password: "password", status: http.StatusOK},
+		{name: "UsrnmExists", username: "test", password: "password", status: http.StatusOK}, // This helps the next test
 		{name: "UsrnmExists", username: "test", password: "password", status: http.StatusConflict},
 		{name: "PwdTooShrt", username: "test", password: "pass", status: http.StatusBadRequest},
 	} {
