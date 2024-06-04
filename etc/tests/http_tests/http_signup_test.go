@@ -52,7 +52,7 @@ func TestHTTPSignup(t *testing.T) {
 		// -> 🏠 Prepare
 		testID := testy.Prep(tc.name)
 
-		username := assertTo[string](tc.username).OrDefaultTo(testID)
+		username := AssertTo[string](tc.username).OrDefaultTo(testID)
 
 		// -> 🚀 Act
 		_, body, _ := testy.Run("username", username, "password", tc.password)

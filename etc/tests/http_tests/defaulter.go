@@ -3,7 +3,7 @@ package http_tests
 var _ Defaulter[string] = (*assertDefaulter[string])(nil)
 
 // Chain this with .OrDefaultTo to get a type-assertion-or-default in 1 line
-func assertTo[T any](value any) Defaulter[T] {
+func AssertTo[T any](value any) Defaulter[T] {
 	return &assertDefaulter[T]{value}
 }
 
