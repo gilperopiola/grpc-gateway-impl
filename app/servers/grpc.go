@@ -15,20 +15,19 @@ import (
 /*           - GRPC Server -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
 // -> Server Options are used to configure the GRPC Server.
 // -> Our interceptors are actually added here, chained together as a single ServerOption.
 
 // Returns the GRPC Server Options, interceptors included.
-func getGRPCServerOptions(toolbox core.Toolbox, tlsEnabled bool) god.GRPCServerOpts {
+func getGRPCServerOpts(toolbox core.Toolbox, tls bool) god.GRPCServerOpts {
 	serverOpts := []grpc.ServerOption{}
 
-	if tlsEnabled {
-		serverOpts = append(serverOpts, grpc.Creds(toolbox.GetServerCreds()))
+	if tls {
+		tlsOpt := grpc.Creds(toolbox.GetServerCreds())
+		serverOpts = append(serverOpts, tlsOpt)
 	}
 
-	// Chain all Unary Interceptors into a single ServerOption and add it as a Server Opt.
+	// Chain all Unary Interceptors into a single ServerOption and add it.
 	defaultInterceptors := getGRPCInterceptors(toolbox)
 	serverOpts = append(serverOpts, grpc.ChainUnaryInterceptor(defaultInterceptors...))
 
@@ -38,14 +37,13 @@ func getGRPCServerOptions(toolbox core.Toolbox, tlsEnabled bool) god.GRPCServerO
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Dial Options are used by the HTTP Gateway when connecting to the GRPC Server.
-func getGRPCDialOptions(tlsClientCreds god.TLSCreds) god.GRPCDialOpts {
+func getGRPCDialOpts(tlsClientCreds god.TLSCreds) god.GRPCDialOpts {
+	const customUserAgent = "by @gilperopiola"
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(tlsClientCreds),
 		grpc.WithUserAgent(customUserAgent),
 	}
 }
-
-const customUserAgent = "by @gilperopiola"
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*        - GRPC Interceptors -        */
@@ -65,20 +63,20 @@ func getGRPCInterceptors(toolbox core.Toolbox) god.GRPCInterceptors {
 		core.LogGRPCRequest,
 		toolbox.ValidateToken,
 		toolbox.ValidateGRPC,
-		handleContextCancellation,
+		handleCtxCancel,
 	}
 }
 
 // Returns a GRPC Interceptor that checks if the context has been cancelled before processing the request.
-func handleContextCancellation(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
-	if ctx.Err() != nil {
-		core.LogWeirdBehaviour("Context cancelled early", req)
-		return nil, ctx.Err()
+func handleCtxCancel(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
+	if err := ctx.Err(); err != nil {
+		core.LogWeirdBehaviour("Context cancelled early", req, err)
+		return nil, err
 	}
-	return handler(ctx, req) // T0D0 Should we also check after the service call?
+	return handler(ctx, req) // - Should we also check after the service call?
 }
 
-// Returns a GRPC Interceptor that recovers from panics and logs them
+// Returns a GRPC Interceptor that recovers from panics and logs them.
 // -> Adapted from github.com/grpc-ecosystem/go-grpc-middleware/recovery
 func handlePanicsAndRecover(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (resp any, err error) {
 	handlerCalled := false
@@ -92,7 +90,8 @@ func handlePanicsAndRecover(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.G
 
 	resp, err = handler(ctx, req) // <- Panics happen here.
 
-	// This var is checked on the defer, if it panicked then this place is never reached and handlerCalled = false.
+	// This is checked on the defer, if it panicked then this place is never reached and handlerCalled = false
+	// which means it panicked.
 	handlerCalled = true
 
 	return resp, err

@@ -12,17 +12,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var _ core.RateLimiter = (*rateLimiter)(nil)
-
 type rateLimiter struct {
 	*rate.Limiter
 }
 
-func NewRateLimiter(cfg *core.RLimiterCfg) core.RateLimiter {
+func NewRateLimiter(cfg *core.RLimiterCfg) *rateLimiter {
 	limit := rate.Limit(cfg.TokensPerSecond)
 	limiter := rate.NewLimiter(limit, cfg.MaxTokens)
 	return &rateLimiter{limiter}
 }
+
+var _ core.RateLimiter = (*rateLimiter)(nil)
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
@@ -33,5 +33,3 @@ func (rl *rateLimiter) LimitGRPC(ctx god.Ctx, req any, _ *god.GRPCInfo, handler 
 	}
 	return handler(ctx, req)
 }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

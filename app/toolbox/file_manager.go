@@ -6,8 +6,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 )
 
-var _ core.FileManager = (*fileManager)(nil)
-
 type fileManager struct {
 	basePath string
 }
@@ -15,6 +13,8 @@ type fileManager struct {
 func NewFileManager(basePath string) core.FileManager {
 	return &fileManager{basePath}
 }
+
+var _ core.FileManager = fileManager{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 

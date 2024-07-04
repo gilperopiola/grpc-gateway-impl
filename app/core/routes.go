@@ -6,6 +6,7 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -14,7 +15,7 @@ import (
 
 // All settings we need on a per-route basis lives here. For now it's just the Auth type.
 type Route struct {
-	Auth RouteAuth
+	Auth models.RouteAuth
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -32,38 +33,38 @@ type Route struct {
 var Routes = map[string]Route{
 
 	// Auth Service
-	"Signup": {RouteAuthPublic},
-	"Login":  {RouteAuthPublic},
+	"Signup": {models.RouteAuthPublic},
+	"Login":  {models.RouteAuthPublic},
 
 	// Users Service
-	"GetUser":     {RouteAuthSelf},
-	"GetUsers":    {RouteAuthAdmin},
-	"UpdateUser":  {RouteAuthSelf},
-	"DeleteUser":  {RouteAuthSelf},
-	"GetMyGroups": {RouteAuthSelf},
+	"GetUser":     {models.RouteAuthSelf},
+	"GetUsers":    {models.RouteAuthAdmin},
+	"UpdateUser":  {models.RouteAuthSelf},
+	"DeleteUser":  {models.RouteAuthSelf},
+	"GetMyGroups": {models.RouteAuthSelf},
 
 	// Groups Service
-	"CreateGroup":       {RouteAuthSelf},
-	"GetGroup":          {RouteAuthUser},
-	"InviteToGroup":     {RouteAuthSelf},
-	"AnswerGroupInvite": {RouteAuthSelf},
+	"CreateGroup":       {models.RouteAuthSelf},
+	"GetGroup":          {models.RouteAuthUser},
+	"InviteToGroup":     {models.RouteAuthSelf},
+	"AnswerGroupInvite": {models.RouteAuthSelf},
 }
 
-func AuthForRoute(routeName string) RouteAuth {
+func AuthForRoute(routeName string) models.RouteAuth {
 	if route, ok := Routes[routeName]; ok {
 		return route.Auth
 	}
 	LogWeirdBehaviour("Route not found: " + routeName)
-	return RouteAuthAdmin
+	return models.RouteAuthAdmin
 }
 
-func CanAccessRoute(route, userID string, role Role, req any) error {
+func CanAccessRoute(route, userID string, role models.Role, req any) error {
 	switch AuthForRoute(route) {
 
-	case RouteAuthPublic:
+	case models.RouteAuthPublic:
 		return nil
 
-	case RouteAuthSelf:
+	case models.RouteAuthSelf:
 		type PBReqWithUserID interface {
 			GetUserId() int32
 		}
@@ -72,8 +73,8 @@ func CanAccessRoute(route, userID string, role Role, req any) error {
 			return status.Errorf(codes.PermissionDenied, errs.AuthUserIDInvalid)
 		}
 
-	case RouteAuthAdmin:
-		if role != AdminRole {
+	case models.RouteAuthAdmin:
+		if role != models.AdminRole {
 			LogPotentialThreat("User " + userID + " tried to access admin route: " + route)
 			return status.Errorf(codes.PermissionDenied, errs.AuthRoleInvalid)
 		}

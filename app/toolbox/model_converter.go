@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
 
@@ -18,7 +19,7 @@ func NewModelConverter() core.ModelConverter {
 
 /* Users */
 
-func (mc modelConverter) UserToUserInfoPB(user *core.User) *pbs.UserInfo {
+func (mc modelConverter) UserToUserInfoPB(user *models.User) *pbs.UserInfo {
 	return &pbs.UserInfo{
 		Id:        int32(user.ID),
 		Username:  user.Username,
@@ -27,7 +28,7 @@ func (mc modelConverter) UserToUserInfoPB(user *core.User) *pbs.UserInfo {
 	}
 }
 
-func (mc modelConverter) UsersToUsersInfoPB(users core.Users) []*pbs.UserInfo {
+func (mc modelConverter) UsersToUsersInfoPB(users models.Users) []*pbs.UserInfo {
 	usersInfo := make([]*pbs.UserInfo, 0, len(users))
 	for _, u := range users {
 		usersInfo = append(usersInfo, mc.UserToUserInfoPB(u))
@@ -37,7 +38,7 @@ func (mc modelConverter) UsersToUsersInfoPB(users core.Users) []*pbs.UserInfo {
 
 /* Groups */
 
-func (mc modelConverter) GroupToGroupInfoPB(group *core.Group) *pbs.GroupInfo {
+func (mc modelConverter) GroupToGroupInfoPB(group *models.Group) *pbs.GroupInfo {
 	return &pbs.GroupInfo{
 		Id:        int32(group.ID),
 		Name:      group.Name,
@@ -47,7 +48,7 @@ func (mc modelConverter) GroupToGroupInfoPB(group *core.Group) *pbs.GroupInfo {
 	}
 }
 
-func (mc modelConverter) GroupsToGroupsInfoPB(groups core.Groups) []*pbs.GroupInfo {
+func (mc modelConverter) GroupsToGroupsInfoPB(groups models.Groups) []*pbs.GroupInfo {
 	groupsInfo := make([]*pbs.GroupInfo, 0, len(groups))
 	for _, g := range groups {
 		groupsInfo = append(groupsInfo, mc.GroupToGroupInfoPB(g))

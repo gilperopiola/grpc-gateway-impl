@@ -8,6 +8,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"
@@ -20,8 +21,8 @@ var _ core.TokenValidator = (*jwtValidator)(nil)
 // Our JWT Tokens contain these Claims to identify the user
 type jwtClaims struct {
 	jwt.RegisteredClaims
-	Username string    `json:"username"`
-	Role     core.Role `json:"role"`
+	Username string      `json:"username"`
+	Role     models.Role `json:"role"`
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -45,7 +46,7 @@ func NewJWTGenerator(secret string, sessionDays int) core.TokenGenerator {
 }
 
 // GenerateToken returns a JWT token with the given user id, username and role.
-func (g jwtGenerator) GenerateToken(id int, username string, role core.Role) (string, error) {
+func (g jwtGenerator) GenerateToken(id int, username string, role models.Role) (string, error) {
 	var (
 		now    = time.Now()
 		claims = &jwtClaims{
@@ -90,7 +91,7 @@ func (v jwtValidator) ValidateToken(ctx god.Ctx, req any, grpcInfo *god.GRPCInfo
 
 	bearer, err := v.getBearer(ctx)
 	if err != nil {
-		if core.AuthForRoute(route) == core.RouteAuthPublic {
+		if core.AuthForRoute(route) == models.RouteAuthPublic {
 			// If failed to get token but route is public: OK!
 			return handler(ctx, req)
 		}

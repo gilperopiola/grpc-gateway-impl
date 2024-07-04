@@ -1,8 +1,8 @@
-package other
+package models
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*         - Get Weather API -         */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* -~-~-~-~-~-~-~-~-~-~ openweathermap */
 
 type (
 	GetWeatherResponse struct {
@@ -21,19 +21,16 @@ type (
 		Name       string    `json:"name"`
 		Cod        int       `json:"cod"`
 	}
-
 	Coord struct {
 		Lon float64 `json:"lon"`
 		Lat float64 `json:"lat"`
 	}
-
 	Weather struct {
 		ID          int    `json:"id"`
 		Main        string `json:"main"`
 		Description string `json:"description"`
 		Icon        string `json:"icon"`
 	}
-
 	Main struct {
 		Temp      float64 `json:"temp"`
 		FeelsLike float64 `json:"feels_like"`
@@ -42,20 +39,16 @@ type (
 		Pressure  int     `json:"pressure"`
 		Humidity  int     `json:"humidity"`
 	}
-
 	Wind struct {
 		Speed float64 `json:"speed"`
 		Deg   int     `json:"deg"`
 	}
-
 	Rain struct {
 		OneH float64 `json:"1h"`
 	}
-
 	Clouds struct {
 		All int `json:"all"`
 	}
-
 	Sys struct {
 		Type    int    `json:"type"`
 		ID      int    `json:"id"`

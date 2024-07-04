@@ -6,6 +6,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	sql "github.com/gilperopiola/grpc-gateway-impl/app/toolbox/db_tool/sqldb"
 
@@ -36,7 +37,7 @@ func (s *Service) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupRespon
 	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
 }
 
-func (s *Service) doAfterSignup(ctx god.Ctx, user *core.User) {
+func (s *Service) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Toolbox.CreateFolder("users/user_" + strconv.Itoa(user.ID))
 	s.Toolbox.CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 

@@ -2,16 +2,21 @@ package toolbox
 
 import "github.com/gilperopiola/grpc-gateway-impl/app/core"
 
-var _ core.ShutdownJanitor = (*shutdownJanitor)(nil)
-
 type shutdownJanitor struct {
 	cleanupFns        []func()
 	cleanupFnsWithErr []func() error
 }
 
 func NewShutdownJanitor(cleanupFns ...func()) core.ShutdownJanitor {
-	return &shutdownJanitor{cleanupFns, []func() error{}}
+	cleanupFnsWithErr := []func() error{}
+
+	return &shutdownJanitor{
+		cleanupFns,
+		cleanupFnsWithErr,
+	}
 }
+
+var _ core.ShutdownJanitor = (*shutdownJanitor)(nil)
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/other"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -57,6 +57,7 @@ type Toolbox interface {
 	TLSTool
 	CtxManager
 	FileManager
+	HealthChecker
 	ModelConverter
 	TokenGenerator
 	TokenValidator
@@ -80,12 +81,16 @@ type (
 		CreateFolders(paths ...string) error
 	}
 
-	ModelConverter interface {
-		UserToUserInfoPB(*User) *pbs.UserInfo
-		UsersToUsersInfoPB(Users) []*pbs.UserInfo
+	HealthChecker interface {
+		CheckHealth() error
+	}
 
-		GroupToGroupInfoPB(*Group) *pbs.GroupInfo
-		GroupsToGroupsInfoPB(Groups) []*pbs.GroupInfo
+	ModelConverter interface {
+		UserToUserInfoPB(*models.User) *pbs.UserInfo
+		UsersToUsersInfoPB(models.Users) []*pbs.UserInfo
+
+		GroupToGroupInfoPB(*models.Group) *pbs.GroupInfo
+		GroupsToGroupsInfoPB(models.Groups) []*pbs.GroupInfo
 	}
 
 	PwdHasher interface {
@@ -118,7 +123,7 @@ type (
 	}
 
 	TokenGenerator interface {
-		GenerateToken(id int, username string, role Role) (string, error)
+		GenerateToken(id int, username string, role models.Role) (string, error)
 	}
 
 	TokenValidator interface {
@@ -131,13 +136,13 @@ type (
 		IsNotFound(err error) bool
 
 		// Users
-		CreateUser(ctx god.Ctx, username, hashedPwd string) (*User, error)
-		GetUser(ctx god.Ctx, opts ...any) (*User, error)
-		GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (Users, int, error)
+		CreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error)
+		GetUser(ctx god.Ctx, opts ...any) (*models.User, error)
+		GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error)
 
 		// Groups
-		CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*Group, error)
-		GetGroup(ctx god.Ctx, opts ...any) (*Group, error)
+		CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error)
+		GetGroup(ctx god.Ctx, opts ...any) (*models.Group, error)
 	}
 )
 
@@ -154,7 +159,7 @@ type (
 	}
 
 	WeatherAPI interface {
-		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (other.GetWeatherResponse, error)
+		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (models.GetWeatherResponse, error)
 	}
 )
 

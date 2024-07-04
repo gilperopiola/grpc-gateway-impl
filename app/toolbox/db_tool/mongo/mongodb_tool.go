@@ -8,6 +8,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -49,8 +50,8 @@ func (dbt *mongoDBTool) IsNotFound(err error) bool {
 	return errors.Is(err, mongo.ErrNoDocuments) || errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (dbt *mongoDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*core.Group, error) {
-	group := &core.Group{Name: name, OwnerID: ownerID}
+func (dbt *mongoDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
+	group := &models.Group{Name: name, OwnerID: ownerID}
 
 	result, err := dbt.DB.InsertOne(ctx, string(GroupsCollection), group)
 	if err != nil || result.InsertedID == nil {
@@ -60,7 +61,7 @@ func (dbt *mongoDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invit
 	return group, nil
 }
 
-func (dbt *mongoDBTool) GetGroup(ctx god.Ctx, opts ...any) (*core.Group, error) {
+func (dbt *mongoDBTool) GetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
 	}
@@ -79,7 +80,7 @@ func (dbt *mongoDBTool) GetGroup(ctx god.Ctx, opts ...any) (*core.Group, error) 
 		return nil, errs.DBErr{mongo.ErrNoDocuments, fmt.Sprintf("error finding group: %v", err)}
 	}
 
-	var group core.Group
+	var group models.Group
 	if err := result.Decode(&group); err != nil {
 		return nil, errs.DBErr{err, fmt.Sprintf("error decoding group: %v", err)}
 	}
@@ -87,8 +88,8 @@ func (dbt *mongoDBTool) GetGroup(ctx god.Ctx, opts ...any) (*core.Group, error) 
 	return &group, nil
 }
 
-func (dbt *mongoDBTool) CreateUser(ctx god.Ctx, username, hashedPwd string) (*core.User, error) {
-	user := &core.User{Username: username, Password: hashedPwd}
+func (dbt *mongoDBTool) CreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
+	user := &models.User{Username: username, Password: hashedPwd}
 
 	result, err := dbt.DB.InsertOne(ctx, string(UsersCollection), user)
 	if err != nil || result.InsertedID == nil {
@@ -98,7 +99,7 @@ func (dbt *mongoDBTool) CreateUser(ctx god.Ctx, username, hashedPwd string) (*co
 	return user, nil
 }
 
-func (dbt *mongoDBTool) GetUser(ctx god.Ctx, opts ...any) (*core.User, error) {
+func (dbt *mongoDBTool) GetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
@@ -117,7 +118,7 @@ func (dbt *mongoDBTool) GetUser(ctx god.Ctx, opts ...any) (*core.User, error) {
 		return nil, errs.DBErr{mongo.ErrNoDocuments, fmt.Sprintf("error finding user: %v", err)}
 	}
 
-	var user core.User
+	var user models.User
 	if err := result.Decode(&user); err != nil {
 		return nil, errs.DBErr{err, fmt.Sprintf("error decoding user: %v", err)}
 	}
@@ -125,7 +126,7 @@ func (dbt *mongoDBTool) GetUser(ctx god.Ctx, opts ...any) (*core.User, error) {
 	return &user, nil
 }
 
-func (dbt *mongoDBTool) GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (core.Users, int, error) {
+func (dbt *mongoDBTool) GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error) {
 	filter := &bson.D{}
 	for _, opt := range opts {
 		opt.(core.MongoDBOpt)(filter)
@@ -144,7 +145,7 @@ func (dbt *mongoDBTool) GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (
 		return nil, 0, errs.DBErr{mongo.ErrNoDocuments, fmt.Sprintf("error finding users: %v", err)}
 	}
 
-	var users core.Users
+	var users models.Users
 	if err := result.Decode(&users); err != nil {
 		return nil, 0, errs.DBErr{err, fmt.Sprintf("error decoding users: %v", err)}
 	}

@@ -21,7 +21,7 @@ import (
 // We use zap as our Logger. It's fast and easy to use.
 // We don't even need to wrap it in a struct, we just use it globally on the zap pkg.
 
-const LogsTimeLayout = "02/01/06 15:04:05"
+var LogsTimeLayout = "02/01/06 15:04:05"
 
 // Replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
@@ -68,6 +68,17 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 
 		zap.L().Info("\n")
 	})
+}
+
+// Prefix used when Infof or Infoln are called.
+var InfoPrefix = AppEmoji + " " + AppAlias + " | "
+
+func Infof(s string, args ...any) {
+	zap.S().Infof(InfoPrefix+s, args...)
+}
+
+func Infoln(s string) {
+	zap.S().Infoln("\n" + InfoPrefix + s + "\n")
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

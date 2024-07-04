@@ -25,7 +25,7 @@ type middlewareFunc func(http.Handler) http.Handler
 // Returns the middleware to be wrapped around the HTTP Gateway's Mux
 func getHTTPMiddlewareChain() middlewareFunc {
 	return func(handler http.Handler) http.Handler {
-		return customRW(
+		return addCustomRespWriter(
 			handleCORS(
 				setResponseHeaders(
 					core.LogHTTPRequest(handler),
@@ -36,7 +36,7 @@ func getHTTPMiddlewareChain() middlewareFunc {
 }
 
 // Replaces the default ResponseWriter with our CustomResponseWriter
-var customRW middlewareFunc = func(handler http.Handler) http.Handler {
+var addCustomRespWriter middlewareFunc = func(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(&core.CustomResponseWriter{rw, http.StatusOK}, req)
 	})
@@ -69,7 +69,7 @@ var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler 
 			rw.Header().Set(key, value)
 		}
 		handler.ServeHTTP(rw, req)
-		rw.Header().Del(grpcHeader)
+		deleteGRPCHeader(rw)
 	})
 }
 
@@ -80,7 +80,7 @@ var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler 
 // Returns our ServeMuxOptions.
 // ServeMuxOptions are applied to the HTTP Gateway's Mux on creation.
 // For now there's only an error handler.
-func getHTTPServeMuxOptions() []runtime.ServeMuxOption {
+func getHTTPMuxOpts() []runtime.ServeMuxOption {
 	return []runtime.ServeMuxOption{
 		runtime.WithErrorHandler(handleHTTPError),
 		runtime.WithForwardResponseOption(func(_ god.Ctx, rw http.ResponseWriter, _ protoreflect.ProtoMessage) error {
@@ -90,25 +90,24 @@ func getHTTPServeMuxOptions() []runtime.ServeMuxOption {
 	}
 }
 
+func handleHTTPError(_ god.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
+	grpcStatus := status.Convert(err)
+	httpStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
+	httpRespBody := grpcStatus.Message()
+
+	finalizeErrorResponse(rw, httpStatus, &httpRespBody)
+
+	deleteGRPCHeader(rw)
+	rw.WriteHeader(httpStatus)
+	rw.Write([]byte(httpRespBody))
+}
+
 func deleteGRPCHeader(rw http.ResponseWriter) {
 	rw.Header().Del(grpcHeader)
 }
 
-func handleHTTPError(_ god.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw http.ResponseWriter, _ *http.Request, err error) {
-	grpcStatus := status.Convert(err)
-
-	httpRespStatus := runtime.HTTPStatusFromCode(grpcStatus.Code())
-	httpRespBody := grpcStatus.Message()
-
-	modifyAndFormatErrorResponse(rw, httpRespStatus, &httpRespBody)
-
-	rw.Header().Del(grpcHeader)
-	rw.WriteHeader(httpRespStatus)
-	rw.Write([]byte(httpRespBody))
-}
-
 // Modifies the HTTP Error response body and headers based on the HTTP Status.
-func modifyAndFormatErrorResponse(rw http.ResponseWriter, status int, body *string) {
+func finalizeErrorResponse(rw http.ResponseWriter, status int, body *string) {
 	errMsg := *body
 
 	switch status {
@@ -149,8 +148,6 @@ func modifyAndFormatErrorResponse(rw http.ResponseWriter, status int, body *stri
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-const grpcHeader = "Grpc-Metadata-Content-Type"
-
 var (
 	defaultHeaders = map[string]string{
 		"Content-Type":              "application/json",
@@ -166,4 +163,7 @@ var (
 		"Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
 		"Access-Control-Allow-Headers": "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
 	}
+
+	// Deleted in HTTP Response
+	grpcHeader = "Grpc-Metadata-Content-Type"
 )

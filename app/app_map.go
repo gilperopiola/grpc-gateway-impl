@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
@@ -25,7 +26,7 @@ var (
 )
 
 // -> DB Models.
-var _ = core.AllModels
+var _ = models.AllDBModels
 
 var (
 	// -> Routes and Auth.
@@ -33,13 +34,13 @@ var (
 	_ = core.AuthForRoute("with the route name you get the auth required for it")
 	_ = core.CanAccessRoute("route", "user_id", "role", "request")
 
-	_ = core.RouteAuthPublic
-	_ = core.RouteAuthUser
-	_ = core.RouteAuthSelf
-	_ = core.RouteAuthAdmin
+	_ = models.RouteAuthPublic
+	_ = models.RouteAuthUser
+	_ = models.RouteAuthSelf
+	_ = models.RouteAuthAdmin
 
-	_ = core.DefaultRole
-	_ = core.AdminRole
+	_ = models.DefaultRole
+	_ = models.AdminRole
 )
 
 var (

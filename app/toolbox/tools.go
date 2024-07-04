@@ -19,6 +19,7 @@ type Toolbox struct {
 	core.TLSTool           // -> Holds and retrieves data for TLS communication.
 	core.CtxManager        // -> Manages context.
 	core.FileManager       // -> Creates folders and files.
+	core.HealthChecker     // -> Checks health of own service.
 	core.ModelConverter    // -> Converts between models and PBs.
 	core.PwdHasher         // -> Hashes and compares passwords.
 	core.RateLimiter       // -> Limits rate of requests.
@@ -29,8 +30,8 @@ type Toolbox struct {
 	core.TokenValidator    // -> Validates JWT Tokens.
 }
 
-func Setup(cfg *core.Config) core.Toolbox {
-	toolbox := &Toolbox{}
+func Setup(cfg *core.Config, serviceFn ServiceFn) *Toolbox {
+	toolbox := Toolbox{}
 
 	toolbox.Retrier = NewRetrier(&cfg.RetrierCfg)
 	toolbox.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
@@ -42,6 +43,7 @@ func Setup(cfg *core.Config) core.Toolbox {
 
 	toolbox.CtxManager = NewCtxManager()
 	toolbox.FileManager = NewFileManager("etc/data/")
+	toolbox.HealthChecker = NewHealthChecker(serviceFn)
 
 	toolbox.ModelConverter = NewModelConverter()
 	toolbox.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
@@ -54,5 +56,5 @@ func Setup(cfg *core.Config) core.Toolbox {
 
 	toolbox.ShutdownJanitor = NewShutdownJanitor()
 
-	return toolbox
+	return &toolbox
 }

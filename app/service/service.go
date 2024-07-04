@@ -22,7 +22,7 @@ type Service struct {
 	pbs.UnimplementedGroupsServiceServer
 }
 
-func Setup(toolbox core.Toolbox) core.Service {
+func Setup(toolbox core.Toolbox) *Service {
 	return &Service{
 		Toolbox: toolbox,
 	}

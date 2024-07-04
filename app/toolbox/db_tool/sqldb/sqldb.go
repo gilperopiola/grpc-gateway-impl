@@ -7,6 +7,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -53,11 +54,11 @@ func NewSQLDB(cfg *core.DBCfg, retrier core.Retrier) core.SQLDB {
 	gormDB := sqlDBAny.(*sqlDB)
 
 	if cfg.EraseAllData {
-		gormDB.Unscoped().Delete(core.AllModels, nil)
+		gormDB.Unscoped().Delete(models.AllDBModels, nil)
 	}
 
 	if cfg.MigrateModels {
-		gormDB.AutoMigrate(core.AllModels...)
+		gormDB.AutoMigrate(models.AllDBModels...)
 	}
 
 	if cfg.InsertAdmin && cfg.InsertAdminPwd != "" {
@@ -131,7 +132,7 @@ func (sdb *sqlDB) FirstOrCreate(out any, where ...any) core.SQLDB {
 }
 
 func (sdb *sqlDB) InsertAdmin(hashedPwd string) {
-	admin := core.User{Username: "admin", Password: hashedPwd, Role: core.AdminRole}
+	admin := models.User{Username: "admin", Password: hashedPwd, Role: models.AdminRole}
 	err := sdb.DB.FirstOrCreate(&admin).Error
 	core.WarnIfErr(err, errs.FailedToInsertDBAdmin)
 }
