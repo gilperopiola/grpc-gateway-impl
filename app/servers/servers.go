@@ -7,11 +7,14 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 )
 
+// I just asked GPT and he said technically this project runs 1 server with 2 protocols.
+// Still naming this 'Servers'.
 type Servers struct {
 	GRPC *grpc.Server
 	HTTP *http.Server
@@ -19,33 +22,32 @@ type Servers struct {
 	checkHealth func() error
 }
 
-func Setup(service core.Service, toolbox core.Toolbox) *Servers {
-	core.Infof(" 🚀 Starting Servers")
+func Setup(services *service.Services, tools core.Tools) *Servers {
+	core.ServerLogf(" 🚀 Starting Servers")
 
 	var (
-		grpcServerOpts   = getGRPCServerOpts(toolbox, core.TLSEnabled)
-		grpcDialOpts     = getGRPCDialOpts(toolbox.GetClientCreds())
+		grpcServerOpts   = getGRPCServerOpts(tools, core.TLSEnabled)
+		grpcDialOpts     = getGRPCDialOpts(tools.GetClientCreds())
 		httpMiddleware   = getHTTPMiddlewareChain()
 		httpServeMuxOpts = getHTTPMuxOpts()
 	)
 
 	return &Servers{
-		GRPC: setupGRPCServer(service, grpcServerOpts),
-		HTTP: setupHTTPGateway(service, httpServeMuxOpts, httpMiddleware, grpcDialOpts),
-
-		checkHealth: toolbox.CheckHealth,
+		GRPC:        setupGRPC(services, grpcServerOpts),
+		HTTP:        setupHTTP(services, httpServeMuxOpts, httpMiddleware, grpcDialOpts...),
+		checkHealth: tools.CheckHealth,
 	}
 }
 
-func setupGRPCServer(service core.Service, serverOpts god.GRPCServerOpts) *grpc.Server {
+func setupGRPC(services *service.Services, serverOpts god.GRPCServerOpts) *grpc.Server {
 	grpcServer := grpc.NewServer(serverOpts...)
-	service.RegisterGRPCServices(grpcServer)
+	services.RegisterGRPCEndpoints(grpcServer)
 	return grpcServer
 }
 
-func setupHTTPGateway(svc core.Service, serveMuxOpts []runtime.ServeMuxOption, mw middlewareFunc, grpcDialOpts god.GRPCDialOpts) *http.Server {
+func setupHTTP(services *service.Services, serveMuxOpts []runtime.ServeMuxOption, mw middlewareFunc, grpcDialOpts ...grpc.DialOption) *http.Server {
 	mux := runtime.NewServeMux(serveMuxOpts...)
-	svc.RegisterHTTPServices(mux, grpcDialOpts)
+	services.RegisterHTTPEndpoints(mux, grpcDialOpts...)
 	return &http.Server{
 		Addr:    core.HTTPPort,
 		Handler: mw(mux),
@@ -59,46 +61,47 @@ func (s *Servers) Run() {
 	runHTTP(s.HTTP)
 
 	go func() {
-		// Check service health after 1 second
 		time.Sleep(time.Second)
-		err := s.checkHealth()
-		core.LogFatalIfErr(err)
-		core.Infoln(" 🚀 All OK!")
+		core.LogFatalIfErr(core.Retry(s.checkHealth, 5))
+		core.ServerLog("Services Healthy! 🌈\n")
 	}()
 }
 
 func runGRPC(grpcServer *grpc.Server) {
-	core.Infof(" 🚀 GRPC OK on Port %s", core.GRPCPort)
+	core.ServerLogf(" 🚀 GRPC OK | Port %s", core.GRPCPort)
 
-	lis, err := net.Listen("tcp", core.GRPCPort)
+	listenOnTCP := func() (any, error) { return net.Listen("tcp", core.GRPCPort) }
+	result, err := core.FallbackAndRetry(listenOnTCP, func() {}, 5)
 	core.LogFatalIfErr(err)
 
-	logServiceInfo(grpcServer)
-
-	go core.LogFatalIfErr(grpcServer.Serve(lis))
+	lis := result.(net.Listener)
+	go func(lis net.Listener) {
+		logServicesAndEndpoints(grpcServer)
+		core.LogFatalIfErr(grpcServer.Serve(lis))
+	}(lis)
 }
 
 func runHTTP(httpGateway *http.Server) {
-	core.Infof(" 🚀 HTTP OK on Port %s", core.HTTPPort)
-	go core.LogFatalIfErr(httpGateway.ListenAndServe())
+	core.ServerLogf(" 🚀 HTTP OK | Port %s", core.HTTPPort)
+	go core.LogFatalIfErr(core.Retry(httpGateway.ListenAndServe, 5))
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func logServiceInfo(grpcServer *grpc.Server) {
+func logServicesAndEndpoints(grpcServer *grpc.Server) {
 	for _, svcInfo := range grpcServer.GetServiceInfo() {
-		core.Infof(" 🐸 Service Loaded: %s", svcInfo.Metadata)
+		core.ServerLogf(" 🐸 Service Loaded: %s", svcInfo.Metadata)
 		for _, svcMethod := range svcInfo.Methods {
-			core.Infof(" \t - Endpoint Loaded: %s", svcMethod.Name)
+			core.ServerLogf(" \t - Endpoint Loaded: %s", svcMethod.Name)
 		}
 	}
 }
 
 func (s *Servers) Shutdown() {
-	core.Infof(" 🛑 - Shutting down GRPC")
+	core.LogImportant("Shutting down GRPC")
 	s.GRPC.GracefulStop()
 
-	core.Infof(" 🛑 - Shutting down HTTP")
+	core.LogImportant("Shutting down HTTP")
 	ctx, cancelCtx := god.NewCtxWithTimeout(5 * time.Second)
 	defer cancelCtx()
 	core.LogFatalIfErr(s.HTTP.Shutdown(ctx))

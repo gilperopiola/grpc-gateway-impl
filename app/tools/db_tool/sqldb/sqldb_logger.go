@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/gilperopiola/god"
@@ -14,15 +15,15 @@ import (
 
 var _ gormLogger.Interface = (*sqlDBLogger)(nil)
 
-// sqlDBLogger is an adapter for gormLogger.Interface. It wraps our *zap.Logger.
+// Adapter for the gormLogger.Interface.
+// It wraps our *zap.Logger.
 type sqlDBLogger struct {
 	*zap.Logger
 	gormLogger.LogLevel
 }
 
-// Returns a new instance of *sqlLogger.
-// We set the Log Level according to the configuration.
-func newSQLDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
+// Returns a new instance of *sqlDBLogger with the given log level.
+func newSqlDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
 	return &sqlDBLogger{
 		zapLogger,
 		gormLogger.LogLevel(level),
@@ -31,30 +32,36 @@ func newSQLDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (l *sqlDBLogger) Info(_ god.Ctx, msg string, data ...interface{}) {
+func (l *sqlDBLogger) Info(_ god.Ctx, msg string, data ...any) {
 	l.InfoWarnOrError(l.LogLevel, gormLogger.Info, "ℹ️ "+msg, zap.S().Infof, data...)
 }
 
-func (l *sqlDBLogger) Warn(_ god.Ctx, msg string, data ...interface{}) {
+func (l *sqlDBLogger) Warn(_ god.Ctx, msg string, data ...any) {
 	l.InfoWarnOrError(l.LogLevel, gormLogger.Warn, "🚨 "+msg, zap.S().Warnf, data...)
 }
 
-func (l *sqlDBLogger) Error(_ god.Ctx, msg string, data ...interface{}) {
+func (l *sqlDBLogger) Error(_ god.Ctx, msg string, data ...any) {
+
+	// Gorm tries to log this if it fails to connect to the DB,
+	// however we handle it ourselves when we retry the connection, so skip.
+	if strings.HasPrefix(msg, "failed to initialize database") {
+		return
+	}
+
 	l.InfoWarnOrError(l.LogLevel, gormLogger.Error, "🛑 "+msg, zap.S().Errorf, data...)
 }
 
 // -> This gets called after every query. -> It logs the query, the time it took to execute, and the number of rows affected.
 // -> If the log level is set to Silent, it doesn't log anything. -> If the log level is set to Info, it logs everything.
 // -> If the log level is set to Warn, it logs only slow queries. -> If the log level is set to Error, it logs only errors.
-// -> If the query returns an error, it logs the error. -> I'm not 100% sure about this :)
+// -> If the query returns an error, it logs the error (I'm not 100% sure about this :))
 func (l *sqlDBLogger) Trace(_ god.Ctx, begin time.Time, fnCall func() (string, int64), err error) {
+	query, rows := fnCall() // Execute query
+	elapsed := time.Since(begin)
+
 	if l.LogLevel <= gormLogger.Silent {
 		return
 	}
-
-	elapsed := time.Since(begin)
-	query, rows := fnCall() // Execute query
-
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		l.LogSQLError(err, query, rows, elapsed)
 		return
@@ -66,7 +73,7 @@ func (l *sqlDBLogger) Trace(_ god.Ctx, begin time.Time, fnCall func() (string, i
 func (l *sqlDBLogger) LogSQLError(err error, query string, rows int64, elapsed time.Duration) {
 	var netError *net.OpError
 	if errors.As(err, &netError) {
-		query = "DB Network Error" // We don't want to expose sensitive information.
+		query = "DB Network Error" // Don't expose sensitive information.
 	}
 	zap.S().Errorf("🛑 "+newQueryInfoLog(elapsed.Nanoseconds(), rows, query), zap.Error(err))
 }

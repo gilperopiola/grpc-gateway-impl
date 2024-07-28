@@ -3,11 +3,11 @@ package servers
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/status"
@@ -38,14 +38,14 @@ func getHTTPMiddlewareChain() middlewareFunc {
 // Replaces the default ResponseWriter with our CustomResponseWriter
 var addCustomRespWriter middlewareFunc = func(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		handler.ServeHTTP(&core.CustomResponseWriter{rw, http.StatusOK}, req)
+		handler.ServeHTTP(tools.NewHTTPRespWriter(rw), req)
 	})
 }
 
 // Adds CORS headers and handles preflight requests
 var handleCORS middlewareFunc = func(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		core.LogIfDebug("CORS " + req.Method + " from " + req.RemoteAddr)
+		core.LogDebug("CORS " + req.Method + " from " + req.RemoteAddr)
 
 		for key, value := range corsHeaders {
 			rw.Header().Set(key, value)
@@ -71,6 +71,10 @@ var setResponseHeaders middlewareFunc = func(handler http.Handler) http.Handler 
 		handler.ServeHTTP(rw, req)
 		deleteGRPCHeader(rw)
 	})
+}
+
+func deleteGRPCHeader(rw http.ResponseWriter) {
+	rw.Header().Del(grpcHeader)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -102,8 +106,16 @@ func handleHTTPError(_ god.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw htt
 	rw.Write([]byte(httpRespBody))
 }
 
-func deleteGRPCHeader(rw http.ResponseWriter) {
-	rw.Header().Del(grpcHeader)
+type StringSetter interface {
+	Set(string)
+}
+
+type stringSetter struct {
+	s string
+}
+
+func (ss *stringSetter) Set(s string) {
+	ss.s = s
 }
 
 // Modifies the HTTP Error response body and headers based on the HTTP Status.
@@ -126,7 +138,7 @@ func finalizeErrorResponse(rw http.ResponseWriter, status int, body *string) {
 		if errMsg == `{"error": "Not Found"}` {
 			errMsg = errs.HTTPRouteNotFound
 		}
-		// If we get a not-found from the service, we return the message as is.
+		// If we get a not-found BUT its from the service, we return the message as is.
 
 	case http.StatusConflict:
 		errMsg = errs.HTTPConflict
@@ -140,7 +152,7 @@ func finalizeErrorResponse(rw http.ResponseWriter, status int, body *string) {
 		errMsg = errs.HTTPUnavailable
 
 	default:
-		core.LogWeirdBehaviour("HTTP Error Status: " + strconv.Itoa(status))
+		core.LogWeirdBehaviour(fmt.Sprintf("HTTP Error %d (unhandled): %s", status, errMsg))
 	}
 
 	*body = fmt.Sprintf(`{"error": "%s"}`, errMsg)

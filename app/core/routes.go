@@ -13,23 +13,29 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// All settings we need on a per-route basis lives here. For now it's just the Auth type.
-type Route struct {
-	Auth models.RouteAuth
-}
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*              - Routes -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// In GRPC, 'method' means the entire 'endpoint' name. In HTTP it's just GET, POST, etc.
-//
-// -> We're calling both of them 'routes'.
-// -> Each route is just the last part of the corresponding GRPC method.
-// -> So '/pbs.Service/Login' becomes 'Login' and that is the route for the Login endpoint.
-// -> And HTTP calls GRPC, so we're covered.
+// As we use grpc-gateway, for each endpoint we have 2 versions: GRPC and HTTP.
 
-// T0D0 generate this based on the .proto file.
+// Routes are the representation of a single endpoint, and it holds all the things that
+// both versions of said endpoint should share.
+//
+// This is the place to code behaviour that operates based on each route, like the auth level.
+// We could have rate-limiting per route, a pool of connections, etc.
+type Route struct {
+	Auth models.RouteAuth
+}
+
+// And this is the map of all the routes in our app.
+//
+// So, when we talk about a route, we usually talk about the key string in this map.
+// Each one of these keys correspond to the last part of each GRPC method, the part after the last '/'.
+// For example, the route for the method /pbs.Svc/Login is "Login".
+//
+// This needs manual updating when the .proto routes change. TODO - Generate this based on the proto.
+// We used to have a way of mapping the HTTP route to this, but I don't know why I scraped it. Think I want it now :(
 var Routes = map[string]Route{
 
 	// Auth Service
@@ -49,6 +55,9 @@ var Routes = map[string]Route{
 	"InviteToGroup":     {models.RouteAuthSelf},
 	"AnswerGroupInvite": {models.RouteAuthSelf},
 }
+
+// In GRPC, method means the entire route name.
+// In HTTP it's just GET, POST, etc.
 
 func AuthForRoute(routeName string) models.RouteAuth {
 	if route, ok := Routes[routeName]; ok {

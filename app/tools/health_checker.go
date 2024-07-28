@@ -1,20 +1,19 @@
-package toolbox
+package tools
 
 import (
 	"context"
 	"errors"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
 
 var _ core.HealthChecker = (*healthChecker)(nil)
 
 type healthChecker struct {
-	healthCheckFn ServiceFn
+	healthCheckFn ServiceFunc
 }
 
-func NewHealthChecker(serviceFn ServiceFn) *healthChecker {
+func NewHealthChecker(serviceFn ServiceFunc) *healthChecker {
 	return &healthChecker{serviceFn}
 }
 
@@ -28,5 +27,3 @@ func (hc *healthChecker) CheckHealth() error {
 	}
 	return nil
 }
-
-type ServiceFn func(context.Context, *pbs.AnswerGroupInviteRequest) (*pbs.AnswerGroupInviteResponse, error)

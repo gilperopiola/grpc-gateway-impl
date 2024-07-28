@@ -2,26 +2,27 @@ package core
 
 import (
 	"crypto/x509"
-	"database/sql"
+	"net/http"
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"gorm.io/gorm"
 )
 
-// When a GRPC/HTTP Request arrives, our Servers pass it through Interceptors, and then through the Service.
-// So: App -> Servers -> Interceptors -> Service.
+// When a GRPC Request arrives, our GRPC Server sends it through GRPC Interceptors, and then through the Service.
+// So: GRPC Server -> Interceptors -> Service.
 //
-// Our Service, assisted by our set of Tools (TokenGenerator, PwdHasher, etc), performs Actions (like GetUser or GenerateToken).
-// These Actions sometimes let us communicate with external things, like a Database or the File System.
+// Our Service, assisted by our Tools or Tools (TokenGenerator, PwdHasher, etc), performs Actions
+// (like GetUser or GenerateToken). These Actions sometimes let us communicate with external things,
+// like a Database or the File System.
 //
 // To sum it all up:
-// * App -> Servers -> Interceptors -> Service -> Actions -> External Resources (SQL Database, File System, etc).
+// * GRPC Server -> Interceptors -> Service -> Tools -> External Resources (SQL Database, File System, etc).
+//
+// Oh, and there's also an HTTP Server, but it just adds some middleware and then sends the request through GRPC.
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - Interfaces -           */
@@ -29,51 +30,46 @@ import (
 
 /* -~-~-~-~- Main Interfaces -~-~-~-~- */
 
-type Servers interface {
-	Run()
-	Shutdown()
-}
-
-// This interface is kind of our entire API. It has a method for each GRPC/HTTP endpoint we have.
-type Service interface {
-	AuthSvc
-	UsersSvc
-	GroupsSvc
-
-	RegisterGRPCServices(god.GRPCSvcRegistrar)
-	RegisterHTTPServices(*runtime.ServeMux, god.GRPCDialOpts)
-}
-
-// Used to kinda unify our SQL and Mongo DB Interfaces. Also lets us get the inner DB object which may be useful.
-type DB interface {
-	GetInnerDB() any
-}
+// These are our different Services, as defined on the .proto files.
+type (
+	AuthSvc   = pbs.AuthServiceServer
+	UsersSvc  = pbs.UsersServiceServer
+	GroupsSvc = pbs.GroupsServiceServer
+)
 
 // With this you can avoid importing the tools pkg.
 // Remember to add new tools on the app.go file as well.
-type Toolbox interface {
-	APIs
+type Tools interface {
+	ExternalAPIs
 	DBTool
 	TLSTool
-	CtxManager
+	CtxTool
 	FileManager
 	HealthChecker
 	ModelConverter
 	TokenGenerator
 	TokenValidator
+	RequestsPaginator
 	RequestsValidator
 	ShutdownJanitor
 	RateLimiter
 	PwdHasher
-	Retrier
 }
 
-/* -~-~-~-~- Toolbox: Tools -~-~-~-~- */
+// Unifies our SQL and Mongo interfaces.
+type AnyDB interface {
+	GetInnerDB() any // The actual implementations return *gorm.DB or *mongo.Client
+}
+
+/* -~-~-~-~- Tools: Tools -~-~-~-~- */
+
+// These are the interfaces to all of our tools.
+// Note that each concrete tool lives on the tools pkg.
 
 type (
-	CtxManager interface {
+	CtxTool interface {
 		AddUserInfo(ctx god.Ctx, userID, username string) god.Ctx
-		ExtractMetadata(ctx god.Ctx, key string) (string, error)
+		GetMetadata(ctx god.Ctx, key string) (string, error)
 	}
 
 	FileManager interface {
@@ -108,12 +104,16 @@ type (
 		Cleanup()
 	}
 
-	RequestsValidator interface {
-		ValidateGRPC(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+	// Used to obtain page and pageSize from paginated requests and also to compose
+	// the *pbs.PaginationInfo struct for the corresponding paginated response.
+	// Designed to work with GRPC, usually on the 'GetMany' methods.
+	RequestsPaginator interface {
+		PaginatedRequest(req PaginatedRequest) (page int, pageSize int)
+		PaginatedResponse(currentPage, pageSize, totalRecords int) *pbs.PaginationInfo
 	}
 
-	Retrier interface {
-		TryToConnectToDB(connectToDB func() (any, error), execOnFailure func()) (any, error)
+	RequestsValidator interface {
+		ValidateGRPC(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
 	}
 
 	TLSTool interface {
@@ -131,7 +131,7 @@ type (
 	}
 
 	DBTool interface {
-		GetDB() DB
+		GetDB() AnyDB
 		CloseDB()
 		IsNotFound(err error) bool
 
@@ -147,11 +147,6 @@ type (
 )
 
 type (
-	APIs interface {
-		InternalAPIs
-		ExternalAPIs
-	}
-
 	InternalAPIs interface{}
 
 	ExternalAPIs interface {
@@ -163,59 +158,96 @@ type (
 	}
 )
 
-/* -~-~-~ SQL DB ~-~-~- */
+// This isn't used like the other Tools, as it's instantiated per request.
+// The implementation lives on the tools pkg.
+// Used to wrap the http.ResponseWriter and then Type Assert it to this to get the extra methods.
+type HTTPRespWriter interface {
+	http.ResponseWriter
+
+	GetWrittenBody() []byte
+	GetWrittenStatus() int
+}
+
+// This isn't a tool, but a type used by the RequestsPaginator tool.
+// The Paginator only works on protobuf autogenerated structs that have GetPage() and GetPageSize() methods.
+type PaginatedRequest interface {
+	GetPage() int32
+	GetPageSize() int32
+
+	// A .proto example would be a message that contained these 2 fields:
+	//	optional int32 page = 1 		[json_name = "page"];
+	//	optional int32 page_size = 3 	[json_name = "page_size"];
+}
+
+/* -~-~-~- SQL DB ~-~-~- */
 
 // Low-level API for our SQL Database.
 // It's an adapter for Gorm. Concrete types sql.sqlAdapter and mocks.Gorm implement this.
-type SQLDB interface {
-	DB
-	AddError(err error) error
-	AutoMigrate(dst ...any) error
-	Association(column string) *gorm.Association
-	Close()
-	Count(value *int64) SQLDB
-	Create(value any) SQLDB
-	Debug() SQLDB
-	Delete(value any, where ...any) SQLDB
-	Error() error
-	Find(out any, where ...any) SQLDB
-	First(out any, where ...any) SQLDB
-	FirstOrCreate(out any, where ...any) SQLDB
-	Group(query string) SQLDB
-	InsertAdmin(hashedPwd string)
-	Joins(query string, args ...any) SQLDB
-	Limit(value int) SQLDB
-	Model(value any) SQLDB
-	Offset(value int) SQLDB
-	Or(query any, args ...any) SQLDB
-	Order(value string) SQLDB
-	Pluck(column string, value any) SQLDB
-	Raw(sql string, values ...any) SQLDB
-	Rows() (*sql.Rows, error)
-	RowsAffected() int64
-	Row() *sql.Row
-	Save(value any) SQLDB
-	Scan(dest any) SQLDB
-	Scopes(funcs ...func(SQLDB) SQLDB) SQLDB
-	WithContext(ctx god.Ctx) SQLDB
-	Where(query any, args ...any) SQLDB
-}
+type (
+	SqlDB interface {
+		AnyDB
+		AddError(err error) error
+		AutoMigrate(dst ...any) error
+		Association(column string) SqlDBAssociation
+		Close()
+		Count(value *int64) SqlDB
+		Create(value any) SqlDB
+		Debug() SqlDB
+		Delete(value any, where ...any) SqlDB
+		Error() error
+		Find(out any, where ...any) SqlDB
+		First(out any, where ...any) SqlDB
+		FirstOrCreate(out any, where ...any) SqlDB
+		Group(query string) SqlDB
+		InsertAdmin(hashedPwd string)
+		Joins(query string, args ...any) SqlDB
+		Limit(value int) SqlDB
+		Model(value any) SqlDB
+		Offset(value int) SqlDB
+		Or(query any, args ...any) SqlDB
+		Order(value string) SqlDB
+		Pluck(column string, value any) SqlDB
+		Raw(sql string, values ...any) SqlDB
+		Row() SqlRow
+		Rows() (SqlRows, error)
+		RowsAffected() int64
+		Save(value any) SqlDB
+		Scan(dest any) SqlDB
+		Scopes(funcs ...func(SqlDB) SqlDB) SqlDB
+		WithContext(ctx god.Ctx) SqlDB
+		Where(query any, args ...any) SqlDB
+	}
 
-type SQLDBOpt func(SQLDB) // Variadic options
+	SqlDBOpt func(SqlDB) // Optional functions to apply to a query
+)
 
-/* -~-~-~ Mongo DB ~-~-~- */
+// Used to avoid importing the gorm and sql pkgs: *gorm.Association, *sql.Row, *sql.Rows.
+type (
+	SqlDBAssociation interface {
+		Append(values ...interface{}) error
+	}
+	SqlRow interface {
+		Scan(dest ...any) error
+	}
+	SqlRows interface {
+		Next() bool
+		Scan(dest ...any) error
+		Close() error
+	}
+)
+
+/* -~-~-~- Mongo DB ~-~-~- */
 
 // Low-level API for our Mongo Database.
 type MongoDB interface {
-	DB
+	AnyDB
 	Close(ctx god.Ctx)
-	InsertOne(ctx god.Ctx, colName string, document any) (*mongo.InsertOneResult, error)
+
+	Count(ctx god.Ctx, colName string, filter any) (int64, error)
 	Find(ctx god.Ctx, colName string, filter any, limit, offset int) (*mongo.Cursor, error)
 	FindOne(ctx god.Ctx, colName string, filter any) *mongo.SingleResult
+	InsertOne(ctx god.Ctx, colName string, document any) (*mongo.InsertOneResult, error)
 	DeleteOne(ctx god.Ctx, colName string, filter any) (*mongo.DeleteResult, error)
-	Count(ctx god.Ctx, colName string, filter any) (int64, error)
 }
 
-type MongoDBOpt func(*bson.D) // Variadic options
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+type MongoDBOpt func(*bson.D) // Optional functions to apply to a query

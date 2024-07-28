@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/toolbox"
+	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSetupTools(t *testing.T) {
 	cfg := core.LoadConfig()
-	toolbox := toolbox.Setup(cfg)
-	assert.NotNil(t, toolbox)
+	tools := tools.Setup(cfg, nil)
+	assert.NotNil(t, tools)
 }

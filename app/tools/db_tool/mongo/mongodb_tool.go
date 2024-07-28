@@ -36,7 +36,7 @@ func SetupDBTool(db core.MongoDB) *mongoDBTool {
 	return &mongoDBTool{db}
 }
 
-func (dbt *mongoDBTool) GetDB() core.DB {
+func (dbt *mongoDBTool) GetDB() core.AnyDB {
 	return dbt.DB
 }
 

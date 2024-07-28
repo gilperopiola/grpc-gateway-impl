@@ -7,44 +7,50 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
-	"github.com/gilperopiola/grpc-gateway-impl/app/toolbox"
+	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
 )
 
-// -> Our main App.
+// This file has some of the interfaces and structs that are used in the app.
+// It doesn't do anything.
+
+/* -~-~-~-~ App Map ~-~-~-~- */
+
 var _ App
 
-var (
-	// -> The components of our App.
-	_ core.Config
-	_ core.Servers
-	_ core.Service
-	_ core.Toolbox
+// Configuration
+var _ core.Config
 
-	_ servers.Servers
-	_ service.Service
-	_ toolbox.Toolbox
-)
+// Servers
+var _ servers.Servers
 
-// -> DB Models.
-var _ = models.AllDBModels
+// Services
+var _ service.Services
+
+// Tools
+var _ core.Tools
+var _ tools.Tools
 
 var (
-	// -> Routes and Auth.
+	// Routes
 	_ = core.Routes
-	_ = core.AuthForRoute("with the route name you get the auth required for it")
-	_ = core.CanAccessRoute("route", "user_id", "role", "request")
 
+	// Auth-Level required per route
 	_ = models.RouteAuthPublic
 	_ = models.RouteAuthUser
 	_ = models.RouteAuthSelf
 	_ = models.RouteAuthAdmin
 
+	// Roles
 	_ = models.DefaultRole
 	_ = models.AdminRole
 )
 
+// -> SQL Database Models.
+// Used to migrate the DB.
+var _ = models.AllDBModels
+
+// -> Each one of our Services as defined in the proto.
 var (
-	// -> Each Service.
 	_ core.AuthSvc
 	_ core.UsersSvc
 	_ core.GroupsSvc
@@ -54,25 +60,25 @@ var (
 	_ pbs.UnimplementedGroupsServiceServer
 )
 
+// -> Tools / Tools Interfaces.
+// These are all of the Actions that any Tools holder can perform.
+// Concrete implementations are in the tools pkg.
 var (
-	// -> Tool Interfaces.
-	// Concrete implementations are in the toolbox pkg.
-	_ core.APIs
-	_ core.DB
+	_ core.ExternalAPIs
+	_ core.AnyDB
 	_ core.DBTool
 	_ core.TLSTool
-	_ core.CtxManager
+	_ core.CtxTool
 	_ core.FileManager
 	_ core.ModelConverter
 	_ core.PwdHasher
 	_ core.RateLimiter
-	_ core.Retrier
 	_ core.RequestsValidator
 	_ core.ShutdownJanitor
 	_ core.TokenGenerator
 	_ core.TokenValidator
 )
 
-// -> DB Layer and Service Layer Errors.
+// DB Layer and Service Layer Errors.
 var _ errs.DBErr
 var _ errs.ServiceErr

@@ -1,4 +1,4 @@
-package toolbox
+package tools
 
 import (
 	"errors"
@@ -57,11 +57,11 @@ func validationErrToGRPC(err error) error {
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
-		core.LogUnexpectedErr(runtimeErr)
+		core.LogUnexpected(runtimeErr)
 		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequestRuntime, runtimeErr))
 	}
 
-	core.LogUnexpectedErr(err)
+	core.LogUnexpected(err)
 	return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequestUnexpected, err))
 }
 

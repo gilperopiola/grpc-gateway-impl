@@ -14,7 +14,7 @@ import (
 // -> Just call them like core.Whatever from anywhere and you're good to go.
 
 var AppName = "grpc-gateway-impl"
-var AppAlias = "GGWI"
+var AppAlias = "GrpcG8Way"
 var AppEmoji = "📱"
 
 var Env = "local"
@@ -71,6 +71,7 @@ func loadDBConfig() DBCfg {
 		Port:           envVar("DB_PORT", "3306"),
 		Schema:         envVar("DB_SCHEMA", "grpc-gateway-impl"),
 		Params:         envVar("DB_PARAMS", "?charset=utf8&parseTime=True&loc=Local"),
+		Retries:        envVar("DB_RETRIES", 7),
 		EraseAllData:   envVar("DB_ERASE_ALL_DATA", false),
 		MigrateModels:  envVar("DB_MIGRATE_MODELS", true),
 		InsertAdmin:    envVar("DB_INSERT_ADMIN", true),
@@ -106,7 +107,7 @@ func loadPwdHasherConfig() PwdHasherCfg {
 }
 
 func loadRetrierConfig() RetrierCfg {
-	return RetrierCfg{DBConnRetries: envVar("RETRIES_DB_CONN", 7)}
+	return RetrierCfg{}
 }
 
 func loadRateLimiterConfig() RLimiterCfg {
@@ -126,6 +127,7 @@ type (
 		Port     string
 		Schema   string
 		Params   string
+		Retries  int
 
 		EraseAllData   bool
 		MigrateModels  bool
@@ -151,7 +153,6 @@ type (
 		Salt string
 	}
 	RetrierCfg struct {
-		DBConnRetries int
 	}
 	RLimiterCfg struct {
 		MaxTokens       int // Max tokens the bucket can hold

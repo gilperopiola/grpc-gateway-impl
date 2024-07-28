@@ -20,11 +20,11 @@ const (
 /*      - High Level SQL Options -     */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func WithID(id int32) core.SQLDBOpt {
+func WithID(id int32) core.SqlDBOpt {
 	return WithCondition(Where, "id", strconv.Itoa(int(id)))
 }
 
-func WithUsername(username string) core.SQLDBOpt {
+func WithUsername(username string) core.SqlDBOpt {
 	return WithCondition(Where, "username", username)
 }
 
@@ -32,13 +32,13 @@ func WithUsername(username string) core.SQLDBOpt {
 /*      - Low Level SQL Options -      */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func WithCondition(operation Operation, field, value string) core.SQLDBOpt {
+func WithCondition(operation Operation, field, value string) core.SqlDBOpt {
 	if field == "" {
 		core.LogWeirdBehaviour("Empty field in SQL condition -> value = " + value)
-		return func(db core.SQLDB) {} // No-op
+		return func(db core.SqlDB) {} // No-op
 	}
 
-	return func(db core.SQLDB) {
+	return func(db core.SqlDB) {
 		if operation == Where || operation == And { // Where / And
 			db.Where(fmt.Sprintf("%s = ?", field), value)
 			return

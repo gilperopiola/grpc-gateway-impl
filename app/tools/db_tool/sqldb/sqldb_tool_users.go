@@ -39,7 +39,7 @@ func (sdbt *sqlDBTool) GetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 
 	query := sdbt.DB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
-		opt.(core.SQLDBOpt)(query)
+		opt.(core.SqlDBOpt)(query)
 	}
 
 	var user models.User
@@ -54,7 +54,7 @@ func (sdbt *sqlDBTool) GetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 func (sdbt *sqlDBTool) GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error) {
 	query := sdbt.DB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
-		opt.(core.SQLDBOpt)(query)
+		opt.(core.SqlDBOpt)(query)
 	}
 
 	var matchingUsers int64

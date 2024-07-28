@@ -21,14 +21,14 @@ var _ core.DBTool = (*sqlDBTool)(nil)
 // -> DB = Low Level Operations (e.g. Insert, Find, Count)
 
 type sqlDBTool struct {
-	DB core.SQLDB
+	DB core.SqlDB
 }
 
-func NewDBTool(db core.SQLDB) core.DBTool {
+func NewDBTool(db core.SqlDB) core.DBTool {
 	return &sqlDBTool{db}
 }
 
-func (sdbt sqlDBTool) GetDB() core.DB {
+func (sdbt sqlDBTool) GetDB() core.AnyDB {
 	return sdbt.DB
 }
 

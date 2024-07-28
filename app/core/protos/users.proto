@@ -142,15 +142,12 @@ message GetUsersRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetUsersRequest" } };
 
   optional int32 page = 1 [
-    json_name = "page",
-    (buf.validate.field).int32.gt = 0,
+    json_name = "page", (buf.validate.field).int32.gt = 0,
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Page number." default: "1" }
   ];
 
   optional int32 page_size = 3 [
-    json_name = "page_size",
-    (buf.validate.field).int32.gt = 0,
-    (buf.validate.field).int32.lte = 400,
+    json_name = "page_size", (buf.validate.field).int32.gt = 0, (buf.validate.field).int32.lte = 400,
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Users per page." default: "10" }
   ];
 

@@ -1,4 +1,4 @@
-package toolbox
+package tools
 
 import (
 	"time"

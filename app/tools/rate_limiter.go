@@ -1,4 +1,4 @@
-package toolbox
+package tools
 
 import (
 	"errors"
@@ -28,7 +28,7 @@ var _ core.RateLimiter = (*rateLimiter)(nil)
 
 func (rl *rateLimiter) LimitGRPC(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
 	if !rl.Allow() {
-		core.LogUnexpectedErr(errors.New("rate limit exceeded"))
+		core.LogUnexpected(errors.New("rate limit exceeded"))
 		return nil, status.Errorf(codes.ResourceExhausted, errs.RateLimitedMsg)
 	}
 	return handler(ctx, req)

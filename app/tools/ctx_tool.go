@@ -1,4 +1,4 @@
-package toolbox
+package tools
 
 import (
 	"context"
@@ -10,23 +10,23 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type ctxManager struct{}
+type ctxTool struct{}
 
-func NewCtxManager() core.CtxManager {
-	return &ctxManager{}
+func NewCtxTool() core.CtxTool {
+	return &ctxTool{}
 }
 
-var _ core.CtxManager = ctxManager{}
+var _ core.CtxTool = ctxTool{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (cm ctxManager) AddUserInfo(ctx god.Ctx, userID, username string) god.Ctx {
+func (cm ctxTool) AddUserInfo(ctx god.Ctx, userID, username string) god.Ctx {
 	ctx = context.WithValue(ctx, &CtxKeyUserID{}, userID)
 	ctx = context.WithValue(ctx, &CtxKeyUsername{}, username)
 	return ctx
 }
 
-func (cm ctxManager) ExtractMetadata(ctx god.Ctx, key string) (string, error) {
+func (cm ctxTool) GetMetadata(ctx god.Ctx, key string) (string, error) {
 	if val := metadata.ValueFromIncomingContext(ctx, key); len(val) > 0 {
 		return val[0], nil
 	}

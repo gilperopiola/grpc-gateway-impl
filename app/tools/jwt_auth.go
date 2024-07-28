@@ -1,4 +1,4 @@
-package toolbox
+package tools
 
 import (
 	"strconv"
@@ -18,7 +18,9 @@ import (
 var _ core.TokenGenerator = (*jwtGenerator)(nil)
 var _ core.TokenValidator = (*jwtValidator)(nil)
 
-// Our JWT Tokens contain these Claims to identify the user
+// These are the claims that live encrypted on our JWT Tokens.
+// Our jwtValidator passes the token string through the keyFunc,
+// parsing it into this struct right here.
 type jwtClaims struct {
 	jwt.RegisteredClaims
 	Username string      `json:"username"`
@@ -62,7 +64,7 @@ func (g jwtGenerator) GenerateToken(id int, username string, role models.Role) (
 
 	token, err := jwt.NewWithClaims(g.signingMethod, claims).SignedString([]byte(g.secret))
 	if err != nil {
-		core.LogUnexpectedErr(err)
+		core.LogUnexpected(err)
 		return "", status.Errorf(codes.Internal, errs.AuthGeneratingToken, err)
 	}
 
@@ -74,14 +76,14 @@ func (g jwtGenerator) GenerateToken(id int, username string, role models.Role) (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type jwtValidator struct {
-	ctxManager core.CtxManager
-	keyFn      func(*jwt.Token) (any, error)
+	ctxTool core.CtxTool
+	keyFn   func(*jwt.Token) (any, error)
 }
 
-func NewJWTValidator(ctxManager core.CtxManager, secret string) core.TokenValidator {
+func NewJWTValidator(ctxTool core.CtxTool, secret string) core.TokenValidator {
 	return &jwtValidator{
-		ctxManager: ctxManager,
-		keyFn:      defaultKeyFn(secret),
+		ctxTool: ctxTool,
+		keyFn:   defaultKeyFn(secret),
 	}
 }
 
@@ -91,8 +93,8 @@ func (v jwtValidator) ValidateToken(ctx god.Ctx, req any, grpcInfo *god.GRPCInfo
 
 	bearer, err := v.getBearer(ctx)
 	if err != nil {
+		// If failed to get token but route is public: OK!
 		if core.AuthForRoute(route) == models.RouteAuthPublic {
-			// If failed to get token but route is public: OK!
 			return handler(ctx, req)
 		}
 		return nil, err
@@ -107,7 +109,7 @@ func (v jwtValidator) ValidateToken(ctx god.Ctx, req any, grpcInfo *god.GRPCInfo
 		return nil, err
 	}
 
-	ctx = v.ctxManager.AddUserInfo(ctx, claims.ID, claims.Username)
+	ctx = v.ctxTool.AddUserInfo(ctx, claims.ID, claims.Username)
 
 	return handler(ctx, req)
 }
@@ -116,7 +118,7 @@ func (v jwtValidator) ValidateToken(ctx god.Ctx, req any, grpcInfo *god.GRPCInfo
 
 // Returns the authorization field on the Metadata that lives the context.
 func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
-	bearer, err := v.ctxManager.ExtractMetadata(ctx, "authorization")
+	bearer, err := v.ctxTool.GetMetadata(ctx, "authorization")
 	if err != nil {
 		return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenNotFound)
 	}

@@ -34,7 +34,7 @@ func (sdbt *sqlDBTool) GetGroup(ctx god.Ctx, opts ...any) (*models.Group, error)
 
 	query := sdbt.DB.Model(&models.Group{}).WithContext(ctx)
 	for _, opt := range opts {
-		opt.(core.SQLDBOpt)(query)
+		opt.(core.SqlDBOpt)(query)
 	}
 
 	var group models.Group

@@ -39,8 +39,8 @@ const (
 	RateLimitedMsg = "too many requests in a very short time, try again later."
 
 	// Request Validation Errors
-	ValidatingRequest           = "request validation error -> %v."
-	ValidatingRequestRuntime    = "runtime validation error -> %v."
+	ValidatingRequest           = "request validation error -> %v." // We don't use %w as grpc.Status fmt.Sprints the error,
+	ValidatingRequestRuntime    = "runtime validation error -> %v." // so no error wrapping.
 	ValidatingRequestUnexpected = "unexpected validation error -> %v."
 
 	// Auth Errors

@@ -19,16 +19,16 @@ import (
 // -> Our interceptors are actually added here, chained together as a single ServerOption.
 
 // Returns the GRPC Server Options, interceptors included.
-func getGRPCServerOpts(toolbox core.Toolbox, tls bool) god.GRPCServerOpts {
+func getGRPCServerOpts(tools core.Tools, tls bool) god.GRPCServerOpts {
 	serverOpts := []grpc.ServerOption{}
 
 	if tls {
-		tlsOpt := grpc.Creds(toolbox.GetServerCreds())
+		tlsOpt := grpc.Creds(tools.GetServerCreds())
 		serverOpts = append(serverOpts, tlsOpt)
 	}
 
 	// Chain all Unary Interceptors into a single ServerOption and add it.
-	defaultInterceptors := getGRPCInterceptors(toolbox)
+	defaultInterceptors := getGRPCInterceptors(tools)
 	serverOpts = append(serverOpts, grpc.ChainUnaryInterceptor(defaultInterceptors...))
 
 	return serverOpts
@@ -37,7 +37,7 @@ func getGRPCServerOpts(toolbox core.Toolbox, tls bool) god.GRPCServerOpts {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Dial Options are used by the HTTP Gateway when connecting to the GRPC Server.
-func getGRPCDialOpts(tlsClientCreds god.TLSCreds) god.GRPCDialOpts {
+func getGRPCDialOpts(tlsClientCreds god.TLSCreds) []grpc.DialOption {
 	const customUserAgent = "by @gilperopiola"
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(tlsClientCreds),
@@ -56,13 +56,13 @@ func getGRPCDialOpts(tlsClientCreds god.TLSCreds) god.GRPCDialOpts {
 
 // Returns the GRPC Unary Interceptors.
 // These Interceptors are then chained together and added to the GRPC Server as a grpc.ServerOption.
-func getGRPCInterceptors(toolbox core.Toolbox) god.GRPCInterceptors {
+func getGRPCInterceptors(tools core.Tools) god.GRPCInterceptors {
 	return []grpc.UnaryServerInterceptor{
-		toolbox.LimitGRPC,
+		tools.LimitGRPC,
 		handlePanicsAndRecover,
 		core.LogGRPCRequest,
-		toolbox.ValidateToken,
-		toolbox.ValidateGRPC,
+		tools.ValidateToken,
+		tools.ValidateGRPC,
 		handleCtxCancel,
 	}
 }

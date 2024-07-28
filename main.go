@@ -43,7 +43,7 @@ func main() {
 // And as he enters the Service, he is redirected to one of many small but different rooms, each one being a GRPC Service Method.
 // There's the Login Room, Signup Room, etc.
 //
-// -> And then on the Service, he just uses the TOOLBOX stored in there to complete his mission.
+// -> And then on the Service, he just uses the TOOLS stored in there to complete his mission.
 // For example, he uses the DB Tool to retrieve and update data, or the Token Generator to get a new JWT on Login.
 // In case he cannot continue due to an error, or if he just completed his task, then it returns with the obtained results.
 //
