@@ -1,5 +1,7 @@
 package models
 
+import "github.com/golang-jwt/jwt/v4"
+
 type Role string
 
 const (
@@ -17,3 +19,17 @@ const (
 	RouteAuthSelf   RouteAuth = "self"
 	RouteAuthAdmin  RouteAuth = "admin"
 )
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+// These are the claims that live encrypted on our JWT Tokens.
+// A JWT Token String, when decoded, returns one of this.
+type Claims struct {
+	jwt.RegisteredClaims
+	Username string `json:"username"`
+	Role     Role   `json:"role"`
+}
+
+func (c *Claims) GetUserInfo() (string, string) {
+	return c.ID, c.Username
+}

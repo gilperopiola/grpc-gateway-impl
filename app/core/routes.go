@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -9,8 +10,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -67,30 +66,34 @@ func AuthForRoute(routeName string) models.RouteAuth {
 	return models.RouteAuthAdmin
 }
 
-func CanAccessRoute(route, userID string, role models.Role, req any) error {
+func CanAccessRoute(route, claimsUserID string, claimsRole models.Role, req any) error {
 	switch AuthForRoute(route) {
 
 	case models.RouteAuthPublic:
 		return nil
 
+	case models.RouteAuthAdmin:
+		if claimsRole != models.AdminRole {
+			LogPotentialThreat("User " + claimsUserID + " tried to access admin route: " + route)
+			return errors.New(errs.AuthRoleInvalid)
+		}
+
 	case models.RouteAuthSelf:
+		// Requests for routes with this Auth type must have an int32 UserID field.
 		type PBReqWithUserID interface {
 			GetUserId() int32
 		}
-		reqUserID := req.(PBReqWithUserID).GetUserId()
-		if userID != strconv.Itoa(int(reqUserID)) {
-			return status.Errorf(codes.PermissionDenied, errs.AuthUserIDInvalid)
-		}
 
-	case models.RouteAuthAdmin:
-		if role != models.AdminRole {
-			LogPotentialThreat("User " + userID + " tried to access admin route: " + route)
-			return status.Errorf(codes.PermissionDenied, errs.AuthRoleInvalid)
+		// Compare the UserID from the request with the one from the claims.
+		// They should match.
+		reqUserID := int(req.(PBReqWithUserID).GetUserId())
+		if strconv.Itoa(reqUserID) != claimsUserID {
+			return errors.New(errs.AuthUserIDInvalid)
 		}
 
 	default:
 		LogWeirdBehaviour("Route unknown: " + route)
-		return status.Errorf(codes.Unknown, errs.AuthRouteUnknown)
+		return errors.New(errs.AuthRouteUnknown)
 	}
 
 	return nil
@@ -98,7 +101,7 @@ func CanAccessRoute(route, userID string, role models.Role, req any) error {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// A Route is the last part of a GRPC Method.
+// A Route is the last part of a GRPC Method, the part after the last slash.
 //
 // -> Method = /pbs.Service/Signup
 // -> Route  = Signup

@@ -17,20 +17,20 @@ var _ core.Tools = (*Tools)(nil)
 
 // 🛠️ Things that perform actions 🛠️
 type Tools struct {
-	core.ExternalAPIs      // -> API Clients.
-	core.DBTool            // -> Storage (DB, Cache, etc).
-	core.TLSTool           // -> Holds and retrieves data for TLS communication.
-	core.CtxTool           // -> Manages context.
-	core.FileManager       // -> Creates folders and files.
-	core.HealthChecker     // -> Checks health of own service.
-	core.ModelConverter    // -> Converts between models and PBs.
-	core.PwdHasher         // -> Hashes and compares passwords.
-	core.RateLimiter       // -> Limits rate of requests.
-	core.RequestsPaginator // -> Helps handling GRPC requests with pagination.
-	core.RequestsValidator // -> Validates GRPC requests.
-	core.ShutdownJanitor   // -> Cleans up and frees resources on application shutdown.
-	core.TokenGenerator    // -> Generates JWT Tokens.
-	core.TokenValidator    // -> Validates JWT Tokens.
+	core.ExternalAPIs     // -> API Clients.
+	core.DBTool           // -> Storage (DB, Cache, etc).
+	core.TLSTool          // -> Holds and retrieves data for TLS communication.
+	core.CtxTool          // -> Manages context.
+	core.FileManager      // -> Creates folders and files.
+	core.HealthChecker    // -> Checks health of own service.
+	core.ModelConverter   // -> Converts between models and PBs.
+	core.PwdHasher        // -> Hashes and compares passwords.
+	core.RateLimiter      // -> Limits rate of requests.
+	core.RequestPaginator // -> Helps handling GRPC requests with pagination.
+	core.RequestValidator // -> Validates GRPC requests.
+	core.ShutdownJanitor  // -> Cleans up and frees resources on application shutdown.
+	core.TokenGenerator   // -> Generates JWT Tokens.
+	core.TokenValidator   // -> Validates JWT Tokens.
 }
 
 func Setup(cfg *core.Config, serviceFn ServiceFunc) *Tools {
@@ -50,8 +50,8 @@ func Setup(cfg *core.Config, serviceFn ServiceFunc) *Tools {
 	tools.ModelConverter = NewModelConverter()
 	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
 
-	tools.RequestsPaginator = NewRequestsPaginator(1, 10) // TODO - Config
-	tools.RequestsValidator = NewRequestsValidator()
+	tools.RequestPaginator = NewRequestsPaginator(1, 10) // TODO - Config
+	tools.RequestValidator = NewProtoRequestValidator()
 
 	tools.TLSTool = NewTLSTool(&cfg.TLSCfg)
 

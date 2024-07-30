@@ -30,7 +30,7 @@ type App struct {
 	*tools.Tools
 }
 
-// This will be called by main.go on init.
+// This is called by main.go on init.
 func NewApp() (runAppFunc, cleanUpFunc) {
 
 	app := &App{

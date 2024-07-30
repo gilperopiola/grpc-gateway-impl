@@ -73,7 +73,7 @@ var (
 	_ core.ModelConverter
 	_ core.PwdHasher
 	_ core.RateLimiter
-	_ core.RequestsValidator
+	_ core.RequestValidator
 	_ core.ShutdownJanitor
 	_ core.TokenGenerator
 	_ core.TokenValidator

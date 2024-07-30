@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 
@@ -16,42 +15,42 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-var _ core.RequestsValidator = (*protoRequestsValidator)(nil)
+var _ core.RequestValidator = &protoRequestValidator{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*       - Requests Validator -        */
+/*         - Request Validator -       */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Validates GRPC requests based on rules written on .proto files.
 // It uses the bufbuild/protovalidate library.
-type protoRequestsValidator struct {
+type protoRequestValidator struct {
 	*protovalidate.Validator
 }
 
-// New instance of *protoValidator. This panics on failure.
-func NewRequestsValidator() core.RequestsValidator {
+func NewProtoRequestValidator() core.RequestValidator {
 	validator, err := protovalidate.New()
 	core.LogFatalIfErr(err, errs.FailedToCreateProtoVal)
-	return &protoRequestsValidator{validator}
+	return &protoRequestValidator{validator}
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Wraps the proto validation logic with a GRPC Interceptor.
-func (prv protoRequestsValidator) ValidateGRPC(ctx god.Ctx, req any, _ *god.GRPCInfo, handler god.GRPCHandler) (any, error) {
+// Returns a non-nil error if the request doesn't comply with
+// our validation rules defined on the protofiles.
+func (prv protoRequestValidator) ValidateRequest(req any) error {
 	if err := prv.Validate(req.(protoreflect.ProtoMessage)); err != nil {
-		return nil, validationErrToGRPC(err)
+		return validationErrToGRPCErr(err)
 	}
-	return handler(ctx, req)
+	return nil
 }
 
 // Takes a *protovalidate.ValidationError and returns an InvalidArgument(3) GRPC error with its corresponding message.
 // Validation errors are always returned as InvalidArgument.
 // They get translated to 400 Bad Request on the HTTP error handler.
-func validationErrToGRPC(err error) error {
+func validationErrToGRPCErr(err error) error {
 	var validationErr *protovalidate.ValidationError
 	if ok := errors.As(err, &validationErr); ok {
-		humanFacingMsg := brokenRulesWrap{validationErr.Violations}.HumanFacing(",")
+		humanFacingMsg := parseValidationErr(validationErr)
 		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequest, humanFacingMsg))
 	}
 
@@ -67,32 +66,25 @@ func validationErrToGRPC(err error) error {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// -> To avoid using the word 'violation' in the codebase we wrap the protovalidate.ValidationError and handle
-// everything there as a 'broken rule'.
+type failedValidation validate.Violation
 
-type brokenRulesWrap struct {
-	Rules []*validate.Violation
-}
-
-type brokenRule validate.Violation
-
-// Returns a string detailing the rules broken.
-// This string is the human-facing format in which validation errors translate.
-func (wrap brokenRulesWrap) HumanFacing(delimiter string) string {
+// Returns a string with the info on what validations did a request fail.
+// It's the human-facing format of all GRPC Invalid Argument and HTTP Bad Request errors.
+func parseValidationErr(vErr *protovalidate.ValidationError) string {
 	out := ""
-	for i, rule := range wrap.Rules {
-		out += (*brokenRule)(rule).HumanFacing()
-		if i < len(wrap.Rules)-1 {
-			out += (delimiter + " ")
+	for i, failedV := range vErr.Violations {
+		out += (*failedValidation)(failedV).HumanFacing()
+		if i < len(vErr.Violations)-1 {
+			out += (", ")
 		}
 	}
 	return out
 }
 
-// Pointer receiver because brokenRule has a mutex.
-func (rule *brokenRule) HumanFacing() string {
-	if strings.Contains(rule.Message, "match regex pattern") {
-		return fmt.Sprintf("%s value has an invalid format", rule.FieldPath) // don't show regex pattern.
+// Pointer receiver because validate.Violation has a mutex.
+func (v *failedValidation) HumanFacing() string {
+	if strings.Contains(v.Message, "match regex pattern") {
+		return fmt.Sprintf("%s value has an invalid format", v.FieldPath) // Don't display the regex patterns we use.
 	}
-	return fmt.Sprintf("%s %s", rule.FieldPath, rule.Message) // simple message.
+	return fmt.Sprintf("%s %s", v.FieldPath, v.Message) // Example -> 'username field cannot be empty'
 }

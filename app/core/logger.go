@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -12,7 +11,6 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"google.golang.org/grpc"
 	gormLogger "gorm.io/gorm/logger"
 )
 
@@ -45,21 +43,13 @@ func SetupLogger(cfg *LoggerCfg) *zap.Logger {
 	return logger
 }
 
-// This func is a GRPC Interceptor. Or technically a grpc.UnaryServerInterceptor.
-func LogGRPCRequest(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-	start := time.Now()
-	resp, err := handler(ctx, req)
-	duration := time.Since(start)
-
-	l := newLog(withGRPC(info.FullMethod), withDuration(duration))
-
+func LogGRPC(route string, duration time.Duration, err error) {
+	l := newLog(withGRPC(route), withDuration(duration))
 	if err == nil {
 		l.Info("GRPC Request")
 	} else {
 		l.Error("GRPC Error", zap.Error(err))
 	}
-
-	return resp, err
 }
 
 // We log both GRPC and HTTP requests, just because.

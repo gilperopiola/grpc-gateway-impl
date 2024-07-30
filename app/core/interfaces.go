@@ -49,8 +49,8 @@ type Tools interface {
 	ModelConverter
 	TokenGenerator
 	TokenValidator
-	RequestsPaginator
-	RequestsValidator
+	RequestPaginator
+	RequestValidator
 	ShutdownJanitor
 	RateLimiter
 	PwdHasher
@@ -64,7 +64,7 @@ type AnyDB interface {
 /* -~-~-~-~- Tools: Tools -~-~-~-~- */
 
 // These are the interfaces to all of our tools.
-// Note that each concrete tool lives on the tools pkg.
+// Each concrete tool lives on the tools pkg.
 
 type (
 	CtxTool interface {
@@ -95,7 +95,7 @@ type (
 	}
 
 	RateLimiter interface {
-		LimitGRPC(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+		AllowRate() bool
 	}
 
 	ShutdownJanitor interface {
@@ -107,13 +107,16 @@ type (
 	// Used to obtain page and pageSize from paginated requests and also to compose
 	// the *pbs.PaginationInfo struct for the corresponding paginated response.
 	// Designed to work with GRPC, usually on the 'GetMany' methods.
-	RequestsPaginator interface {
+	RequestPaginator interface {
 		PaginatedRequest(req PaginatedRequest) (page int, pageSize int)
 		PaginatedResponse(currentPage, pageSize, totalRecords int) *pbs.PaginationInfo
 	}
 
-	RequestsValidator interface {
-		ValidateGRPC(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+	// Used to validate that incoming requests fields actually comply with
+	// our predefined rules and formats.
+	// Our only implementation is for GRPC.
+	RequestValidator interface {
+		ValidateRequest(req any) error
 	}
 
 	TLSTool interface {
@@ -127,7 +130,7 @@ type (
 	}
 
 	TokenValidator interface {
-		ValidateToken(c god.Ctx, r any, i *god.GRPCInfo, h god.GRPCHandler) (any, error) // grpc.UnaryServerInterceptor
+		ValidateToken(ctx god.Ctx, req any, route string) (TokenClaims, error)
 	}
 
 	DBTool interface {
@@ -177,6 +180,10 @@ type PaginatedRequest interface {
 	// A .proto example would be a message that contained these 2 fields:
 	//	optional int32 page = 1 		[json_name = "page"];
 	//	optional int32 page_size = 3 	[json_name = "page_size"];
+}
+
+type TokenClaims interface {
+	GetUserInfo() (id, username string)
 }
 
 /* -~-~-~- SQL DB ~-~-~- */

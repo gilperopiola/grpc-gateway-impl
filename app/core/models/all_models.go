@@ -1,12 +1,11 @@
 package models
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Database Models -         */
+/*              - Models -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// -> These models translate to tables in the database
-
-// Used to migrate all models at once
+// Used to migrate the DB.
+// Any new DB Model should be added here.
 var AllDBModels = []any{
 	User{},
 	Group{},
