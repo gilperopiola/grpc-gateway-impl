@@ -10,67 +10,61 @@ import (
 	"google.golang.org/grpc"
 )
 
+// IMPORTANT: If you add a new SubService, you'll need to include it in a few places in this file.
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*             - Service -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
-// This holds every service that we have defined on our protofiles.
-type Services struct {
-	AuthService
-	UsersService
-	GroupsService
+// Every service that we have defined on our protofiles is embedded here.
+type Service struct {
+	AuthSubService
+	UsersSubService
+	GroupsSubService
+	HealthSubService
 }
 
-func Setup(tools core.Tools) *Services {
-	return &Services{
-		AuthService:   AuthService{Tools: tools},
-		UsersService:  UsersService{Tools: tools},
-		GroupsService: GroupsService{Tools: tools},
+// I don't really like this way of calling each particular service a SubService,
+// but I found no better way to differentiate our Service as the business layer
+// and each .proto defined Service.
+
+func Setup(tools core.Tools) *Service {
+	return &Service{
+		// New services should be added here.
+		AuthSubService:   AuthSubService{Tools: tools},
+		UsersSubService:  UsersSubService{Tools: tools},
+		GroupsSubService: GroupsSubService{Tools: tools},
+		HealthSubService: HealthSubService{Tools: tools},
 	}
-}
-
-type AuthService struct {
-	pbs.UnimplementedAuthServiceServer
-	Tools core.Tools
-}
-
-type UsersService struct {
-	pbs.UnimplementedUsersServiceServer
-	Tools core.Tools
-}
-
-type GroupsService struct {
-	pbs.UnimplementedGroupsServiceServer
-	Tools core.Tools
 }
 
 // Registers all of the GRPC services and their endpoints on the GRPC Server.
-func (s *Services) RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar) {
+func (s *Service) RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar) {
 
 	// New services should be added here.
-	grpcServices := []grpc.ServiceDesc{
+	servicesDescs := []grpc.ServiceDesc{
 		pbs.AuthService_ServiceDesc,
 		pbs.UsersService_ServiceDesc,
 		pbs.GroupsService_ServiceDesc,
+		pbs.HealthService_ServiceDesc,
 	}
-
-	for _, grpcService := range grpcServices {
-		grpcServer.RegisterService(&grpcService, s)
+	for _, serviceDesc := range servicesDescs {
+		grpcServer.RegisterService(&serviceDesc, s)
 	}
 }
 
 // Registers all of the HTTP services and their endpoints on the HTTP Server.
-func (s *Services) RegisterHTTPEndpoints(mux *runtime.ServeMux, opts ...grpc.DialOption) {
+func (s *Service) RegisterHTTPEndpoints(mux *runtime.ServeMux, opts ...grpc.DialOption) {
 
 	// New services should be added here.
-	httpServices := []func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error){
+	httpServices := []func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error{
 		pbs.RegisterAuthServiceHandlerFromEndpoint,
 		pbs.RegisterUsersServiceHandlerFromEndpoint,
 		pbs.RegisterGroupsServiceHandlerFromEndpoint,
+		pbs.RegisterHealthServiceHandlerFromEndpoint,
 	}
 
-	ctx := context.Background()
 	for _, httpService := range httpServices {
-		core.LogFatalIfErr(httpService(ctx, mux, core.GRPCPort, opts))
+		core.LogFatalIfErr(httpService(context.Background(), mux, core.GRPCPort, opts))
 	}
 }

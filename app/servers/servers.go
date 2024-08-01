@@ -18,13 +18,17 @@ import (
 type Servers struct {
 	GRPC *grpc.Server
 	HTTP *http.Server
-
-	checkHealth func() error
 }
 
-func Setup(services *service.Services, tools core.Tools) *Servers {
-	core.ServerLogf(" 🚀 Starting Servers")
+/* -~-~-~-~-~ Setup -~-~-~-~-~- */
 
+func Setup(services *service.Service, tools core.Tools) *Servers {
+	// GRPC has ServerOptions (Interceptors are there) and DialOptions (that
+	// are actually used by HTTP to connect to GRPC).
+	//
+	// HTTP has Middleware (it's a chain of handlers that call each other) and
+	// also ServeMuxOptions which configure the Multiplexer (mux for short)
+	// with our custom error handler and stuff.
 	var (
 		grpcServerOpts   = getGRPCServerOpts(tools, core.TLSEnabled)
 		grpcDialOpts     = getGRPCDialOpts(tools.GetClientCreds())
@@ -33,76 +37,73 @@ func Setup(services *service.Services, tools core.Tools) *Servers {
 	)
 
 	return &Servers{
-		GRPC:        setupGRPC(services, grpcServerOpts),
-		HTTP:        setupHTTP(services, httpServeMuxOpts, httpMiddleware, grpcDialOpts...),
-		checkHealth: tools.CheckHealth,
+		GRPC: setupGRPC(services, grpcServerOpts),
+		HTTP: setupHTTP(services, httpServeMuxOpts, httpMiddleware, grpcDialOpts...),
 	}
 }
 
-func setupGRPC(services *service.Services, serverOpts god.GRPCServerOpts) *grpc.Server {
+func setupGRPC(services *service.Service, serverOpts god.GRPCServerOpts) *grpc.Server {
 	grpcServer := grpc.NewServer(serverOpts...)
 	services.RegisterGRPCEndpoints(grpcServer)
-	return grpcServer
-}
 
-func setupHTTP(services *service.Services, serveMuxOpts []runtime.ServeMuxOption, mw middlewareFunc, grpcDialOpts ...grpc.DialOption) *http.Server {
-	mux := runtime.NewServeMux(serveMuxOpts...)
-	services.RegisterHTTPEndpoints(mux, grpcDialOpts...)
-	return &http.Server{
-		Addr:    core.HTTPPort,
-		Handler: mw(mux),
-	}
-}
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-func (s *Servers) Run() {
-	runGRPC(s.GRPC)
-	runHTTP(s.HTTP)
-
-	go func() {
-		time.Sleep(time.Second)
-		core.LogFatalIfErr(core.Retry(s.checkHealth, 5))
-		core.ServerLog("Services Healthy! 🌈\n")
-	}()
-}
-
-func runGRPC(grpcServer *grpc.Server) {
-	core.ServerLogf(" 🚀 GRPC OK | Port %s", core.GRPCPort)
-
-	listenOnTCP := func() (any, error) { return net.Listen("tcp", core.GRPCPort) }
-	result, err := core.FallbackAndRetry(listenOnTCP, func() {}, 5)
-	core.LogFatalIfErr(err)
-
-	lis := result.(net.Listener)
-	go func(lis net.Listener) {
-		logServicesAndEndpoints(grpcServer)
-		core.LogFatalIfErr(grpcServer.Serve(lis))
-	}(lis)
-}
-
-func runHTTP(httpGateway *http.Server) {
-	core.ServerLogf(" 🚀 HTTP OK | Port %s", core.HTTPPort)
-	go core.LogFatalIfErr(core.Retry(httpGateway.ListenAndServe, 5))
-}
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-func logServicesAndEndpoints(grpcServer *grpc.Server) {
 	for _, svcInfo := range grpcServer.GetServiceInfo() {
 		core.ServerLogf(" 🐸 Service Loaded: %s", svcInfo.Metadata)
 		for _, svcMethod := range svcInfo.Methods {
 			core.ServerLogf(" \t - Endpoint Loaded: %s", svcMethod.Name)
 		}
 	}
+
+	return grpcServer
 }
 
-func (s *Servers) Shutdown() {
-	core.LogImportant("Shutting down GRPC")
-	s.GRPC.GracefulStop()
+func setupHTTP(services *service.Service, serveMuxOpts []runtime.ServeMuxOption, mw middlewareFunc, grpcDialOpts ...grpc.DialOption) *http.Server {
+	mux := runtime.NewServeMux(serveMuxOpts...)
+	services.RegisterHTTPEndpoints(mux, grpcDialOpts...)
 
-	core.LogImportant("Shutting down HTTP")
+	return &http.Server{
+		Addr:    core.HTTPPort,
+		Handler: mw(mux),
+	}
+}
+
+/* -~-~-~-~-~ Run -~-~-~-~-~- */
+
+func (s *Servers) Run() {
+	go s.runGRPC()
+	go s.runHTTP()
+}
+
+func (s *Servers) runGRPC() {
+	listenOnTCP := func() (any, error) { return net.Listen("tcp", core.GRPCPort) }
+	result, err := core.FallbackAndRetry(listenOnTCP, func() {}, 5)
+	core.LogFatalIfErr(err)
+
+	lis := result.(net.Listener)
+	core.LogFatalIfErr(s.GRPC.Serve(lis))
+}
+
+func (s *Servers) runHTTP() {
+	if err := core.Retry(s.HTTP.ListenAndServe, 5); err != nil && err != http.ErrServerClosed {
+		core.LogFatal(err)
+	}
+}
+
+/* -~-~-~-~-~ Shutdown -~-~-~-~-~- */
+
+// Stops the GRPC & HTTP Servers.
+func (s *Servers) Shutdown() {
+	s.shutdownGRPC()
+	s.shutdownHTTP()
+}
+
+// Stops the GRPC Server.
+func (s *Servers) shutdownGRPC() {
+	s.GRPC.GracefulStop()
+}
+
+// Stops the HTTP Server.
+func (s *Servers) shutdownHTTP() {
 	ctx, cancelCtx := god.NewCtxWithTimeout(5 * time.Second)
 	defer cancelCtx()
-	core.LogFatalIfErr(s.HTTP.Shutdown(ctx))
+	s.HTTP.Shutdown(ctx)
 }

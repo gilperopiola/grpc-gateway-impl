@@ -1,0 +1,95 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "grpc-gateway-impl",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "HealthService"
+    }
+  ],
+  "host": "localhost:8083",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/health/check": {
+      "get": {
+        "operationId": "checkHealth",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": ".auth.CheckHealthResponse"
+            }
+          },
+          "500": {
+            "description": "",
+            "schema": {
+              "example": {
+                "error": "health check failed."
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "General"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "pbsCheckHealthResponse": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "string",
+          "readOnly": true
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

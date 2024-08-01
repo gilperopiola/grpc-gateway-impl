@@ -8,6 +8,11 @@ import (
 	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
 )
 
+type UsersSubService struct {
+	pbs.UnimplementedUsersServiceServer
+	Tools core.Tools
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Users Service -          */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -16,7 +21,7 @@ import (
 // If the query fails (with a gorm.ErrRecordNotFound), then that user doesn't exist.
 // If the query fails (for some other reason), then it returns an unknown error.
 // If everything is OK, it returns the user info.
-func (s *UsersService) GetUser(ctx god.Ctx, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
+func (s *UsersSubService) GetUser(ctx god.Ctx, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
 	user, err := s.Tools.GetUser(ctx, sql.WithID(req.UserId))
 	if s.Tools.IsNotFound(err) {
 		return nil, errUserNotFound()
@@ -28,7 +33,7 @@ func (s *UsersService) GetUser(ctx god.Ctx, req *pbs.GetUserRequest) (*pbs.GetUs
 // GetUsers first gets the page, pageSize and filterQueryOptions from the request.
 // With those values, it gets the users from the database. If there's an error, it returns unknown.
 // If everything is OK, it returns the users and the pagination info.
-func (s *UsersService) GetUsers(ctx god.Ctx, req *pbs.GetUsersRequest) (*pbs.GetUsersResponse, error) {
+func (s *UsersSubService) GetUsers(ctx god.Ctx, req *pbs.GetUsersRequest) (*pbs.GetUsersResponse, error) {
 	page, pageSize := s.Tools.PaginatedRequest(req)
 	usernameFilterOpt := sql.WithCondition(sql.Like, "username", req.GetFilter())
 

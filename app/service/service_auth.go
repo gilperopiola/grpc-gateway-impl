@@ -13,11 +13,16 @@ import (
 	"go.uber.org/zap"
 )
 
+type AuthSubService struct {
+	pbs.UnimplementedAuthServiceServer
+	Tools core.Tools
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - Auth Service -          */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (s *AuthService) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
+func (s *AuthSubService) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
 	user, err := s.Tools.GetUser(ctx, sql.WithUsername(req.Username))
 	if err == nil && user != nil {
 		return nil, errUserAlreadyExists()
@@ -37,7 +42,7 @@ func (s *AuthService) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupRe
 	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
 }
 
-func (s *AuthService) doAfterSignup(ctx god.Ctx, user *models.User) {
+func (s *AuthSubService) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Tools.CreateFolder("users/user_" + strconv.Itoa(user.ID))
 	s.Tools.CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 
@@ -51,7 +56,7 @@ func (s *AuthService) doAfterSignup(ctx god.Ctx, user *models.User) {
 // If the query fails (for some other reason), then we return an unknown error.
 // Then we PasswordsMatch both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
-func (s *AuthService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
+func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
 	user, err := s.Tools.GetUser(ctx, sql.WithUsername(req.Username))
 	if s.Tools.IsNotFound(err) {
 		return nil, errUserNotFound()

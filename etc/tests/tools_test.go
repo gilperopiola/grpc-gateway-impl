@@ -11,6 +11,6 @@ import (
 
 func TestSetupTools(t *testing.T) {
 	cfg := core.LoadConfig()
-	tools := tools.Setup(cfg, nil)
+	tools := tools.Setup(cfg)
 	assert.NotNil(t, tools)
 }

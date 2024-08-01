@@ -106,5 +106,3 @@ func (osf *osFilenamer) GetFilenamesInFolder(path string) []string {
 
 	return filenames
 }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

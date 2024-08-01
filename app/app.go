@@ -5,8 +5,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
-
-	"go.uber.org/zap"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -21,12 +19,12 @@ import (
 // │ Configuration     │ *core.Config      │              │ core.DBCfg, core.TLSCfg, co... │
 // │ GRPC-HTTP Servers │ *servers.Servers  │              │ *grpc.Server, *http.Server     │
 // │ Main Service      │ *service.Services │              │ pbs.AuthServiceServer, pbs.... │
-// │ Tools             │ *tools.Tools  │ core.Tools │ core.DBTool, core.TLSTool, ... │
+// │ Tools             │ *tools.Tools      │ core.Tools   │ core.DBTool, core.TLSTool, ... │
 // ╰───────────────────┴───────────────────┴──────────────┴────────────────────────────────╯
 type App struct {
 	*core.Config
 	*servers.Servers
-	*service.Services
+	*service.Service
 	*tools.Tools
 }
 
@@ -34,10 +32,10 @@ type App struct {
 func NewApp() (runAppFunc, cleanUpFunc) {
 
 	app := &App{
-		Config:   &core.Config{},      // 🗺️
-		Servers:  &servers.Servers{},  // 🌐
-		Services: &service.Services{}, // 🌟
-		Tools:    &tools.Tools{},      // 🛠️
+		Config:  &core.Config{},     // 🗺️
+		Servers: &servers.Servers{}, // 🌐
+		Service: &service.Service{}, // 🌟
+		Tools:   &tools.Tools{},     // 🛠️
 	}
 
 	func() {
@@ -46,15 +44,15 @@ func NewApp() (runAppFunc, cleanUpFunc) {
 	}()
 
 	func() {
-		app.Tools = tools.Setup(app.Config, app.Services.AnswerGroupInvite)
-		app.Services = service.Setup(app.Tools)
-		app.Servers = servers.Setup(app.Services, app.Tools)
+		app.Tools = tools.Setup(app.Config)
+		app.Service = service.Setup(app.Tools)
+		app.Servers = servers.Setup(app.Service, app.Tools)
 	}()
 
 	func() {
 		app.Tools.AddCleanupFunc(app.CloseDB)
 		app.Tools.AddCleanupFunc(app.Servers.Shutdown)
-		app.Tools.AddCleanupFuncWithErr(zap.L().Sync)
+		app.Tools.AddCleanupFuncWithErr(core.SyncLogger)
 	}()
 
 	return app.Servers.Run, app.Tools.Cleanup

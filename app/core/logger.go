@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"time"
@@ -69,6 +70,17 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 			l.Error("HTTP Error", zap.Error(err))
 		}
 	})
+}
+
+// On Windows, I'm getting a *fs.PathError when calling Sync on the logger on shutdown.
+// This just wraps zap.L().Sync() and ignores that error.
+// See https://github.com/uber-go/zap/issues/991
+func SyncLogger() error {
+	var pathErr *fs.PathError
+	if err := zap.L().Sync(); err != nil && !errors.As(err, &pathErr) {
+		return err
+	}
+	return nil
 }
 
 // Prefix used when Infof or Infoln are called.

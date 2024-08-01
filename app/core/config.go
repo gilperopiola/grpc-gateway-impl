@@ -13,17 +13,18 @@ import (
 // Our most used Configs are... -> 🌍 Globals!~
 // -> Just call them like core.Whatever from anywhere and you're good to go.
 
+var Env = "local"
+var EnvIsProd = false
+
 var AppName = "grpc-gateway-impl"
 var AppAlias = "GrpcG8Way"
 var AppEmoji = "📱"
-
-var Env = "local"
-var EnvIsProd = false
-var Debug = true
+var AppVersion = "v1.0" // TODO - Makefile should pass this as an env var.
 
 var GRPCPort = ":50053"
 var HTTPPort = ":8083"
 var TLSEnabled = false
+var Debug = true
 
 // These are our non-global Configs 🌍❌
 // -> The App loads an instance of this on startup and passes it around.
@@ -40,17 +41,18 @@ type Config struct {
 func LoadConfig() *Config {
 
 	// -> 🌍 Globals
+	Env = envVar("ENV", Env)
+	EnvIsProd = Env == "prod" || Env == "production" || Env == "live"
+
 	AppName = envVar("APP_NAME", AppName)
 	AppAlias = envVar("APP_ALIAS", AppAlias)
 	AppEmoji = envVar("APP_EMOJI", AppEmoji)
-
-	Env = envVar("ENV", Env)
-	EnvIsProd = Env == "prod" || Env == "production" || Env == "live"
-	Debug = envVar("DEBUG", Debug)
+	AppVersion = envVar("APP_VERSION", AppVersion)
 
 	GRPCPort = envVar("GRPC_PORT", GRPCPort)
 	HTTPPort = envVar("HTTP_PORT", HTTPPort)
 	TLSEnabled = envVar("TLS_ENABLED", TLSEnabled)
+	Debug = envVar("DEBUG", Debug)
 
 	return &Config{
 		DBCfg:        loadDBConfig(),

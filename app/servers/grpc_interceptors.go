@@ -23,11 +23,11 @@ import (
 // RateLimiter + PanicRecoverer + GRPCLogger + TokenValidator + RequestValidator + CtxCancelled.
 func getInterceptors(tools core.Tools) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
-		newRateLimitingInterceptor(tools.AllowRate),
+		newRateLimitingInterceptor(tools),
 		newPanicRecovererInterceptor(),
 		newLoggingInterceptor(),
-		newTokenValidationInterceptor(tools.ValidateToken, tools.AddUserInfo),
-		newRequestValidationInterceptor(tools.ValidateRequest),
+		newTokenValidationInterceptor(tools),
+		newRequestValidationInterceptor(tools),
 		newCtxCancelledInterceptor(),
 	}
 }
@@ -35,31 +35,36 @@ func getInterceptors(tools core.Tools) []grpc.UnaryServerInterceptor {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Returns a GRPC Interceptor that validates requests.
-func newRequestValidationInterceptor(validateFn func(any) error) grpc.UnaryServerInterceptor {
+func newRequestValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		if err := validateFn(req); err != nil {
+		if err := tools.ValidateRequest(req); err != nil {
 			return nil, err
 		}
+
+		// Call next handler.
 		return next(c, req)
 	}
 }
 
 // Returns a GRPC Interceptor that validates JWT tokens.
-func newTokenValidationInterceptor(validateFn func(context.Context, any, string) (core.TokenClaims, error),
-	addToCtxFn func(ctx context.Context, userID string, username string) context.Context) grpc.UnaryServerInterceptor {
+// It adds the UserID and Username to the request's context.
+func newTokenValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		route := core.RouteNameFromGRPC(i.FullMethod)
+
 		if core.AuthForRoute(route) != models.RouteAuthPublic {
-			claims, err := validateFn(c, req, route)
+			claims, err := tools.ValidateToken(c, req, route)
 			if err != nil {
 				return nil, err
 			}
 
 			// Gets user info from claims and adds it to the request's context.
 			userID, username := claims.GetUserInfo()
-			c = addToCtxFn(c, userID, username)
+			c = tools.AddUserInfoToCtx(c, userID, username)
 		}
+
+		// Call next handler.
 		return next(c, req)
 	}
 }
@@ -68,7 +73,10 @@ func newTokenValidationInterceptor(validateFn func(context.Context, any, string)
 func newLoggingInterceptor() grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		start := time.Now()
+
+		// Call next handler.
 		resp, err := next(c, req)
+
 		duration := time.Since(start)
 		core.LogGRPC(i.FullMethod, duration, err)
 		return resp, err
@@ -81,18 +89,22 @@ func newCtxCancelledInterceptor() grpc.UnaryServerInterceptor {
 		if err := c.Err(); err != nil {
 			return nil, status.Errorf(codes.Canceled, err.Error())
 		}
+
+		// Call next handler.
 		return next(c, req)
 	}
 }
 
 // Returns a GRPC Interceptor that sets a rate limit on the server.
-func newRateLimitingInterceptor(limitFn func() bool) grpc.UnaryServerInterceptor {
+func newRateLimitingInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		if allowed := limitFn(); !allowed {
+		if ok := tools.AllowRate(); !ok {
 			err := status.Errorf(codes.ResourceExhausted, errs.RateLimitedMsg)
 			core.LogUnexpected(err)
 			return nil, err
 		}
+
+		// Call next handler.
 		return next(c, req)
 	}
 }
@@ -107,13 +119,15 @@ func newPanicRecovererInterceptor() grpc.UnaryServerInterceptor {
 		// And this gets executed when a panic happens or after this func finishes.
 		// Panics will recover, logging the error and returning to the user a standard panic response.
 		defer func() {
-			if panicInfo := recover(); panicInfo != nil || !handlerFinishedOK {
-				zap.L().Error("GRPC Panic", zap.Any("info", panicInfo), zap.Any("context", c))
+			if err := recover(); err != nil || !handlerFinishedOK {
+				zap.L().Error("GRPC Panic", zap.Any("error", err), zap.Any("context", c))
 				err = status.Errorf(codes.Internal, errs.PanicMsg)
 			}
 		}()
 
+		// Call next handler.
 		resp, err = next(c, req) // <- Panics happen here.
+
 		handlerFinishedOK = true
 		return resp, err
 	}

@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/gilperopiola/god"
@@ -28,11 +29,14 @@ type jwtValidator struct {
 func NewJWTValidator(ctxTool core.CtxTool, secret string) core.TokenValidator {
 	return &jwtValidator{
 		ctxTool: ctxTool,
-		keyFn:   defaultKeyFn(secret),
+		keyFn: func(*jwt.Token) (any, error) {
+			return []byte(secret), nil
+		},
 	}
 }
 
-// Returns a GRPC interceptor that validates a JWT token inside of the context.
+// Validates a JWT Token. Returns the Claims if valid, or a GRPC error if not.
+// Errors returned can be Unauthenticated, PermissionDenied or Unknown.
 func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) (core.TokenClaims, error) {
 	bearer, err := v.getBearer(ctx)
 	if err != nil {
@@ -44,7 +48,7 @@ func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) 
 		return nil, err
 	}
 
-	if err := core.CanAccessRoute(route, claims.ID, claims.Role, req); err != nil {
+	if err := v.canAccessRoute(route, claims, req); err != nil {
 		return claims, err
 	}
 
@@ -53,9 +57,9 @@ func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) 
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Returns the authorization field on the Metadata that lives the context.
+// Returns the authorization field from the data that lives in the request's context.
 func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
-	bearer, err := v.ctxTool.GetMetadata(ctx, "authorization")
+	bearer, err := v.ctxTool.GetFromCtx(ctx, "authorization")
 	if err != nil {
 		return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenNotFound)
 	}
@@ -68,7 +72,7 @@ func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
 	return strings.TrimPrefix(bearer, "Bearer "), nil
 }
 
-// Parses the token object into *models.Claims and validates said claims.
+// Parses the token string into a *models.Claims.
 // Returns an error if claims are not valid.
 func (v jwtValidator) getClaims(bearer string) (*models.Claims, error) {
 	token, err := jwt.ParseWithClaims(bearer, &models.Claims{}, v.keyFn)
@@ -80,8 +84,41 @@ func (v jwtValidator) getClaims(bearer string) (*models.Claims, error) {
 	return nil, status.Errorf(codes.Unauthenticated, errs.AuthTokenInvalid)
 }
 
-// Gets the key to decrypt the token.
-// Key = JWT Secret.
-var defaultKeyFn = func(key string) jwt.Keyfunc {
-	return func(*jwt.Token) (any, error) { return []byte(key), nil }
+// Determines if a set of Claims can access certain route with certain request.
+func (v jwtValidator) canAccessRoute(route string, claims *models.Claims, req any) error {
+	switch core.AuthForRoute(route) {
+
+	// These routes only allow the user with the same ID as the one specified on the request to go through.
+	case models.RouteAuthSelf:
+
+		// Requests for routes with this Auth type must have an int32 UserID field.
+		type PBReqWithUserID interface {
+			GetUserId() int32
+		}
+
+		// Compare the UserID from the request with the one from the claims.
+		// They should match.
+		reqUserID := int(req.(PBReqWithUserID).GetUserId())
+		if strconv.Itoa(reqUserID) != claims.ID {
+			return status.Errorf(codes.PermissionDenied, errs.AuthUserIDInvalid)
+		}
+
+	// These routes only allow admin users to go through.
+	case models.RouteAuthAdmin:
+		if claims.Role != models.AdminRole {
+			core.LogPotentialThreat("User " + claims.ID + " tried to access admin route " + route)
+			return status.Errorf(codes.PermissionDenied, errs.AuthRoleInvalid)
+		}
+
+	// Everyone can access these routes.
+	// This is the last option because the GRPC Token Validation Interceptor already checks for it.
+	case models.RouteAuthPublic:
+		return nil
+
+	default:
+		core.LogWeirdBehaviour("Auth for route " + route + " unhandled")
+		return status.Errorf(codes.Unknown, errs.AuthRouteInvalid)
+	}
+
+	return nil
 }

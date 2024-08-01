@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package pbs;
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+
+import "external/google/api/annotations.proto";
+import "external/google/api/field_behavior.proto";
+import "external/protoc-gen-openapiv2/options/annotations.proto";
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*         - Health Protofile -        */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "grpc-gateway-impl";
+    version: "1.0"; // T0D0 - Use version from go.mod
+    contact: { email: "" };
+  };
+  host: "localhost:8083";
+  base_path: "";
+  schemes: [HTTP, HTTPS];
+  consumes: "application/json";
+  produces: "application/json";
+  responses: {
+    key: "500";
+    value: { schema: { example: '{"error": "health check failed."}'; }};
+  }
+};
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*          - Health Service -         */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+// 1-endpoint-service.
+// Used to check the status of our app.
+service HealthService {
+  rpc CheckHealth (CheckHealthRequest) returns (CheckHealthResponse) {
+    option (google.api.http) = { get: "/v1/health/check" };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "checkHealth";
+      tags: ["General"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".auth.CheckHealthResponse"} } };
+      };
+    };
+  }
+}
+
+message CheckHealthRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "CheckHealthRequest" } };
+}
+
+message CheckHealthResponse {
+  string info = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+}

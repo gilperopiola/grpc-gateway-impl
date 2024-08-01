@@ -12,18 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// When a GRPC Request arrives, our GRPC Server sends it through GRPC Interceptors, and then through the Service.
-// So: GRPC Server -> Interceptors -> Service.
-//
-// Our Service, assisted by our Tools or Tools (TokenGenerator, PwdHasher, etc), performs Actions
-// (like GetUser or GenerateToken). These Actions sometimes let us communicate with external things,
-// like a Database or the File System.
-//
-// To sum it all up:
-// * GRPC Server -> Interceptors -> Service -> Tools -> External Resources (SQL Database, File System, etc).
-//
-// Oh, and there's also an HTTP Server, but it just adds some middleware and then sends the request through GRPC.
-
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - Interfaces -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -35,6 +23,7 @@ type (
 	AuthSvc   = pbs.AuthServiceServer
 	UsersSvc  = pbs.UsersServiceServer
 	GroupsSvc = pbs.GroupsServiceServer
+	HealthSvc = pbs.HealthServiceServer
 )
 
 // With this you can avoid importing the tools pkg.
@@ -45,7 +34,6 @@ type Tools interface {
 	TLSTool
 	CtxTool
 	FileManager
-	HealthChecker
 	ModelConverter
 	TokenGenerator
 	TokenValidator
@@ -58,7 +46,7 @@ type Tools interface {
 
 // Unifies our SQL and Mongo interfaces.
 type AnyDB interface {
-	GetInnerDB() any // The actual implementations return *gorm.DB or *mongo.Client
+	GetInnerDB() any // Implementations return *gorm.DB or *mongo.Client
 }
 
 /* -~-~-~-~- Tools: Tools -~-~-~-~- */
@@ -68,17 +56,13 @@ type AnyDB interface {
 
 type (
 	CtxTool interface {
-		AddUserInfo(ctx god.Ctx, userID, username string) god.Ctx
-		GetMetadata(ctx god.Ctx, key string) (string, error)
+		AddUserInfoToCtx(ctx god.Ctx, userID, username string) god.Ctx
+		GetFromCtx(ctx god.Ctx, key string) (string, error)
 	}
 
 	FileManager interface {
 		CreateFolder(path string) error
 		CreateFolders(paths ...string) error
-	}
-
-	HealthChecker interface {
-		CheckHealth() error
 	}
 
 	ModelConverter interface {

@@ -2,7 +2,6 @@ package app
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
@@ -10,7 +9,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
 )
 
-// This file has some of the interfaces and structs that are used in the app.
+// This file displays some of the interfaces and structs that are used in the app.
 // It doesn't do anything.
 
 /* -~-~-~-~ App Map ~-~-~-~- */
@@ -23,8 +22,8 @@ var _ core.Config
 // Servers
 var _ servers.Servers
 
-// Services
-var _ service.Services
+// Service
+var _ service.Service
 
 // Tools
 var _ core.Tools
@@ -49,19 +48,21 @@ var (
 // Used to migrate the DB.
 var _ = models.AllDBModels
 
-// -> Each one of our Services as defined in the proto.
+// -> Each one of our Services defined in the protofiles.
 var (
 	_ core.AuthSvc
 	_ core.UsersSvc
 	_ core.GroupsSvc
+	_ core.HealthSvc
 
 	_ pbs.UnimplementedAuthServiceServer
 	_ pbs.UnimplementedUsersServiceServer
 	_ pbs.UnimplementedGroupsServiceServer
+	_ pbs.UnimplementedHealthServiceServer
 )
 
-// -> Tools / Tools Interfaces.
-// These are all of the Actions that any Tools holder can perform.
+// -> Tool Interfaces.
+// These are all of the actions that any Tools holder can perform.
 // Concrete implementations are in the tools pkg.
 var (
 	_ core.ExternalAPIs
@@ -79,6 +80,17 @@ var (
 	_ core.TokenValidator
 )
 
-// DB Layer and Service Layer Errors.
-var _ errs.DBErr
-var _ errs.ServiceErr
+/* -~-~-~-~ Request's Flow ~-~-~-~- */
+
+// When a GRPC Request arrives, our GRPC Server sends it through GRPC Interceptors, and then through the Service
+// (which is made of all our different SubServices).
+// So: GRPC Server -> Interceptors -> Service.
+//
+// Our Service, assisted by our Tools (TokenGenerator, PwdHasher, etc), performs certain actions
+// (like GetUser or GenerateToken) to get stuff done. These actions sometimes let us communicate with external things,
+// like a Database or the File System.
+//
+// To sum it all up:
+// * GRPC Server -> Interceptors -> Service -> Tools -> External Resources (SQL Database, File System, etc).
+//
+// Oh, and there's also an HTTP Server, but it just adds some middleware and then sends the request through GRPC.

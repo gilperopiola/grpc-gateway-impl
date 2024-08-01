@@ -8,12 +8,17 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
 )
 
+type GroupsSubService struct {
+	pbs.UnimplementedGroupsServiceServer
+	Tools core.Tools
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*          - Groups Service -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (s *GroupsService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
-	groupOwnerID, err := god.ToIntAndErr(s.Tools.GetMetadata(ctx, "user_id"))
+func (s *GroupsSubService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
+	groupOwnerID, err := god.ToIntAndErr(s.Tools.GetFromCtx(ctx, "user_id"))
 	if err != nil {
 		return nil, errs.GRPCInternal(err.Error())
 	}
@@ -28,7 +33,7 @@ func (s *GroupsService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*
 	return &pbs.CreateGroupResponse{Group: s.Tools.GroupToGroupInfoPB(group)}, nil
 }
 
-func (s *GroupsService) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGroupResponse, error) {
+func (s *GroupsSubService) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGroupResponse, error) {
 	group, err := s.Tools.GetGroup(ctx, sqldb.WithID(req.GroupId))
 	if err != nil {
 		if s.Tools.IsNotFound(err) {

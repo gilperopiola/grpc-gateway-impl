@@ -1,6 +1,11 @@
 package tools
 
-import "github.com/gilperopiola/grpc-gateway-impl/app/core"
+import (
+	"errors"
+	"io/fs"
+
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+)
 
 // This was previously named CleanupTool, but
 // ShutdownJanitor has a bit more style.
@@ -31,10 +36,15 @@ func (sj *shutdownJanitor) AddCleanupFunc(fn func()) {
 }
 
 func (sj *shutdownJanitor) AddCleanupFuncWithErr(fn func() error) {
-	// We use an adapter here that acts like a closure: it captures the original function and once called
-	// just calls it and logs the error if there was one.
+
+	// We use an adapter here that acts like a closure:
+	// It captures the original function, and after being called
+	// it just calls that func as well, logging the error if there was one.
 	adapter := func() {
-		core.LogIfErr(fn(), "ungraceful shutdown: %v")
+		var pathErr *fs.PathError
+		if err := fn(); err != nil && !errors.As(err, &pathErr) {
+			core.LogIfErr(err, "ungraceful shutdown: %v")
+		}
 	}
 
 	sj.cleanupFns = append(sj.cleanupFns, adapter)

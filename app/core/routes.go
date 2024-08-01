@@ -1,16 +1,16 @@
 package core
 
 import (
-	"errors"
-	"strconv"
 	"strings"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"google.golang.org/grpc"
 )
+
+// Our Routes need manual updating when a .proto route changes.
+// TODO - Generate this based on the proto.
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*              - Routes -             */
@@ -33,9 +33,12 @@ type Route struct {
 // Each one of these keys correspond to the last part of each GRPC method, the part after the last '/'.
 // For example, the route for the method /pbs.Svc/Login is "Login".
 //
-// This needs manual updating when the .proto routes change. TODO - Generate this based on the proto.
-// We used to have a way of mapping the HTTP route to this, but I don't know why I scraped it. Think I want it now :(
+// We used to have a way of mapping the HTTP route to this,
+// I don't know why I scraped it. Think I want it now :(
 var Routes = map[string]Route{
+
+	// Health Service
+	"CheckHealth": {models.RouteAuthPublic},
 
 	// Auth Service
 	"Signup": {models.RouteAuthPublic},
@@ -55,66 +58,40 @@ var Routes = map[string]Route{
 	"AnswerGroupInvite": {models.RouteAuthSelf},
 }
 
-// In GRPC, method means the entire route name.
-// In HTTP it's just GET, POST, etc.
+// Simple enough.
+func RouteExists(routeName string) bool {
+	if _, ok := Routes[routeName]; ok {
+		return true
+	}
+	LogWeirdBehaviour("Route not found: " + routeName)
+	return false
+}
 
+// This doesn't return any error on a not-found route, it just
+// creates a log and defaults to AuthAdmin.
 func AuthForRoute(routeName string) models.RouteAuth {
 	if route, ok := Routes[routeName]; ok {
 		return route.Auth
 	}
-	LogWeirdBehaviour("Route not found: " + routeName)
+	LogWeirdBehaviour("Route with Auth not found: " + routeName)
 	return models.RouteAuthAdmin
 }
 
-func CanAccessRoute(route, claimsUserID string, claimsRole models.Role, req any) error {
-	switch AuthForRoute(route) {
-
-	case models.RouteAuthPublic:
-		return nil
-
-	case models.RouteAuthAdmin:
-		if claimsRole != models.AdminRole {
-			LogPotentialThreat("User " + claimsUserID + " tried to access admin route: " + route)
-			return errors.New(errs.AuthRoleInvalid)
-		}
-
-	case models.RouteAuthSelf:
-		// Requests for routes with this Auth type must have an int32 UserID field.
-		type PBReqWithUserID interface {
-			GetUserId() int32
-		}
-
-		// Compare the UserID from the request with the one from the claims.
-		// They should match.
-		reqUserID := int(req.(PBReqWithUserID).GetUserId())
-		if strconv.Itoa(reqUserID) != claimsUserID {
-			return errors.New(errs.AuthUserIDInvalid)
-		}
-
-	default:
-		LogWeirdBehaviour("Route unknown: " + route)
-		return errors.New(errs.AuthRouteUnknown)
-	}
-
-	return nil
-}
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// A Route is the last part of a GRPC Method, the part after the last slash.
+// Our Routes are named by the last part of their GRPC Method.
+// It's everything after the last slash.
 //
-// -> Method = /pbs.Service/Signup
-// -> Route  = Signup
+//	Method = /pbs.Service/Signup
+//	Route  = Signup
 func RouteNameFromGRPC(method string) string {
 	i := strings.LastIndex(method, "/")
 	if i == -1 {
-		LogWeirdBehaviour("No '/' found in GRPC: " + method)
-		return method
+		LogWeirdBehaviour("No '/' found in GRPC Method " + method)
+		return ""
 	}
 	return method[i+1:]
 }
 
-// Returns the route name from the context.
+// Returns the route name from the context's data.
 func RouteNameFromCtx(ctx god.Ctx) string {
 	if method, ok := grpc.Method(ctx); ok {
 		return RouteNameFromGRPC(method)

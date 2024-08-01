@@ -43,14 +43,16 @@ const (
 	ValidatingRequestRuntime    = "runtime validation error -> %v." // so no error wrapping.
 	ValidatingRequestUnexpected = "unexpected validation error -> %v."
 
-	// Auth Errors
-	AuthGeneratingToken = "auth error -> generating token -> %v."
-	AuthRouteUnknown    = "auth error -> unknown route."
-	AuthUserIDInvalid   = "auth error -> user id invalid."
-	AuthRoleInvalid     = "auth error -> role invalid."
-	AuthTokenNotFound   = "auth error -> token not found."
-	AuthTokenMalformed  = "auth error -> token malformed."
-	AuthTokenInvalid    = "auth error -> token invalid."
+	// JWT Validation
+	AuthTokenMalformed = "auth error -> token malformed."
+	AuthTokenNotFound  = "auth error -> token not found."
+	AuthTokenInvalid   = "auth error -> token invalid."
+	AuthRoleInvalid    = "auth error -> role invalid."
+	AuthRouteInvalid   = "auth error -> route invalid."
+	AuthUserIDInvalid  = "auth error -> user id invalid."
+
+	// JWT Generation
+	AuthGeneratingToken = "error generating token -> %v."
 
 	// DB Errors
 	DBNoQueryOpts   = "db error -> no query options"

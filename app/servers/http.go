@@ -106,56 +106,63 @@ func handleHTTPError(_ god.Ctx, _ *runtime.ServeMux, _ runtime.Marshaler, rw htt
 	rw.Write([]byte(httpRespBody))
 }
 
-type StringSetter interface {
-	Set(string)
-}
-
-type stringSetter struct {
-	s string
-}
-
-func (ss *stringSetter) Set(s string) {
-	ss.s = s
-}
-
-// Modifies the HTTP Error response body and headers based on the HTTP Status.
+// Executed just before sending back an HTTP error response.
+// Modifies the response body and headers based on the status.
 func finalizeErrorResponse(rw http.ResponseWriter, status int, body *string) {
-	errMsg := *body
+	finalBody := *body
 
 	switch status {
-	case http.StatusBadRequest:
-		// Return as is.
 
+	// 400.
+	// Return as is.
+	case http.StatusBadRequest:
+		break
+
+	// 401.
+	// Add Header + Generic response.
 	case http.StatusUnauthorized:
 		rw.Header().Set("WWW-Authenticate", "Bearer")
-		errMsg = errs.HTTPUnauthorized
+		finalBody = errs.HTTPUnauthorized
 
+	// 403.
+	// Generic response.
 	case http.StatusForbidden:
-		errMsg = errs.HTTPForbidden
+		finalBody = errs.HTTPForbidden
 
+	// 404 ~ 405.
+	// Generic response if error is GRPC Gateway's Not-Found.
+	// Return as is otherwise.
+	//
+	// This is because our Service might return Not Found
+	// but with a more specific error message.
 	case http.StatusNotFound, http.StatusMethodNotAllowed:
-		// GRPC Gateway returns this ⬇️ for not-found routes.
-		if errMsg == `{"error": "Not Found"}` {
-			errMsg = errs.HTTPRouteNotFound
+		if *body == `{"error": "Not Found"}` {
+			finalBody = errs.HTTPRouteNotFound
 		}
-		// If we get a not-found BUT its from the service, we return the message as is.
 
+	// 409.
+	// Return as is.
 	case http.StatusConflict:
-		errMsg = errs.HTTPConflict
+		break
 
+	// 500.
+	// Log + Generic response.
 	case http.StatusInternalServerError:
-		core.LogWeirdBehaviour("HTTP Error 500: " + errMsg)
-		errMsg = errs.HTTPInternal
+		core.LogWeirdBehaviour("HTTP Error 500: " + finalBody)
+		finalBody = errs.HTTPInternal
 
+	// 503.
+	// Log + Return as is.
+	//
+	// Failed health checks return 503.
 	case http.StatusServiceUnavailable:
-		core.LogWeirdBehaviour("HTTP Error 503: " + errMsg)
-		errMsg = errs.HTTPUnavailable
+		core.LogWeirdBehaviour("HTTP Error 503: " + finalBody)
 
 	default:
-		core.LogWeirdBehaviour(fmt.Sprintf("HTTP Error %d (unhandled): %s", status, errMsg))
+		core.LogWeirdBehaviour(fmt.Sprintf("HTTP Error %d (unhandled): %s", status, finalBody))
 	}
 
-	*body = fmt.Sprintf(`{"error": "%s"}`, errMsg)
+	*body = fmt.Sprintf(`{"error": "%s"}`, finalBody)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
