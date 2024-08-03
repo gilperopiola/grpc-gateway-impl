@@ -1,11 +1,11 @@
-package models
+package openweather
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*         - Get Weather API -         */
-/* -~-~-~-~-~-~-~-~-~-~ openweathermap */
+/*    - OpenWeatherMap API Models -    */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type (
-	GetWeatherResponse struct {
+	GetCurrentWeatherResponse struct {
 		Coord      Coord     `json:"coord"`
 		Weather    []Weather `json:"weather"`
 		Base       string    `json:"base"`

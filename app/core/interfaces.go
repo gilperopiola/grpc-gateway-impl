@@ -137,12 +137,14 @@ type (
 	InternalAPIs interface{}
 
 	ExternalAPIs interface {
-		WeatherAPI
+		OpenWeatherAPI
 	}
 
-	WeatherAPI interface {
-		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (models.GetWeatherResponse, error)
+	OpenWeatherAPI interface {
+		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (APIResponse, error)
 	}
+
+	APIResponse any
 )
 
 // This isn't used like the other Tools, as it's instantiated per request.

@@ -2,31 +2,36 @@ package openweather
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 )
+
+var _ core.OpenWeatherAPI = &OpenWeatherAPI{}
 
 type OpenWeatherAPI struct{}
 
-func newWeatherAPIClient() core.WeatherAPI {
+func NewOpenWeatherAPI() core.OpenWeatherAPI {
 	return &OpenWeatherAPI{}
 }
 
-// T0D0 Lat lon
-func (cli *OpenWeatherAPI) GetCurrentWeather(ctx god.Ctx, lat, lon float64) (models.GetWeatherResponse, error) {
-	resp, err := http.Get("https://api.openweathermap.org/data/2.5/weather?lat=44.34&lon=10.99&appid=f4ecb7e7e30e9c1a3219d1236a63303a")
+func (api *OpenWeatherAPI) getCurrentWeatherURL(lat, lon float64) string {
+	return fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?lat=%f.2&lon=%f.2&appid=f4ecb7e7e30e9c1a3219d1236a63303a", lat, lon)
+}
+
+func (api *OpenWeatherAPI) GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*GetCurrentWeatherResponse, error) {
+	resp, err := http.Get(api.getCurrentWeatherURL(lat, lon))
 	if err != nil {
-		return models.GetWeatherResponse{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var getWeatherResponse models.GetWeatherResponse
-	if err := json.NewDecoder(resp.Body).Decode(&getWeatherResponse); err != nil {
-		return models.GetWeatherResponse{}, err
+	var out GetCurrentWeatherResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
 	}
 
-	return getWeatherResponse, nil
+	return &out, nil
 }
