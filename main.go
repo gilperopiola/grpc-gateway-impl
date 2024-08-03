@@ -13,7 +13,7 @@ import (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- (: */
 
 func main() {
-	runApp, cleanUp := app.NewApp()
+	runApp, cleanUp := app.Setup()
 	defer cleanUp()
 
 	runApp()

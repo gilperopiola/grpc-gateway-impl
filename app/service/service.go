@@ -29,8 +29,8 @@ type Service struct {
 // and each .proto defined Service.
 
 func Setup(tools core.Tools) *Service {
+	// New services should be added here.
 	return &Service{
-		// New services should be added here.
 		AuthSubService:   AuthSubService{Tools: tools},
 		UsersSubService:  UsersSubService{Tools: tools},
 		GroupsSubService: GroupsSubService{Tools: tools},
@@ -48,6 +48,7 @@ func (s *Service) RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar) {
 		pbs.GroupsService_ServiceDesc,
 		pbs.HealthService_ServiceDesc,
 	}
+
 	for _, serviceDesc := range servicesDescs {
 		grpcServer.RegisterService(&serviceDesc, s)
 	}

@@ -35,7 +35,7 @@ type testy struct {
 }
 
 func NewTesty(t *testing.T, endpoint, path string) Testy {
-	runApp, cleanup := app.NewApp()
+	runApp, cleanup := app.Setup()
 	runApp()
 	time.Sleep(2 * time.Second)
 

@@ -11,36 +11,44 @@ import (
 /*               - App -               */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
-// -> ⭐️ This is our core App.
-// -> It is divided into 4: Configuration - Servers - Service - Tools.
-// ╭───────────────────┬───────────────────┬──────────────┬────────────────────────────────╮
-// │ App's Module      │ Struct            │ Interface    │ Contains                       │
-// ├───────────────────┼───────────────────┼──────────────┼────────────────────────────────┤
-// │ Configuration     │ *core.Config      │              │ core.DBCfg, core.TLSCfg, co... │
-// │ GRPC-HTTP Servers │ *servers.Servers  │              │ *grpc.Server, *http.Server     │
-// │ Main Service      │ *service.Services │              │ pbs.AuthServiceServer, pbs.... │
-// │ Tools             │ *tools.Tools      │ core.Tools   │ core.DBTool, core.TLSTool, ... │
-// ╰───────────────────┴───────────────────┴──────────────┴────────────────────────────────╯
+// ╭───────────────────┬───────────────────┬────────────┬───────────────────────────────────────╮
+// │ Field             │ Type              │ Implements │ Contains                              │
+// ├───────────────────┼───────────────────┼────────────┼───────────────────────────────────────┤
+// │ Configuration     │ *core.Config      │            │ All settings, split by module.        │
+// │ GRPC-HTTP Servers │ *servers.Servers  │            │ Our GRPC and HTTP Servers.            │
+// │ Main Service      │ *service.Services │            │ Endpoints and business logic.         │
+// │ Tools             │ *tools.Tools      │ core.Tools │ Specific actions used by our Service. │
+// ╰───────────────────┴───────────────────┴────────────┴───────────────────────────────────────╯
+
+// ⭐️ Our main App.
+//
+// It doesn't do anything, we just use it to structure our components.
 type App struct {
-	*core.Config
-	*servers.Servers
-	*service.Service
-	*tools.Tools
+	Config  *core.Config
+	Servers *servers.Servers
+	Service *service.Service
+	Tools   *tools.Tools
 }
 
-// This is called by main.go on init.
-func NewApp() (runAppFunc, cleanUpFunc) {
+// Called by main.go.
+//
+// Initializes a new App: Loads the Config, Logger,
+// then the Tools, Service and Servers.
+//
+// Returns a func to run the Servers and another one to free
+// used resources before exiting.
+func Setup() (runAppFunc, cleanUpFunc) {
 
-	app := &App{
-		Config:  &core.Config{},     // 🗺️
-		Servers: &servers.Servers{}, // 🌐
-		Service: &service.Service{}, // 🌟
-		Tools:   &tools.Tools{},     // 🛠️
+	app := App{
+		Config:  new(core.Config),
+		Servers: new(servers.Servers),
+		Service: new(service.Service),
+		Tools:   new(tools.Tools),
 	}
 
 	func() {
 		app.Config = core.LoadConfig()
-		core.SetupLogger(&app.LoggerCfg)
+		core.SetupLogger(&app.Config.LoggerCfg)
 	}()
 
 	func() {
@@ -50,7 +58,7 @@ func NewApp() (runAppFunc, cleanUpFunc) {
 	}()
 
 	func() {
-		app.Tools.AddCleanupFunc(app.CloseDB)
+		app.Tools.AddCleanupFunc(app.Tools.CloseDB)
 		app.Tools.AddCleanupFunc(app.Servers.Shutdown)
 		app.Tools.AddCleanupFuncWithErr(core.SyncLogger)
 	}()
@@ -58,7 +66,6 @@ func NewApp() (runAppFunc, cleanUpFunc) {
 	return app.Servers.Run, app.Tools.Cleanup
 }
 
-// NewApp returns a runAppFunc and a cleanUpFunc - so the caller can first run
-// the Servers and then release gracefully all used resources when it's done.
+// Returning these instead of just func() for clarity's sake.
 type runAppFunc func()
 type cleanUpFunc func()

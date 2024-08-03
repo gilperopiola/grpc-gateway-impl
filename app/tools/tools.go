@@ -6,13 +6,18 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
 )
 
-var _ core.Tools = (*Tools)(nil)
+var _ core.Tools = &Tools{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*            - Tools -              */
+/*              - Tools -              */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
-// 🛠️ Things that perform actions 🛠️
+// 🛠️ - Holds an instance of every single Tool on our app.
+//
+// A Tool lets us perform clear, explicit actions, to be used
+// across our Service.
+//
+// Well defined Tools make the business logic easier to read and understand.
 type Tools struct {
 	core.ExternalAPIs     // -> API Clients.
 	core.DBTool           // -> Storage (DB, Cache, etc).

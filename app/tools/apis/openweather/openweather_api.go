@@ -1,4 +1,4 @@
-package api_clients
+package openweather
 
 import (
 	"encoding/json"
@@ -9,14 +9,14 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 )
 
-type weatherAPIClient struct{}
+type OpenWeatherAPI struct{}
 
 func newWeatherAPIClient() core.WeatherAPI {
-	return &weatherAPIClient{}
+	return &OpenWeatherAPI{}
 }
 
 // T0D0 Lat lon
-func (cli *weatherAPIClient) GetCurrentWeather(ctx god.Ctx, lat, lon float64) (models.GetWeatherResponse, error) {
+func (cli *OpenWeatherAPI) GetCurrentWeather(ctx god.Ctx, lat, lon float64) (models.GetWeatherResponse, error) {
 	resp, err := http.Get("https://api.openweathermap.org/data/2.5/weather?lat=44.34&lon=10.99&appid=f4ecb7e7e30e9c1a3219d1236a63303a")
 	if err != nil {
 		return models.GetWeatherResponse{}, err
