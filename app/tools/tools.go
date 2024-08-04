@@ -2,7 +2,7 @@ package tools
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/api_clients"
+	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
 )
 
@@ -19,11 +19,11 @@ var _ core.Tools = &Tools{}
 //
 // Well defined Tools make the business logic easier to read and understand.
 type Tools struct {
-	core.ExternalAPIs     // -> API Clients.
+	core.APIs             // -> API Clients.
 	core.DBTool           // -> Storage (DB, Cache, etc).
 	core.TLSTool          // -> Holds and retrieves data for TLS communication.
 	core.CtxTool          // -> Manages context.
-	core.FileManager      // -> Creates folders and files.
+	core.FileManager      // -> Creates folders and file s.
 	core.ModelConverter   // -> Converts between models and PBs.
 	core.PwdHasher        // -> Hashes and compares passwords.
 	core.RateLimiter      // -> Limits rate of requests.
@@ -37,28 +37,31 @@ type Tools struct {
 func Setup(cfg *core.Config) *Tools {
 	tools := Tools{}
 
-	tools.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
+	// APIs.
+	tools.APIs = apis.NewAPIs()
 
+	// DBs.
 	sqlDB := sqldb.NewSqlDB(&cfg.DBCfg)
 	tools.DBTool = sqldb.NewDBTool(sqlDB)
 
-	tools.ExternalAPIs = api_clients.NewAPIClients()
+	// Security.
+	tools.TLSTool = NewTLSTool(&cfg.TLSCfg)
 
+	// Request handling.
 	tools.CtxTool = NewCtxTool()
-	tools.FileManager = NewFileManager("etc/data/")
-
-	tools.ModelConverter = NewModelConverter()
-	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
-
 	tools.RequestPaginator = NewRequestsPaginator(1, 10) // TODO - Config
 	tools.RequestValidator = NewProtoRequestValidator()
 
-	tools.TLSTool = NewTLSTool(&cfg.TLSCfg)
-
+	// Auth -> JWT Tokens.
 	tools.TokenGenerator = NewJWTGenerator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
 	tools.TokenValidator = NewJWTValidator(tools.CtxTool, cfg.JWTCfg.Secret)
 
+	// Other utilities.
 	tools.ShutdownJanitor = NewShutdownJanitor()
+	tools.ModelConverter = NewModelConverter()
+	tools.FileManager = NewFileManager("etc/data/")
+	tools.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
+	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
 
 	return &tools
 }

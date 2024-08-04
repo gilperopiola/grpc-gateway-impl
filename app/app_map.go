@@ -65,7 +65,7 @@ var (
 // These are all of the actions that any Tools holder can perform.
 // Concrete implementations are in the tools pkg.
 var (
-	_ core.ExternalAPIs
+	_ core.APIs
 	_ core.AnyDB
 	_ core.DBTool
 	_ core.TLSTool

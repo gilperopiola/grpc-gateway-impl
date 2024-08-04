@@ -1,4 +1,4 @@
-package openweather
+package apimodels
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*    - OpenWeatherMap API Models -    */

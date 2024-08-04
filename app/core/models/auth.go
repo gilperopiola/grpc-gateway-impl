@@ -30,6 +30,10 @@ type Claims struct {
 	Role     Role   `json:"role"`
 }
 
+type TokenClaims interface {
+	GetUserInfo() (id, username string)
+}
+
 func (c *Claims) GetUserInfo() (string, string) {
 	return c.ID, c.Username
 }

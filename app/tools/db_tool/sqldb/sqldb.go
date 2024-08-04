@@ -92,7 +92,7 @@ var createDBAdapter = func(cfg *core.DBCfg) func() {
 
 func (sdb *sqlDB) GetInnerDB() any { return sdb.DB }
 
-func (sdb *sqlDB) Association(column string) core.SqlDBAssociation { return sdb.DB.Association(column) }
+func (sdb *sqlDB) Association(column string) core.SqlDBAssoc { return sdb.DB.Association(column) }
 
 func (sdb *sqlDB) Count(value *int64) core.SqlDB { return &sqlDB{sdb.DB.Count(value)} }
 

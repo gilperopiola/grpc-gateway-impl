@@ -37,7 +37,7 @@ func NewJWTValidator(ctxTool core.CtxTool, secret string) core.TokenValidator {
 
 // Validates a JWT Token. Returns the Claims if valid, or a GRPC error if not.
 // Errors returned can be Unauthenticated, PermissionDenied or Unknown.
-func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) (core.TokenClaims, error) {
+func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) (models.TokenClaims, error) {
 	bearer, err := v.getBearer(ctx)
 	if err != nil {
 		return nil, err
