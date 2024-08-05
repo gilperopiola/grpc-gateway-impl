@@ -14,16 +14,16 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ core.SqlDB = (*sqlDB)(nil)
+var _ core.SqlDB = &sqlDB{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - SQL Database -          */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// The SQL DB Tool holds a SQL Database object/connection.
+// The SQL DB Tool holds a SQL connection.
 //
-// -> DB Tool = High Level Operations (e.g. CreateUser, GetUser, GetUsers)
-// -> DB = Low Level Operations (e.g. Insert, Find, Count)
+// -> core.DBTool = High-level, domain-specific operations (e.g. CreateUser, GetUser, GetUsers)
+// -> SqlDB = Low-level, domain-free operations (e.g. Insert, Find, Count)
 
 type sqlDB struct {
 	*gorm.DB
@@ -178,8 +178,8 @@ func (sdb *sqlDB) Scopes(fns ...func(core.SqlDB) core.SqlDB) core.SqlDB {
 	return &sqlDB{sdb.DB.Scopes(adaptedFns...)}
 }
 
+// Calling the actual gorm WithContext func makes our SQLOptions fail to apply for some reason. T0D0.
 func (sdb *sqlDB) WithContext(ctx god.Ctx) core.SqlDB {
-	// Calling the actual gorm WithContext func makes our SQLOptions fail to apply for some reason. T0D0.
 	return &sqlDB{sdb.DB}
 }
 

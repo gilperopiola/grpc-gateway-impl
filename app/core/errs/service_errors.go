@@ -11,60 +11,68 @@ import (
 /*          - Service Errors -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// -> Service Errors have to be GRPC 'status' errors, as our Service speaks GRPC.
-// -> But we want to have our own custom errors, so we first make a ServiceErr and then .Error() it as the GRPC Status message.
-
+// Our Service Errors must be GRPC 'Status' errors, as our Service speaks GRPC.
+//
+// But we also want to have our own custom errors,
+// so we first make a ServiceErr and then .Error() it as the GRPC Status message.
 type ServiceErr struct {
-	Err      error
-	Code     codes.Code
-	Metadata string // Holds relevant info like the route or sth.
+	Err    error
+	Status codes.Code
+	Info   string
 }
 
-// Returns a new ServiceError inside of a GRPC error 'status'.
-func NewGRPCServiceErr(code codes.Code, err error, optionalMD ...string) error {
-	md := code.String()
-	if len(optionalMD) > 0 {
-		md = optionalMD[0]
+// Returns an error with a GRPC Status code.
+func NewGRPCError[ErrT any](code codes.Code, err ErrT, optionalInfo ...string) error {
+	info := firstOrDefault(optionalInfo, code.String())
+	return omitError(status.New(code, ServiceErr{err, code, info}.Unwrap().Error()).WithDetails()).Err()
+}
+
+func omitError(status *status.Status, err error) *status.Status {
+	return status
+}
+
+func firstOrDefault(slice []string, fallback string) string {
+	if len(slice) > 0 {
+		return slice[0]
 	}
-	return status.Error(code, ServiceErr{err, code, md}.Unwrap().Error())
+	return fallback
 }
 
 func (serr ServiceErr) Error() string {
-	if serr.Metadata == "" {
+	if serr.Info == "" {
 		return serr.Unwrap().Error()
 	}
-	return fmt.Sprintf("%s -> %v", serr.Metadata, serr.Unwrap())
+	return fmt.Sprintf("%s -> %v", serr.Info, serr.Unwrap())
 }
 
 func (serr ServiceErr) Unwrap() error {
 	if serr.Err != nil {
 		return serr.Err
 	}
-	return fmt.Errorf(serr.Code.String())
+	return fmt.Errorf(serr.Status.String())
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-var (
-	GRPCUsersDBCall = func(err error, route string) error {
-		return NewGRPCServiceErr(codes.Unknown, err, route, "users")
-	}
-	GRPCGroupsDBCall = func(err error, route string) error {
-		return NewGRPCServiceErr(codes.Unknown, err, route, "groups")
-	}
-	GRPCGeneratingToken = func(err error) error {
-		return NewGRPCServiceErr(codes.Unknown, err)
-	}
-	GRPCUnauthenticated = func() error {
-		return NewGRPCServiceErr(codes.Unauthenticated, nil)
-	}
-	GRPCNotFound = func(resource string) error {
-		return NewGRPCServiceErr(codes.NotFound, fmt.Errorf("%s not found", resource))
-	}
-	GRPCAlreadyExists = func(resource string) error {
-		return NewGRPCServiceErr(codes.AlreadyExists, fmt.Errorf("%s already exists", resource))
-	}
-	GRPCInternal = func(msg string) error {
-		return NewGRPCServiceErr(codes.Internal, fmt.Errorf(msg))
-	}
-)
+func GRPCNotFound[T int | string](resource string, identif T) error {
+	return NewGRPCError(codes.NotFound, fmt.Errorf("%v %s not found", identif, resource))
+}
+
+func GRPCUsersDBCall(err error, route string) error {
+	return NewGRPCError(codes.Unknown, err, route, "users")
+}
+func GRPCGroupsDBCall(err error, route string) error {
+	return NewGRPCError(codes.Unknown, err, route, "groups")
+}
+func GRPCGeneratingToken(err error) error {
+	return NewGRPCError(codes.Unknown, err)
+}
+func GRPCUnauthenticated() error {
+	return NewGRPCError(codes.Unauthenticated, nil)
+}
+func GRPCAlreadyExists(resource string) error {
+	return NewGRPCError(codes.AlreadyExists, fmt.Errorf("%s already exists", resource))
+}
+func GRPCInternal(err error) error {
+	return NewGRPCError(codes.Internal, err)
+}

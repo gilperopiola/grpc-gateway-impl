@@ -59,7 +59,7 @@ func (s *AuthSubService) doAfterSignup(ctx god.Ctx, user *models.User) {
 func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
 	user, err := s.Tools.GetUser(ctx, sql.WithUsername(req.Username))
 	if s.Tools.IsNotFound(err) {
-		return nil, errUserNotFound()
+		return nil, errs.GRPCNotFound("user")
 	}
 	if err != nil || user == nil {
 		return nil, errCallingUsersDB(ctx, err)
@@ -71,7 +71,7 @@ func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginRe
 
 	token, err := s.Tools.GenerateToken(user.ID, user.Username, user.Role)
 	if err != nil {
-		return nil, errGeneratingToken(err)
+		return nil, errs.GRPCGeneratingToken(err)
 	}
 
 	return &pbs.LoginResponse{Token: token}, nil

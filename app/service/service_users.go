@@ -56,7 +56,8 @@ var (
 	errUserNotFound      = func() error { return errs.GRPCNotFound("user") }
 	errUserAlreadyExists = func() error { return errs.GRPCAlreadyExists("user") }
 	errCallingUsersDB    = func(ctx god.Ctx, err error) error {
+		route := core.RouteNameFromCtx(ctx)
 		core.LogUnexpected(err)
-		return errs.GRPCUsersDBCall(err, core.RouteNameFromCtx(ctx))
+		return errs.GRPCUsersDBCall(err, route)
 	}
 )
