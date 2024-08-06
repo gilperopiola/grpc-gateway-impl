@@ -20,14 +20,14 @@ type GroupsSubService struct {
 func (s *GroupsSubService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
 	groupOwnerID, err := god.ToIntAndErr(s.Tools.GetFromCtx(ctx, "user_id"))
 	if err != nil {
-		return nil, errs.GRPCInternal(err.Error())
+		return nil, errs.GRPCGroupsDBCall(err, "")
 	}
 
 	invitedUserIDs := god.Int32Slice(req.InvitedUserIds).ToIntSlice()
 
 	group, err := s.Tools.CreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
 	if err != nil {
-		return nil, errCallingGroupsDB(ctx, err)
+		return nil, errs.GRPCGroupsDBCall(err, core.RouteNameFromCtx(ctx))
 	}
 
 	return &pbs.CreateGroupResponse{Group: s.Tools.GroupToGroupInfoPB(group)}, nil
@@ -37,20 +37,10 @@ func (s *GroupsSubService) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs
 	group, err := s.Tools.GetGroup(ctx, sqldb.WithID(req.GroupId))
 	if err != nil {
 		if s.Tools.IsNotFound(err) {
-			return nil, errGroupNotFound()
+			return nil, errs.GRPCNotFound("group", int(req.GroupId))
 		}
-		return nil, errCallingGroupsDB(ctx, err)
+		return nil, errs.GRPCGroupsDBCall(err, core.RouteNameFromCtx(ctx))
 	}
 
 	return &pbs.GetGroupResponse{Group: s.Tools.GroupToGroupInfoPB(group)}, nil
 }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-var (
-	errGroupNotFound   = func() error { return errs.GRPCNotFound("group") }
-	errCallingGroupsDB = func(ctx god.Ctx, err error) error {
-		core.LogUnexpected(err)
-		return errs.GRPCGroupsDBCall(err, core.RouteNameFromCtx(ctx))
-	}
-)

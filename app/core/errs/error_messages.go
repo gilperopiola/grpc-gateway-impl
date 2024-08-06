@@ -4,7 +4,7 @@ package errs
 /*              - Errors -             */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// NOTE -> These are just strings, error messages, NOT actual errors.
+// NOTE -> These are just strings - error messages, NOT actual errors.
 
 const (
 

@@ -59,14 +59,14 @@ func (s *AuthSubService) doAfterSignup(ctx god.Ctx, user *models.User) {
 func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
 	user, err := s.Tools.GetUser(ctx, sql.WithUsername(req.Username))
 	if s.Tools.IsNotFound(err) {
-		return nil, errs.GRPCNotFound("user")
+		return nil, errs.GRPCNotFound("user", req.Username)
 	}
 	if err != nil || user == nil {
-		return nil, errCallingUsersDB(ctx, err)
+		return nil, errs.GRPCUsersDBCall(err, core.RouteNameFromCtx(ctx))
 	}
 
 	if !s.Tools.PasswordsMatch(req.Password, user.Password) {
-		return nil, errs.GRPCUnauthenticated()
+		return nil, errs.GRPCWrongLoginInfo()
 	}
 
 	token, err := s.Tools.GenerateToken(user.ID, user.Username, user.Role)

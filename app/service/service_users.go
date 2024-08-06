@@ -24,7 +24,7 @@ type UsersSubService struct {
 func (s *UsersSubService) GetUser(ctx god.Ctx, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
 	user, err := s.Tools.GetUser(ctx, sql.WithID(req.UserId))
 	if s.Tools.IsNotFound(err) {
-		return nil, errUserNotFound()
+		return nil, errUserNotFound(int(req.UserId))
 	}
 
 	return &pbs.GetUserResponse{User: s.Tools.UserToUserInfoPB(user)}, nil
@@ -52,8 +52,7 @@ func (s *UsersSubService) GetUsers(ctx god.Ctx, req *pbs.GetUsersRequest) (*pbs.
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 var (
-	errGeneratingToken   = errs.GRPCGeneratingToken
-	errUserNotFound      = func() error { return errs.GRPCNotFound("user") }
+	errUserNotFound      = func(id int) error { return errs.GRPCNotFound("user", id) }
 	errUserAlreadyExists = func() error { return errs.GRPCAlreadyExists("user") }
 	errCallingUsersDB    = func(ctx god.Ctx, err error) error {
 		route := core.RouteNameFromCtx(ctx)
