@@ -65,7 +65,7 @@ func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
 	}
 
 	if !strings.HasPrefix(bearer, "Bearer ") {
-		core.LogWeirdBehaviour(errs.AuthTokenMalformed)
+		core.LogStrange(errs.AuthTokenMalformed)
 		return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenMalformed)
 	}
 
@@ -106,7 +106,7 @@ func (v jwtValidator) canAccessRoute(route string, claims *models.Claims, req an
 	// These routes only allow admin users to go through.
 	case models.RouteAuthAdmin:
 		if claims.Role != models.AdminRole {
-			core.LogPotentialThreat("User " + claims.ID + " tried to access admin route " + route)
+			core.LogThreat("User " + claims.ID + " tried to access admin route " + route)
 			return status.Errorf(codes.PermissionDenied, errs.AuthRoleInvalid)
 		}
 
@@ -116,7 +116,7 @@ func (v jwtValidator) canAccessRoute(route string, claims *models.Claims, req an
 		return nil
 
 	default:
-		core.LogWeirdBehaviour("Auth for route " + route + " unhandled")
+		core.LogStrange("Auth for route " + route + " unhandled")
 		return status.Errorf(codes.Unknown, errs.AuthRouteInvalid)
 	}
 

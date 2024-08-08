@@ -177,10 +177,14 @@ type (
 
 	/* -~-~-~- Tools: Other -~-~-~- */
 
-	// Used to add and get values from a request's context.
+	// Used to add and get values from a request's context or headers.
 	CtxTool interface {
-		AddUserInfoToCtx(ctx god.Ctx, userID, username string) god.Ctx
+		AddToCtx(ctx god.Ctx, key, value string) god.Ctx
 		GetFromCtx(ctx god.Ctx, key string) (string, error)
+
+		AddUserInfoToCtx(ctx god.Ctx, userID, username string) god.Ctx
+		GetUserIDFromCtx(ctx god.Ctx) string
+		GetUsernameFromCtx(ctx god.Ctx) string
 	}
 
 	// File system operations.
@@ -216,20 +220,9 @@ type (
 		AddCleanupFuncWithErr(fn func() error)
 		Cleanup()
 	}
-
-	// Unimplemented.
-	KVTool interface {
-		Get(key string) (string, error)
-		Set(key, value string) error
-	}
-
-	// Unimplemented.
-	CtxKVTool interface {
-		KVTool
-		AddUserInfoToInnerCtx(userID, username string)
-		GetFromInnerCtx(key string) (string, error)
-	}
 )
+
+/* -~-~-~- Other types - SQL and Mongo ~-~-~- */
 
 // This isn't used like the other Tools, as it's instantiated per request.
 // The implementation lives on the tools pkg.
@@ -252,19 +245,43 @@ type PaginatedRequest interface {
 	//	optional int32 page_size = 3 	[json_name = "page_size"];
 }
 
-/* -~-~-~- Other types - not as important ~-~-~- */
+/* -~-~-~- Other types - SQL and Mongo ~-~-~- */
 
 type (
-	SqlDBOpt func(SqlDB)
-	SqlRow   interface{ Scan(dest ...any) error }
-	SqlRows  interface {
+	SqlDBOpt   func(SqlDB)   // Optional functions to apply to a query.
+	MongoDBOpt func(*bson.D) // Optional functions to apply to a query.
+
+	SqlRow  interface{ Scan(dest ...any) error }
+	SqlRows interface {
 		Next() bool
-		Scan(dest ...any) error
+		Scan(...any) error
 		Close() error
 	}
-	SqlDBAssoc interface {
-		Append(values ...interface{}) error
+	SqlDBAssoc interface{ Append(...interface{}) error }
+)
+
+/* -~-~-~- Other types - Unimplemented Tools ~-~-~- */
+
+type (
+
+	// Unimplemented. Idea for a general key-value store interface,
+	// with just Get and Set methods.
+	KVTool interface {
+		Get(key string) (string, error)
+		Set(key, value string) error
 	}
 
-	MongoDBOpt func(*bson.D) // Optional functions to apply to a query.
+	// Unimplemented. The idea is to use the same Get and Set signature for all KV Tool interfaces,
+	// and each implementation can also have its own methods.
+	// Then we can write functions that accept a KVTool and works for any implementation.
+	CtxKVTool interface {
+		KVTool
+		CtxTool
+	}
+
+	// Unimplemented.
+	RedisKVTool interface {
+		KVTool
+		// RedisTool?
+	}
 )

@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
@@ -12,17 +13,18 @@ import (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
 // ╭───────────────────┬───────────────────┬────────────┬───────────────────────────────────────╮
-// │ Field             │ Type              │ Implements │ Contains                              │
+// │ Field             │ Type              │ Interface  │ Contains                              │
 // ├───────────────────┼───────────────────┼────────────┼───────────────────────────────────────┤
 // │ Configuration     │ *core.Config      │            │ All settings, split by module.        │
 // │ GRPC-HTTP Servers │ *servers.Servers  │            │ Our GRPC and HTTP Servers.            │
 // │ Main Service      │ *service.Services │            │ Endpoints and business logic.         │
 // │ Tools             │ *tools.Tools      │ core.Tools │ Specific actions used by our Service. │
 // ╰───────────────────┴───────────────────┴────────────┴───────────────────────────────────────╯
+// - We use a global Logger, so we don't store it anywhere.
 
 // ⭐️ Our main App.
 //
-// It doesn't do anything, we just use it to structure our components.
+// Holds everything - does nothing.
 type App struct {
 	Config  *core.Config
 	Servers *servers.Servers
@@ -60,7 +62,7 @@ func Setup() (runAppFunc, cleanUpFunc) {
 	func() {
 		app.Tools.AddCleanupFunc(app.Tools.CloseDB)
 		app.Tools.AddCleanupFunc(app.Servers.Shutdown)
-		app.Tools.AddCleanupFuncWithErr(core.SyncLogger)
+		app.Tools.AddCleanupFuncWithErr(utils.SyncLogger)
 	}()
 
 	return app.Servers.Run, app.Tools.Cleanup

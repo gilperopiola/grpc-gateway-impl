@@ -20,14 +20,14 @@ type GroupsSubService struct {
 func (s *GroupsSubService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
 	groupOwnerID, err := god.ToIntAndErr(s.Tools.GetFromCtx(ctx, "user_id"))
 	if err != nil {
-		return nil, errs.GRPCGroupsDBCall(err, "")
+		return nil, errs.GRPCFromDB(err, core.RouteNameFromCtx(ctx))
 	}
 
 	invitedUserIDs := god.Int32Slice(req.InvitedUserIds).ToIntSlice()
 
 	group, err := s.Tools.CreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
 	if err != nil {
-		return nil, errs.GRPCGroupsDBCall(err, core.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, core.RouteNameFromCtx(ctx))
 	}
 
 	return &pbs.CreateGroupResponse{Group: s.Tools.GroupToGroupInfoPB(group)}, nil
@@ -39,7 +39,7 @@ func (s *GroupsSubService) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs
 		if s.Tools.IsNotFound(err) {
 			return nil, errs.GRPCNotFound("group", int(req.GroupId))
 		}
-		return nil, errs.GRPCGroupsDBCall(err, core.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, core.RouteNameFromCtx(ctx))
 	}
 
 	return &pbs.GetGroupResponse{Group: s.Tools.GroupToGroupInfoPB(group)}, nil

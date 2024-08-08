@@ -57,6 +57,6 @@ var (
 	errCallingUsersDB    = func(ctx god.Ctx, err error) error {
 		route := core.RouteNameFromCtx(ctx)
 		core.LogUnexpected(err)
-		return errs.GRPCUsersDBCall(err, route)
+		return errs.GRPCFromDB(err, route)
 	}
 )

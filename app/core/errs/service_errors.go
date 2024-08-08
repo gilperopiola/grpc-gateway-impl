@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,10 +31,11 @@ type ServiceErr struct {
 //
 //	Example: "This is some additional information: actual error message"
 func (serr ServiceErr) Error() string {
-	errorMsg := firstOrDefault(serr.Info, serr.Status.String())
+	errorMsg := utils.FirstOrDefault(serr.Info, serr.Status.String())
 	return fmt.Sprintf("%v: %s", errorMsg, serr.Unwrap())
 }
 
+// Returns the inner error, or the status code as an error.
 func (serr ServiceErr) Unwrap() error {
 	if serr.Err != nil {
 		return serr.Err
@@ -47,37 +49,26 @@ func GRPCNotFound[T int | string](resource string, identif T) error {
 	return NewGRPCError(codes.NotFound, fmt.Errorf("%s %v not found", resource, identif))
 }
 
+// Translates to HTTP 409 Conflict Error.
 func GRPCAlreadyExists(what string) error {
 	return NewGRPCError(codes.AlreadyExists, errors.New(what+" already exists"))
 }
 
-// We return this on invalid password on Login - Auth Service.
-// This can also mean a wrong username, but not a non-existing one.
+// We return this on username or password mismatch on the Auth Service's Login.
 func GRPCWrongLoginInfo() error {
-	return NewGRPCError(codes.Unauthenticated, errors.New("wrong login information"))
+	return NewGRPCError(codes.Unauthenticated, errors.New("wrong username or password"))
 }
 
-// We also return this from the Login, but after checking the password.
-// Don't really know what could cause this, but it may happen.
+// We also return this from the Login, but after succesfully matching the credentials.
+// Don't really know what could cause this, but the Login is kind of important so
+// better be covered.
 func GRPCGeneratingToken(err error) error {
 	return NewGRPCError(codes.Unknown, err)
 }
 
-// We return this on unexpected DB errors from the Users Service.
-func GRPCUsersDBCall(err error, route string) error {
-	return NewGRPCError(codes.Internal, err, route)
-}
-
-// We return this on unexpected DB errors from the Groups Service.
-func GRPCGroupsDBCall(err error, route string) error {
+// We return this on unexpected errors coming from the DB Layer.
+func GRPCFromDB(err error, route string) error {
 	return NewGRPCError(codes.Internal, err, route)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-func firstOrDefault(slice []string, fallback string) string {
-	if len(slice) > 0 {
-		return slice[0]
-	}
-	return fallback
-}

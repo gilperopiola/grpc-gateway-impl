@@ -49,10 +49,11 @@ func newRequestValidationInterceptor(tools core.Tools) grpc.UnaryServerIntercept
 // Returns a GRPC Interceptor that validates JWT tokens.
 // It adds the UserID and Username to the request's context.
 func newTokenValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
-
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		route := core.RouteNameFromGRPC(i.FullMethod)
 
+		// Public routes skip token validation.
+		// That means the context will not have the user's info.
 		if core.AuthForRoute(route) != models.RouteAuthPublic {
 			claims, err := tools.ValidateToken(c, req, route)
 			if err != nil {
@@ -87,7 +88,7 @@ func newLoggingInterceptor() grpc.UnaryServerInterceptor {
 func newCtxCancelledInterceptor() grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		if err := c.Err(); err != nil {
-			return nil, status.Errorf(codes.Canceled, err.Error())
+			return nil, status.Error(codes.Canceled, err.Error())
 		}
 
 		// Call next handler.
@@ -95,13 +96,12 @@ func newCtxCancelledInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-// Returns a GRPC Interceptor that sets a rate limit on the server.
+// Returns a GRPC Interceptor that limits the request-processing-rate of the server.
 func newRateLimitingInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		if ok := tools.AllowRate(); !ok {
-			err := status.Errorf(codes.ResourceExhausted, errs.RateLimitedMsg)
-			core.LogUnexpected(err)
-			return nil, err
+			core.LogStrange("rate limit exceeded")
+			return nil, status.Error(codes.ResourceExhausted, errs.RateLimitedMsg)
 		}
 
 		// Call next handler.
@@ -121,7 +121,7 @@ func newPanicRecovererInterceptor() grpc.UnaryServerInterceptor {
 		defer func() {
 			if err := recover(); err != nil || !handlerFinishedOK {
 				zap.L().Error("GRPC Panic", zap.Any("error", err), zap.Any("context", c))
-				err = status.Errorf(codes.Internal, errs.PanicMsg)
+				err = status.Error(codes.Internal, errs.PanicMsg)
 			}
 		}()
 

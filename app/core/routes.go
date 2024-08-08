@@ -46,14 +46,16 @@ var Routes = map[string]Route{
 
 	// Users Service
 	"GetUser":     {models.RouteAuthSelf},
-	"GetUsers":    {models.RouteAuthAdmin},
 	"UpdateUser":  {models.RouteAuthSelf},
 	"DeleteUser":  {models.RouteAuthSelf},
 	"GetMyGroups": {models.RouteAuthSelf},
 
+	"GetUsers": {models.RouteAuthAdmin},
+
 	// Groups Service
+	"GetGroup": {models.RouteAuthUser},
+
 	"CreateGroup":       {models.RouteAuthSelf},
-	"GetGroup":          {models.RouteAuthUser},
 	"InviteToGroup":     {models.RouteAuthSelf},
 	"AnswerGroupInvite": {models.RouteAuthSelf},
 }
@@ -63,7 +65,7 @@ func RouteExists(routeName string) bool {
 	if _, ok := Routes[routeName]; ok {
 		return true
 	}
-	LogWeirdBehaviour("Route not found: " + routeName)
+	LogStrange("Route not found: " + routeName)
 	return false
 }
 
@@ -73,7 +75,7 @@ func AuthForRoute(routeName string) models.RouteAuth {
 	if route, ok := Routes[routeName]; ok {
 		return route.Auth
 	}
-	LogWeirdBehaviour("Route with Auth not found: " + routeName)
+	LogStrange("Route with Auth not found: " + routeName)
 	return models.RouteAuthAdmin
 }
 
@@ -85,7 +87,7 @@ func AuthForRoute(routeName string) models.RouteAuth {
 func RouteNameFromGRPC(method string) string {
 	i := strings.LastIndex(method, "/")
 	if i == -1 {
-		LogWeirdBehaviour("No '/' found in GRPC Method " + method)
+		LogStrange("No '/' found in GRPC Method " + method)
 		return ""
 	}
 	return method[i+1:]
@@ -96,6 +98,6 @@ func RouteNameFromCtx(ctx god.Ctx) string {
 	if method, ok := grpc.Method(ctx); ok {
 		return RouteNameFromGRPC(method)
 	}
-	LogWeirdBehaviour("No GRPC Method found in context")
+	LogStrange("No GRPC Method found in context")
 	return ""
 }

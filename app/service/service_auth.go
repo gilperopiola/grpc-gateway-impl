@@ -62,7 +62,7 @@ func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginRe
 		return nil, errs.GRPCNotFound("user", req.Username)
 	}
 	if err != nil || user == nil {
-		return nil, errs.GRPCUsersDBCall(err, core.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, core.RouteNameFromCtx(ctx))
 	}
 
 	if !s.Tools.PasswordsMatch(req.Password, user.Password) {

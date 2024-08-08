@@ -3,12 +3,12 @@ package core
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -26,13 +26,13 @@ const LogsTimeLayout = "02/01/06 15:04:05"
 
 // Replaces the global Logger in the zap pkg with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
-func SetupLogger(cfg *LoggerCfg) *zap.Logger {
+func SetupLogger(cfg *LoggerCfg, opts ...zap.Option) *zap.Logger {
 
 	// Default options: Add stacktrace and use the default clock.
-	opts := []zap.Option{
+	opts = append([]zap.Option{
 		zap.AddStacktrace(zapcore.Level(cfg.LevelStackT)),
 		zap.WithClock(zapcore.DefaultClock),
-	}
+	}, opts...)
 
 	logger, err := newZapConfig(cfg).Build(opts...)
 	if err != nil {
@@ -45,7 +45,7 @@ func SetupLogger(cfg *LoggerCfg) *zap.Logger {
 }
 
 func LogGRPC(route string, duration time.Duration, err error) {
-	l := newLog(withGRPC(route), withDuration(duration))
+	l := prepareLog(withGRPC(route), withDuration(duration))
 	if err == nil {
 		l.Info("GRPC Request")
 	} else {
@@ -60,7 +60,7 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 		handler.ServeHTTP(rw, req)
 		duration := time.Since(start)
 
-		l := newLog(withHTTP(req), withDuration(duration))
+		l := prepareLog(withHTTP(req), withDuration(duration))
 
 		customRW := rw.(HTTPRespWriter)
 		if customRW.GetWrittenStatus() < 400 {
@@ -70,17 +70,6 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 			l.Error("HTTP Error", zap.Error(err))
 		}
 	})
-}
-
-// On Windows, I'm getting a *fs.PathError when calling Sync on the logger on shutdown.
-// This just wraps zap.L().Sync() and ignores that error.
-// See https://github.com/uber-go/zap/issues/991
-func SyncLogger() error {
-	var pathErr *fs.PathError
-	if err := zap.L().Sync(); err != nil && !errors.As(err, &pathErr) {
-		return err
-	}
-	return nil
 }
 
 // Prefix used when Infof or Infoln are called.
@@ -100,31 +89,29 @@ func ServerLogf(s string, args ...any) {
 
 func LogDebug(msg string) {
 	if Debug {
-		newLog(withMsg(msg)).Info("🐞 Debug")
+		prepareLog(withMsg(msg)).Info("🐞 Debug")
 	}
 }
 
 // Used to log unexpected errors, like panic recoveries or some connection errors.
 func LogUnexpected(err error) {
-	newLog(withError(err)).Error("🛑 Unexpected Error")
+	prepareLog(withError(err)).Error("🛑 Unexpected Error")
 }
 
 // Helps keeping code clean and readable, lets you omit the error check
-// on the caller when you just need to log the err.
-// Use this is for errors that are expected.
+// on the caller when you can get away with just logging it.
+// Use this is for errors that are somewhat expected.
 func LogIfErr(err error, optionalFmt ...string) {
-	if err != nil {
-		format := "untyped error: %v"
-		if len(optionalFmt) > 0 {
-			format = optionalFmt[0]
-		}
-		zap.S().Errorf(format, err)
+	if err == nil {
+		return
 	}
+	format := utils.FirstOrDefault(optionalFmt, "untyped error: %v")
+	zap.S().Errorf(format, err)
 }
 
 // Used to log unexpected errors that also should trigger a panic.
 func LogFatal(err error) {
-	newLog(withError(err), withStacktrace()).Fatal("🛑 Fatal Error")
+	prepareLog(wErr(err), wStack()).Fatal("🛑 Fatal Error")
 }
 
 // Helps keeping code clean and readable, lets you omit the error check on the caller.
@@ -133,33 +120,30 @@ func LogFatalIfErr(err error, optionalFmt ...string) {
 		return
 	}
 
-	format := "untyped fatal: %v"
-	if len(optionalFmt) > 0 {
-		format = optionalFmt[0]
-	}
-
+	format := utils.FirstOrDefault(optionalFmt, "untyped fatal: %v")
 	LogFatal(fmt.Errorf(format, err))
 }
 
 func LogImportant(msg string) {
-	newLog(withMsg(msg)).Info("⭐ Important!")
+	prepareLog(withMsg(msg)).Info("⭐-⭐-⭐")
 }
 
 // Used to log strange behaviour that isn't necessarily bad or an error.
-func LogWeirdBehaviour(msg string, info ...any) {
-	newLog(withMsg(msg), withData(info...)).Warn("🤔 Weird")
+func LogStrange(msg string, info ...any) {
+	prepareLog(withMsg(msg), withData(info...)).Warn("🤔 Hmm... Strange")
 }
 
-// Used to log things that shouldn't happen, like someone trying to access admin endpoints.
-func LogPotentialThreat(msg string) {
-	newLog(withMsg(msg)).Warn("🚨 Potential Threat")
+// Used to log security-related things that shouldn't happen,
+// like a non-admin trying to access admin endpoints.
+func LogThreat(msg string) {
+	prepareLog(withMsg(msg)).Warn("🚨 Threat")
 }
 
-func LogResult(operation string, err error) {
+func LogResult(ofWhat string, err error) {
 	if err == nil {
-		newLog().Info("✅ " + operation + " succeeded!")
+		prepareLog().Info("✅ " + ofWhat + " succeeded!")
 	} else {
-		newLog(withError(err)).Error("❌ " + operation + " failed!")
+		prepareLog(withError(err)).Error("❌ " + ofWhat + " failed!")
 	}
 }
 
@@ -179,8 +163,7 @@ func WarnIfErr(err error, optionalFmt ...string) {
 /*               - Etc -               */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Returns a new zap.Config.
-// You can pass it custom options like the log level.
+// Returns a new zap.Config based on our LoggerCfg.
 func newZapConfig(cfg *LoggerCfg) zap.Config {
 
 	// Start off with a default dev/prod config.
@@ -207,18 +190,19 @@ func newZapConfig(cfg *LoggerCfg) zap.Config {
 	return zapCfg
 }
 
-// Only logs with a level equal or higher than the one we set in the config
-// will be logged.
-// For example, if the config is 'warn' no info or debug logs will be logged.
+// Only logs with a level equal or higher than the one we set in the config will be logged.
+// For example -> if the config is 1, warn, then no info or debug logs will be logged.
 var LogLevels = map[string]int{
-	"debug": int(zap.DebugLevel), "info": int(zap.InfoLevel), "warn": int(zap.WarnLevel),
-	"error": int(zap.ErrorLevel), "dpanic": int(zap.DPanicLevel), "panic": int(zap.PanicLevel),
+	"debug": int(zap.DebugLevel), "info": int(zap.InfoLevel),
+	"warn": int(zap.WarnLevel), "error": int(zap.ErrorLevel),
 	"fatal": int(zap.FatalLevel),
 }
 
-// The selected DB Log Level will be used to log all SQL queries.
-// 'silent' disables all logs, 'info' logs everything,
-// 'warn' logs errors and warnings, and 'error' will only log errors.
+// Gorm has its own set of log levels, the logging of SQL queries
+// depends on the config.
+//
+// silent 	-> disables all logs 		| info -> 	logs everything
+// warn 	-> logs errors and warnings | error -> 	only logs errors.
 var DBLogLevels = map[string]int{
 	"silent": int(gormLogger.Silent), "info": int(gormLogger.Info),
 	"warn": int(gormLogger.Warn), "error": int(gormLogger.Error),

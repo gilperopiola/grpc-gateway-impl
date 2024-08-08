@@ -24,7 +24,7 @@ var AppVersion = "v1.0" // TODO - Makefile should pass this as an env var.
 var GRPCPort = ":50053"
 var HTTPPort = ":8083"
 var TLSEnabled = false
-var Debug = true
+var Debug = false
 
 // These are our non-global Configs 🌍❌
 // -> The App loads an instance of this on startup and passes it around.
@@ -99,7 +99,7 @@ func loadTLSConfig() TLSCfg {
 func loadLoggerConfig() LoggerCfg {
 	return LoggerCfg{
 		Level:       LogLevels[envVar("LOGGER_LEVEL", "info")],
-		LevelStackT: LogLevels[envVar("LOGGER_LEVEL_STACKTRACE", "dpanic")],
+		LevelStackT: LogLevels[envVar("LOGGER_LEVEL_STACKTRACE", "fatal")],
 		LogCaller:   envVar("LOGGER_LOG_CALLER", false),
 	}
 }

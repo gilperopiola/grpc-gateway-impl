@@ -1,6 +1,6 @@
 module github.com/gilperopiola/grpc-gateway-impl
 
-go 1.20
+go 1.22.3
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.33.0-20240401165935-b983156c5e99.1

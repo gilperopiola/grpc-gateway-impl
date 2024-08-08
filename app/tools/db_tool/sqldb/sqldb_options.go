@@ -34,7 +34,7 @@ func WithUsername(username string) core.SqlDBOpt {
 
 func WithCondition(operation Operation, field, value string) core.SqlDBOpt {
 	if field == "" {
-		core.LogWeirdBehaviour("Empty field in SQL condition -> value = " + value)
+		core.LogStrange("Empty field in SQL condition -> value = " + value)
 		return func(db core.SqlDB) {} // No-op
 	}
 
