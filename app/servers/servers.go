@@ -7,6 +7,7 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -75,15 +76,22 @@ func (s *Servers) Run() {
 
 func (s *Servers) runGRPC() {
 	listenOnTCP := func() (any, error) { return net.Listen("tcp", core.GRPCPort) }
-	result, err := core.FallbackAndRetry(listenOnTCP, func() {}, 5)
+	result, err := utils.Retry(listenOnTCP, 5)
 	core.LogFatalIfErr(err)
 
-	lis := result.(net.Listener)
-	core.LogFatalIfErr(s.GRPC.Serve(lis))
+	listener := result.(net.Listener)
+	core.LogFatalIfErr(s.GRPC.Serve(listener))
 }
 
 func (s *Servers) runHTTP() {
-	if err := core.Retry(s.HTTP.ListenAndServe, 5); err != nil && err != http.ErrServerClosed {
+
+	// Retry needs a different signature for the 1st parameter.
+	listenAndServe := func() (any, error) {
+		return nil, s.HTTP.ListenAndServe()
+	}
+
+	_, err := utils.Retry(listenAndServe, 5, utils.DontLog())
+	if err != nil && err != http.ErrServerClosed {
 		core.LogFatal(err)
 	}
 }

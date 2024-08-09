@@ -18,7 +18,7 @@ const (
 
 	FailedToCreateProtoVal = "Failed to create Proto Validator: %v"
 	FailedToCreateLogger   = "Failed to create Logger: %v"
-	FailedToConnectToDB    = "Failed to connect to the DB: %v"
+	FailedDBConn           = "Failed to connect to the DB: %v"
 
 	FailedToLoadTLSCreds  = "Failed to load TLS Creds: %v"
 	FailedToReadTLSCert   = "Failed to read TLS Cert: %v"

@@ -23,7 +23,7 @@ type sqlDBLogger struct {
 }
 
 // Returns a new instance of *sqlDBLogger with the given log level.
-func newSqlDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
+func newDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
 	return &sqlDBLogger{
 		zapLogger,
 		gormLogger.LogLevel(level),

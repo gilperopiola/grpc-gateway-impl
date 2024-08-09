@@ -8,6 +8,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"go.uber.org/zap"
 
 	"gorm.io/driver/mysql"
@@ -35,23 +36,25 @@ func NewSqlDB(cfg *core.DBCfg) core.SqlDB {
 	// We use our Logger but wrapped inside of an Adapter for gorm.
 	// Translate mySQL errors to gorm.
 	gormCfg := &gorm.Config{
-		Logger:         newSqlDBLogger(zap.L(), cfg.LogLevel),
+		Logger:         newDBLogger(zap.L(), cfg.LogLevel),
 		TranslateError: true,
 	}
+
+	// We need to adapt our connectToDB and createDB funcs so they can be used with the Retrier.
+	var (
+		connectToDB = getConnectToDB(cfg.GetSQLConnString(), gormCfg)
+		createDB    = getCreateDB(cfg)
+	)
 
 	// We try to connect to the DB directly.
 	// If it fails, we try to connect without a schema and then create the DB.
 	// We wait a bit, then we try to connect directly again.
 	//
-	// This process is retried a few times (with exponential backoff) until
-	// the connection succeeds or we run out of retries.
-	connectToDB := connectToDBAdapter(cfg.GetSQLConnString(), gormCfg)
-	createDB := createDBAdapter(cfg)
+	// This process is retried a few times until it succeeds or we run out of retries.
+	dbConn, err := utils.Retry(connectToDB, cfg.Retries, utils.Fallback(createDB))
+	core.LogFatalIfErr(err, errs.FailedDBConn)
 
-	result, err := core.FallbackAndRetry(connectToDB, createDB, cfg.Retries)
-	core.LogFatalIfErr(err, errs.FailedToConnectToDB)
-
-	sqlDB := result.(*sqlDB)
+	sqlDB := dbConn.(*sqlDB)
 
 	if cfg.EraseAllData {
 		sqlDB.Unscoped().Delete(models.AllDBModels, nil)
@@ -69,7 +72,7 @@ func NewSqlDB(cfg *core.DBCfg) core.SqlDB {
 }
 
 // Adapts our connectToDB func so it can be used with the Retrier.
-var connectToDBAdapter = func(connString string, gormCfg *gorm.Config) func() (any, error) {
+var getConnectToDB = func(connString string, gormCfg *gorm.Config) func() (any, error) {
 	return func() (any, error) {
 		gormDB, err := gorm.Open(mysql.Open(connString), gormCfg)
 		return &sqlDB{gormDB}, err
@@ -77,7 +80,7 @@ var connectToDBAdapter = func(connString string, gormCfg *gorm.Config) func() (a
 }
 
 // Adapts our createDB func so it can be used with the Retrier.
-var createDBAdapter = func(cfg *core.DBCfg) func() {
+var getCreateDB = func(cfg *core.DBCfg) func() {
 	return func() {
 		if db, err := sql.Open("mysql", cfg.GetSQLConnStringNoSchema()); err == nil {
 			defer db.Close()
@@ -119,11 +122,12 @@ func (sdb *sqlDB) Save(value any) core.SqlDB { return &sqlDB{sdb.DB.Save(value)}
 func (sdb *sqlDB) Scan(to any) core.SqlDB { return &sqlDB{sdb.DB.Scan(to)} }
 
 func (sdb *sqlDB) Close() {
-	innerSQLDB, err := sdb.DB.DB()
+	innerDB, err := sdb.DB.DB()
 	core.LogIfErr(err, errs.FailedToGetSQLDB)
 
-	err = innerSQLDB.Close()
-	core.LogIfErr(err, errs.FailedToCloseSQLDB)
+	if innerDB != nil {
+		core.LogIfErr(innerDB.Close(), errs.FailedToCloseSQLDB)
+	}
 }
 
 func (sdb *sqlDB) Delete(val any, where ...any) core.SqlDB {
@@ -144,8 +148,7 @@ func (sdb *sqlDB) FirstOrCreate(out any, where ...any) core.SqlDB {
 
 func (sdb *sqlDB) InsertAdmin(hashedPwd string) {
 	admin := models.User{Username: "admin", Password: hashedPwd, Role: models.AdminRole}
-	err := sdb.DB.FirstOrCreate(&admin).Error
-	core.WarnIfErr(err, errs.FailedToInsertDBAdmin)
+	core.WarnIfErr(sdb.DB.FirstOrCreate(&admin).Error, errs.FailedToInsertDBAdmin)
 }
 
 func (sdb *sqlDB) Joins(qry string, args ...any) core.SqlDB {
@@ -183,6 +186,6 @@ func (sdb *sqlDB) WithContext(ctx god.Ctx) core.SqlDB {
 	return &sqlDB{sdb.DB}
 }
 
-func (sdb *sqlDB) Where(qry any, args ...any) core.SqlDB {
-	return &sqlDB{sdb.DB.Where(qry, args...)}
+func (sdb *sqlDB) Where(q any, args ...any) core.SqlDB {
+	return &sqlDB{sdb.DB.Where(q, args...)}
 }

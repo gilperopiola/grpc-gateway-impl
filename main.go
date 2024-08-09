@@ -24,16 +24,16 @@ func main() {
 }
 
 // ---             ╭───────────────╮                         ╭───────────╮
-// GRPC Request -> │  GRPC Server  │ -> Interceptor Chain -> │  Service  │ -> DB Tool - API Calls - Etc ╮
+// GRPC Request -> │  GRPC Server  │ -> Interceptor Chain -> │  Service  │ -> DB Tool ~ API Calls ~ Etc ╮
 //                 ╰───────────────╯                         ╰───────────╯                              |
 // 		     			   ^                                                                            ↓
 //		     			   |													 	          Service GRPC Response
 //                         |                                                                            |
 //                  Middleware Chain                            ╭───────────────╮                       |
-//                         ^    ^- - - - - - - GRPC Response <- │  GRPC Server  │ <- Interceptor Chain <╯
-//                         |      only http                     ╰───────────────╯
-//                         |
-//                         |
+//                     ^       | ╰--- -- -- -- -- - GRPC Out <- │  GRPC Server  │ <- Interceptor Chain <╯
+//                     |       |    only http                   ╰───────────────╯
+//                     |       |
+//                     |       ↓
 //                 ╭───────────────╮
-// HTTP Request -> │  HTTP Server  │
+// HTTP Request -> │  HTTP Server  │ -> HTTP Out
 // ---             ╰───────────────╯
