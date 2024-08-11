@@ -5,7 +5,7 @@ package apimodels
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type (
-	GetCurrentWeatherResponse struct {
+	GetWeatherResponse struct {
 		Coord      Coord     `json:"coord"`
 		Weather    []Weather `json:"weather"`
 		Base       string    `json:"base"`
@@ -19,7 +19,7 @@ type (
 		Timezone   int       `json:"timezone"`
 		ID         int       `json:"id"`
 		Name       string    `json:"name"`
-		Cod        int       `json:"cod"`
+		Cod        any       `json:"cod"`
 	}
 	Coord struct {
 		Lon float64 `json:"lon"`

@@ -15,10 +15,12 @@ import (
 // Executes a function.
 // On failure, it calls a fallback (if set), sleeps some time, then retries.
 func Retry(fn func() (any, error), nTries int, opts ...RetryOpt) (any, error) {
-	var result any
-	var err error
 
-	cfg := newRetryCallCfg()
+	var (
+		result any
+		err    error
+		cfg    = newRetryCfg()
+	)
 
 	// Apply options.
 	for _, opt := range opts {
@@ -55,7 +57,7 @@ func Retry(fn func() (any, error), nTries int, opts ...RetryOpt) (any, error) {
 
 // Each call to Retry() creates an instance of this.
 // It's used to configure the retry behavior via the RetryOpts.
-type retryCallCfg struct {
+type retryCfg struct {
 
 	// Function to call if the operation fails.
 	fallbackFn func()
@@ -68,8 +70,8 @@ type retryCallCfg struct {
 	dontLogFailures bool
 }
 
-func newRetryCallCfg() *retryCallCfg {
-	return &retryCallCfg{
+func newRetryCfg() *retryCfg {
+	return &retryCfg{
 		fallbackFn: func() {
 			// Don't do anything.
 		},
@@ -80,18 +82,20 @@ func newRetryCallCfg() *retryCallCfg {
 	}
 }
 
-type RetryOpt func(*retryCallCfg)
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+type RetryOpt func(*retryCfg)
 
 // DontLog disables logs for failed tries.
 func DontLog() RetryOpt {
-	return func(cfg *retryCallCfg) {
+	return func(cfg *retryCfg) {
 		cfg.dontLogFailures = true
 	}
 }
 
 // Fallback sets the fallback function.
 func Fallback(fallbackFn func()) RetryOpt {
-	return func(cfg *retryCallCfg) {
+	return func(cfg *retryCfg) {
 		cfg.fallbackFn = fallbackFn
 	}
 }

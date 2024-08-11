@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/gilperopiola/god"
+	"github.com/gilperopiola/god/etc"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
@@ -23,7 +24,7 @@ func (s *GroupsSubService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest)
 		return nil, errs.GRPCFromDB(err, core.RouteNameFromCtx(ctx))
 	}
 
-	invitedUserIDs := god.Int32Slice(req.InvitedUserIds).ToIntSlice()
+	invitedUserIDs := etc.I32Slice(req.InvitedUserIds).ToIntSlice()
 
 	group, err := s.Tools.CreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
 	if err != nil {

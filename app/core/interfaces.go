@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto/x509"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/apimodels"
+	"google.golang.org/grpc/credentials"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -54,14 +56,19 @@ type (
 
 	/* -~-~-~- Tools: APIs -~-~-~- */
 
-	// Contains all external and internal API clients.
+	// Holds all API clients.
 	APIs interface {
-		OpenWeatherAPI
+		GptAPI
+		WeatherAPI
 	}
 
-	// OpenWeatherMap API client.
-	OpenWeatherAPI interface {
-		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimodels.GetCurrentWeatherResponse, error)
+	GptAPI interface {
+		NewCompletion(ctx context.Context, prompt, content string) (string, error)
+	}
+
+	// WeatherMap API client.
+	WeatherAPI interface {
+		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimodels.GetWeatherResponse, error)
 	}
 
 	/* -~-~-~- Tools: DBs -~-~-~- */
@@ -141,8 +148,8 @@ type (
 	// Used to manage TLS certificates and credentials.
 	TLSTool interface {
 		GetServerCertificate() *x509.CertPool
-		GetServerCreds() god.TLSCreds
-		GetClientCreds() god.TLSCreds
+		GetServerCreds() credentials.TransportCredentials
+		GetClientCreds() credentials.TransportCredentials
 	}
 
 	/* -~-~-~- Tools: Request handling -~-~-~- */
@@ -222,7 +229,7 @@ type (
 	}
 )
 
-/* -~-~-~- Other types - SQL and Mongo ~-~-~- */
+/* -~-~-~- Other types - GRPC and HTTP ~-~-~- */
 
 // This isn't used like the other Tools, as it's instantiated per request.
 // The implementation lives on the tools pkg.

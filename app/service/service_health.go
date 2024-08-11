@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
@@ -26,10 +27,10 @@ func (h *HealthSubService) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRe
 
 	// Make HTTP call or return unhealthy.
 	if _, err := h.Tools.GetCurrentWeather(ctx, 50, 50); err != nil {
+		core.LogUnexpected(fmt.Errorf("network call unhealthy: %w", err))
 		return nil, status.Error(codes.Unavailable, "network call unhealthy")
 	}
 
-	return &pbs.CheckHealthResponse{
-		Info: core.AppName + " " + core.AppVersion + " healthy",
-	}, nil
+	msg := core.AppName + " " + core.AppVersion + " healthy"
+	return &pbs.CheckHealthResponse{Info: msg}, nil
 }

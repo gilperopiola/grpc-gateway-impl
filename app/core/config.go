@@ -25,6 +25,7 @@ var GRPCPort = ":50053"
 var HTTPPort = ":8083"
 var TLSEnabled = false
 var Debug = false
+var LogAPICalls = true
 
 // These are our non-global Configs 🌍❌
 // -> The App loads an instance of this on startup and passes it around.

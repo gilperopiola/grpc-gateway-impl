@@ -70,6 +70,10 @@ generate:
 #        Other Commands        #
 #-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
 
+# On 'make clean', cleans the project.
+clean:
+	go clean -cache -modcache -testcache
+
 # On 'make generate-pbs', auto-generates .pb.go files.
 generate-pbs:
 	protoc -I=$(PROTOS_DIR) --go_out=$(PBS_OUT_DIR) --go-grpc_out=$(PBS_OUT_DIR) --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative $(PROTO_FILES)
@@ -86,9 +90,28 @@ push:
 	git commit -m "[@gilperopiola] - $(msg)"
 	git push origin master
 
-# On 'make clean', cleans the project.
-clean:
-	go clean -cache -modcache -testcache
+
+# On 'make graph', generates a graph of the dependencies,
+# in .dot and .png formats.
+graph:
+	echo "digraph dependencies {" > external_deps.dot
+	go mod graph | awk '{print "\"" $$1 "\" -> \"" $$2 "\";"}' >> external_deps.dot
+	echo "}" >> external_deps.dot
+	dot -Tpng external_deps.dot -o external_deps.png
+
+	echo "digraph dependencies {" > internal_deps.dot
+	go list -f '{{.ImportPath}} {{join .Imports " "}}' ./... | awk ' \
+	{ \
+	  for (i = 2; i <= NF; i++) { \
+	    print "\"" $$1 "\" -> \"" $$i "\""; \
+	  } \
+	}' >> internal_deps.dot
+	echo "}" >> internal_deps.dot
+	dot -Tpng internal_deps.dot -o internal_deps.png
+
+update-deps:
+	go get -u ./...
+	go mod tidy
 
 # On 'make proinhanssr', enhances the project.
 proinhanssr: 

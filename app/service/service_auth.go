@@ -1,7 +1,9 @@
 package service
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
@@ -72,6 +74,28 @@ func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginRe
 	token, err := s.Tools.GenerateToken(user.ID, user.Username, user.Role)
 	if err != nil {
 		return nil, errs.GRPCGeneratingToken(err)
+	}
+
+	zap.L().Info(req.String())
+
+	w, err := s.Tools.GetCurrentWeather(ctx, 44.34, 10.99)
+	core.LogIfErr(err)
+	zap.S().Info("Weather", w)
+
+	got, err := s.Tools.NewCompletion(ctx, "Gimme just the latitude and longitude of buenos aires, response must follow format: -35.03, -54.33", "")
+	core.LogIfErr(err)
+	zap.S().Info(fmt.Sprintf("Got %s", got))
+
+	splat := strings.Split(got, ",")
+	if len(splat) == 2 {
+		lat, err := strconv.ParseFloat(strings.TrimSpace(splat[0]), 64)
+		core.LogIfErr(err)
+		lon, err := strconv.ParseFloat(strings.TrimSpace(splat[1]), 64)
+		core.LogIfErr(err)
+
+		w, err := s.Tools.GetCurrentWeather(ctx, lat, lon)
+		core.LogIfErr(err)
+		zap.S().Info("Weather in bsas", w)
 	}
 
 	return &pbs.LoginResponse{Token: token}, nil

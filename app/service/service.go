@@ -29,6 +29,7 @@ type Service struct {
 // and each .proto defined Service.
 
 func Setup(tools core.Tools) *Service {
+
 	// New services should be added here.
 	return &Service{
 		AuthSubService:   AuthSubService{Tools: tools},
@@ -58,14 +59,14 @@ func (s *Service) RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar) {
 func (s *Service) RegisterHTTPEndpoints(mux *runtime.ServeMux, opts ...grpc.DialOption) {
 
 	// New services should be added here.
-	httpServices := []func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error{
+	registerServiceFns := []func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error{
 		pbs.RegisterAuthServiceHandlerFromEndpoint,
 		pbs.RegisterUsersServiceHandlerFromEndpoint,
 		pbs.RegisterGroupsServiceHandlerFromEndpoint,
 		pbs.RegisterHealthServiceHandlerFromEndpoint,
 	}
 
-	for _, httpService := range httpServices {
-		core.LogFatalIfErr(httpService(context.Background(), mux, core.GRPCPort, opts))
+	for _, registerService := range registerServiceFns {
+		core.LogFatalIfErr(registerService(context.Background(), mux, core.GRPCPort, opts))
 	}
 }

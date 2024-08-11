@@ -94,8 +94,10 @@ func LogDebug(msg string) {
 }
 
 // Used to log unexpected errors, like panic recoveries or some connection errors.
-func LogUnexpected(err error) {
+// Returns the error so the caller can -> return LogUnexpected(err).
+func LogUnexpected(err error) error {
 	prepareLog(withError(err)).Error("🛑 Unexpected Error")
+	return err
 }
 
 // Helps keeping code clean and readable, lets you omit the error check
@@ -124,13 +126,25 @@ func LogFatalIfErr(err error, optionalFmt ...string) {
 	LogFatal(fmt.Errorf(format, err))
 }
 
+// Helps keeping code clean and readable, lets you omit the error check
+// on the caller when you just need to log-warn the err.
+func WarnIfErr(err error, optionalFmt ...string) {
+	if err != nil {
+		format := "untyped warning: %v"
+		if len(optionalFmt) > 0 {
+			format = optionalFmt[0]
+		}
+		zap.S().Warnf(format, err)
+	}
+}
+
 func LogImportant(msg string) {
 	prepareLog(withMsg(msg)).Info("⭐-⭐-⭐")
 }
 
 // Used to log strange behaviour that isn't necessarily bad or an error.
 func LogStrange(msg string, info ...any) {
-	prepareLog(withMsg(msg), withData(info...)).Warn("🤔 Hmm... Strange")
+	prepareLog(withMsg(msg), withData(info...)).Warn("🤔 Strange")
 }
 
 // Used to log security-related things that shouldn't happen,
@@ -147,15 +161,14 @@ func LogResult(ofWhat string, err error) {
 	}
 }
 
-// Helps keeping code clean and readable, lets you omit the error check
-// on the caller when you just need to log-warn the err.
-func WarnIfErr(err error, optionalFmt ...string) {
-	if err != nil {
-		format := "untyped warning: %v"
-		if len(optionalFmt) > 0 {
-			format = optionalFmt[0]
-		}
-		zap.S().Warnf(format, err)
+// If Debug is true, logs external API calls.
+func LogAPICall(url string, status int, body []byte) {
+	if LogAPICalls {
+		zap.L().Info("External API Call",
+			zap.String("url", url),
+			zap.Int("status", status),
+			zap.ByteString("body", body),
+		)
 	}
 }
 
