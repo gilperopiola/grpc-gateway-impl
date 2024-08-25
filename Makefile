@@ -83,16 +83,20 @@ generate-pbs:
 generate-swagger:
 	protoc -I=$(PROTOS_DIR) --openapiv2_out=$(DOCS_OUT_DIR) $(PROTO_FILES)
 
-# On 'make push', adds + commits + pushes to master.
-# On 'make push msg=":)"' adds a commit message.
+# On 'make push', adds, commits, and pushes to master.
+# Add msg="something" to add a custom commit message.
 push:
 	git add .
 	git commit -m "[@gilperopiola] - $(msg)"
 	git push origin master
 
+git-log:
+	git log --oneline --graph --decorate --all
 
 # On 'make graph', generates a graph of the dependencies,
 # in .dot and .png formats.
+#
+# Oh yes I totally understand this code, so intuitive.
 graph:
 	echo "digraph dependencies {" > external_deps.dot
 	go mod graph | awk '{print "\"" $$1 "\" -> \"" $$2 "\";"}' >> external_deps.dot
