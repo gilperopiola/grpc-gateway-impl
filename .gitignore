@@ -1,4 +1,4 @@
-## Binaries for programs and plugins
+## Binaries
 *.exe
 *.exe~
 *.dll
@@ -7,18 +7,28 @@
 
 ## Environment files
 .env
+.env.local
+.env.dev
+.env.stage
+.env.prod
 .env_local
-.env_docker
+.env_dev
+.env_stage
+.env_prod
 
-## Go
+## Golang files
 *.out
 *.test
 coverage.txt
+
+## Security
+*.key
+*.crt
+*.crt~
+*.pem
 
 ## Etc
 .DS_Store
 .vscode/
 .idea/
-*.key
-*.crt
-*.crt~
+

@@ -3,16 +3,17 @@ package core
 import (
 	"context"
 	"crypto/x509"
+	"image"
 	"net/http"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/apimodels"
-	"google.golang.org/grpc/credentials"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc/credentials"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -23,10 +24,11 @@ import (
 
 // These are our different Services, as defined on the .proto files.
 type (
-	AuthSvc   = pbs.AuthServiceServer
-	UsersSvc  = pbs.UsersServiceServer
-	GroupsSvc = pbs.GroupsServiceServer
-	HealthSvc = pbs.HealthServiceServer
+	AuthSvc    = pbs.AuthServiceServer
+	UsersSvc   = pbs.UsersServiceServer
+	GroupsSvc  = pbs.GroupsServiceServer
+	GPTService = pbs.GPTServiceServer
+	HealthSvc  = pbs.HealthServiceServer
 )
 
 /* -~-~-~-~- Tools -~-~-~-~- */
@@ -58,18 +60,20 @@ type (
 
 	// Holds all API clients.
 	APIs interface {
-		GptAPI
+		ChatGPTAPI
 		WeatherAPI
 	}
 
-	GptAPI interface {
-		NewCompletion(ctx context.Context, prompt, content string) (string, error)
+	ChatGPTAPI interface {
+		SendToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTMessage) (string, error)
 	}
 
 	// WeatherMap API client.
 	WeatherAPI interface {
 		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimodels.GetWeatherResponse, error)
 	}
+
+	HTTPPostFn func(context.Context, *http.Client, string, any) (int, []byte, error)
 
 	/* -~-~-~- Tools: DBs -~-~-~- */
 
@@ -88,6 +92,11 @@ type (
 		// Groups
 		CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error)
 		GetGroup(ctx god.Ctx, opts ...any) (*models.Group, error)
+
+		// GPT Chats
+		GetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error)
+		CreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error)
+		CreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error)
 	}
 
 	// Low-level interactions for our SQL DB. It's an adapter for Gorm.
@@ -115,6 +124,7 @@ type (
 		Or(query any, args ...any) SqlDB
 		Order(value string) SqlDB
 		Pluck(column string, value any) SqlDB
+		Preload(query string, args ...any) SqlDB
 		Raw(sql string, values ...any) SqlDB
 		Row() SqlRow
 		Rows() (SqlRows, error)
@@ -198,6 +208,13 @@ type (
 	FileManager interface {
 		CreateFolder(path string) error
 		CreateFolders(paths ...string) error
+	}
+
+	ImageLoader interface {
+		LoadImgFromFile(path string) (image.Image, error)
+		LoadImgFromURL(url string) (image.Image, error)
+		LoadImgFromBytes(b []byte) (image.Image, error)
+		LoadImgFromBase64(b64 string) (image.Image, error)
 	}
 
 	// Encode and decode models.

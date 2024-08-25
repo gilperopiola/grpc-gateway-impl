@@ -43,7 +43,7 @@ func NewTesty(t *testing.T, endpoint, path string) Testy {
 		t:        t,
 		id:       "Tc" + newID() + endpoint,
 		endpoint: endpoint,
-		url:      "http://localhost" + core.HTTPPort + path,
+		url:      "http://localhost" + core.G.HTTPPort + path,
 		cleanup:  cleanup,
 	}
 }

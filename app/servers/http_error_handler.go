@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/status"
 )
@@ -66,7 +66,7 @@ func finalizeErrorResponse(setHeaderFn func(string, string), status int, body *s
 	// HTTP 500.
 	// Log + Generic response.
 	case http.StatusInternalServerError:
-		core.LogStrange("HTTP Error 500: " + tempBody)
+		logs.LogStrange("HTTP Error 500: " + tempBody)
 		tempBody = errs.HTTPInternal
 
 	// HTTP 503.
@@ -74,10 +74,10 @@ func finalizeErrorResponse(setHeaderFn func(string, string), status int, body *s
 	//
 	// Failed health checks return 503.
 	case http.StatusServiceUnavailable:
-		core.LogStrange("HTTP Error 503: " + tempBody)
+		logs.LogStrange("HTTP Error 503: " + tempBody)
 
 	default:
-		core.LogStrange(fmt.Sprintf("HTTP Error %d (unhandled): %s", status, tempBody))
+		logs.LogStrange(fmt.Sprintf("HTTP Error %d (unhandled): %s", status, tempBody))
 	}
 
 	// For all cases, we set this as the response body format.

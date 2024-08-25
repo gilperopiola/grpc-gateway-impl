@@ -1,4 +1,4 @@
-package core
+package logs
 
 import (
 	"errors"
@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	gormLogger "gorm.io/gorm/logger"
 )
 
 // We use zap. It's fast and easy.
@@ -22,11 +22,16 @@ import (
 /*             - Logger -              */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+var (
+	L = zap.L
+	S = zap.S
+)
+
 const LogsTimeLayout = "02/01/06 15:04:05"
 
-// Replaces the global Logger in the zap pkg with a new one.
+// Replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
-func SetupLogger(cfg *LoggerCfg, opts ...zap.Option) *zap.Logger {
+func SetupLogger(cfg *core.LoggerCfg, opts ...zap.Option) *zap.Logger {
 
 	// Default options: Add stacktrace and use the default clock.
 	opts = append([]zap.Option{
@@ -62,7 +67,7 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 
 		l := prepareLog(withHTTP(req), withDuration(duration))
 
-		customRW := rw.(HTTPRespWriter)
+		customRW := rw.(core.HTTPRespWriter)
 		if customRW.GetWrittenStatus() < 400 {
 			l.Info("HTTP Request")
 		} else {
@@ -73,7 +78,7 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 }
 
 // Prefix used when Infof or Infoln are called.
-var ServerLogPrefix = AppEmoji + " " + AppAlias + " | "
+var ServerLogPrefix = "Server | "
 
 func ServerLog(s string) {
 	zap.L().Info(ServerLogPrefix + s)
@@ -88,9 +93,7 @@ func ServerLogf(s string, args ...any) {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func LogDebug(msg string) {
-	if Debug {
-		prepareLog(withMsg(msg)).Info("🐞 Debug")
-	}
+	prepareLog(withMsg(msg)).Debug("🐞 Debug")
 }
 
 // Used to log unexpected errors, like panic recoveries or some connection errors.
@@ -163,7 +166,7 @@ func LogResult(ofWhat string, err error) {
 
 // If Debug is true, logs external API calls.
 func LogAPICall(url string, status int, body []byte) {
-	if LogAPICalls {
+	if core.G.LogAPICalls {
 		zap.L().Info("External API Call",
 			zap.String("url", url),
 			zap.Int("status", status),
@@ -177,11 +180,11 @@ func LogAPICall(url string, status int, body []byte) {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Returns a new zap.Config based on our LoggerCfg.
-func newZapConfig(cfg *LoggerCfg) zap.Config {
+func newZapConfig(cfg *core.LoggerCfg) *zap.Config {
 
 	// Start off with a default dev/prod config.
 	zapCfg := zap.NewDevelopmentConfig()
-	if EnvIsProd {
+	if core.G.IsProd {
 		zapCfg = zap.NewProductionConfig()
 		zapCfg.Sampling = nil
 	}
@@ -200,23 +203,89 @@ func newZapConfig(cfg *LoggerCfg) zap.Config {
 		enc.AppendString(d.Truncate(time.Millisecond).String())
 	}
 
-	return zapCfg
+	return &zapCfg
 }
 
-// Only logs with a level equal or higher than the one we set in the config will be logged.
-// For example -> if the config is 1, warn, then no info or debug logs will be logged.
-var LogLevels = map[string]int{
-	"debug": int(zap.DebugLevel), "info": int(zap.InfoLevel),
-	"warn": int(zap.WarnLevel), "error": int(zap.ErrorLevel),
-	"fatal": int(zap.FatalLevel),
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*           - Log Options -           */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+type logOpt func(*zap.Logger)
+
+// Shorthand versions of each logOpt.
+var (
+	wMsg   = withMsg
+	wErr   = withError
+	wDurat = withDuration
+	wStack = withStacktrace
+	wGRPC  = withGRPC
+	wHTTP  = withHTTP
+)
+
+// Prepares a new child Logger, with fields defined by the given logOpts.
+func prepareLog(opts ...logOpt) *zap.Logger {
+	childLogger := *zap.L()
+	for _, opt := range opts {
+		opt(&childLogger)
+	}
+	return &childLogger
 }
 
-// Gorm has its own set of log levels, the logging of SQL queries
-// depends on the config.
+// Logs a simple message.
+var withMsg = func(msg string) logOpt {
+	return func(logger *zap.Logger) {
+		*logger = *logger.With(zap.String("msg", msg))
+	}
+}
+
+// Logs any kind of info.
+var withData = func(data ...any) logOpt {
+	return func(logger *zap.Logger) {
+		if len(data) == 0 {
+			return
+		}
+		*logger = *logger.With(zap.Any("data", data))
+	}
+}
+
+// Logs a duration.
+var withDuration = func(duration time.Duration) logOpt {
+	return func(logger *zap.Logger) {
+		*logger = *logger.With(zap.Duration("duration", duration))
+	}
+}
+
+// Log error if not nil.
+var withError = func(err error) logOpt {
+	return func(logger *zap.Logger) {
+		if err == nil {
+			return
+		}
+		*logger = *logger.With(zap.Error(err))
+	}
+}
+
+// Used to log where in the code a message comes from.
+var withStacktrace = func() logOpt {
+	return func(logger *zap.Logger) {
+		*logger = *logger.With(zap.Stack("trace"))
+	}
+}
+
+// Routes apply to both GRPC and HTTP.
 //
-// silent 	-> disables all logs 		| info -> 	logs everything
-// warn 	-> logs errors and warnings | error -> 	only logs errors.
-var DBLogLevels = map[string]int{
-	"silent": int(gormLogger.Silent), "info": int(gormLogger.Info),
-	"warn": int(gormLogger.Warn), "error": int(gormLogger.Error),
+//	-> In GRPC, it's the last part of the Method -> '/users.UsersService/GetUsers'.
+//
+// See routes.go for more info.
+var withGRPC = func(method string) logOpt {
+	return func(logger *zap.Logger) {
+		*logger = *logger.With(zap.String("route", utils.RouteNameFromGRPC(method)))
+	}
+}
+
+// -> In HTTP, for the route we join Method and Path -> 'GET /users'.
+var withHTTP = func(req *http.Request) logOpt {
+	return func(logger *zap.Logger) {
+		*logger = *logger.With(zap.String("route", req.Method+" "+req.URL.Path))
+	}
 }

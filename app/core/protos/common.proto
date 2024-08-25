@@ -10,12 +10,12 @@ import "external/google/api/field_behavior.proto";
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 message PaginationInfo {
-  int32 current = 1 [ json_name = "current",  (google.api.field_behavior) = OUTPUT_ONLY ];
-  int32 total = 3   [ json_name = "total",    (google.api.field_behavior) = OUTPUT_ONLY ];
+  int32 current = 1 [ json_name = "current", (google.api.field_behavior) = OUTPUT_ONLY ];
+  int32 total = 3   [ json_name = "total",   (google.api.field_behavior) = OUTPUT_ONLY ];
 }
 
 message UserInfo {
-  int32 id = 1          [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
+  int32  id = 1         [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
   string username = 3   [ json_name = "username",   (google.api.field_behavior) = OUTPUT_ONLY ];
   string created_at = 5 [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
   string updated_at = 7 [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
@@ -27,4 +27,11 @@ message GroupInfo {
   UserInfo  owner = 5       [ json_name = "owner",      (google.api.field_behavior) = OUTPUT_ONLY ];
   string    created_at = 7  [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
   string    updated_at = 9  [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+}
+
+message GPTChatInfo {
+  int32  id = 1           [ json_name = "id",         (google.api.field_behavior) = OUTPUT_ONLY ];
+  string title = 2        [ json_name = "title",      (google.api.field_behavior) = OUTPUT_ONLY ];
+  string created_at = 3   [ json_name = "created_at", (google.api.field_behavior) = OUTPUT_ONLY ];
+  string updated_at = 4   [ json_name = "updated_at", (google.api.field_behavior) = OUTPUT_ONLY ];
 }

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,9 +28,12 @@ type ServiceErr struct {
 
 // Returns our ServiceErr as a string:
 //
-//	Example: "This is some additional information: actual error message"
+//	Example: "Additional information: actual error message"
 func (serr ServiceErr) Error() string {
-	errorMsg := utils.FirstOrDefault(serr.Info, serr.Status.String())
+	errorMsg := serr.Status.String()
+	if len(serr.Info) > 0 {
+		errorMsg = serr.Info[0]
+	}
 	return fmt.Sprintf("%v: %s", errorMsg, serr.Unwrap())
 }
 
@@ -46,13 +47,13 @@ func (serr ServiceErr) Unwrap() error {
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func GRPCNotFound[T int | string](resource string, identif T) error {
-	return NewGRPCError(codes.NotFound, fmt.Errorf("%s %v not found", resource, identif))
+func GRPCNotFound[T int | string](resource string, id T) error {
+	return NewGRPCError(codes.NotFound, fmt.Errorf("%s %v not found", resource, id))
 }
 
 // Translates to HTTP 409 Conflict Error.
-func GRPCAlreadyExists(what string) error {
-	return NewGRPCError(codes.AlreadyExists, errors.New(what+" already exists"))
+func GRPCAlreadyExists(resource string) error {
+	return NewGRPCError(codes.AlreadyExists, errors.New(resource+" already exists"))
 }
 
 // We return this on username or password mismatch on the Auth Service's Login.

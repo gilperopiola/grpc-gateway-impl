@@ -4,8 +4,10 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/dbs/sqldb"
 )
 
 type UsersSubService struct {
@@ -55,8 +57,8 @@ var (
 	errUserNotFound      = func(id int) error { return errs.GRPCNotFound("user", id) }
 	errUserAlreadyExists = func() error { return errs.GRPCAlreadyExists("user") }
 	errCallingUsersDB    = func(ctx god.Ctx, err error) error {
-		route := core.RouteNameFromCtx(ctx)
-		core.LogUnexpected(err)
+		route := utils.RouteNameFromCtx(ctx)
+		logs.LogUnexpected(err)
 		return errs.GRPCFromDB(err, route)
 	}
 )

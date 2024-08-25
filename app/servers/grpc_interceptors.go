@@ -6,7 +6,9 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -50,7 +52,7 @@ func newRequestValidationInterceptor(tools core.Tools) grpc.UnaryServerIntercept
 // It adds the UserID and Username to the request's context.
 func newTokenValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		route := core.RouteNameFromGRPC(i.FullMethod)
+		route := utils.RouteNameFromGRPC(i.FullMethod)
 
 		// Public routes skip token validation.
 		// That means the context will not have the user's info.
@@ -79,7 +81,7 @@ func newLoggingInterceptor() grpc.UnaryServerInterceptor {
 		resp, err := next(c, req)
 
 		duration := time.Since(start)
-		core.LogGRPC(i.FullMethod, duration, err)
+		logs.LogGRPC(i.FullMethod, duration, err)
 		return resp, err
 	}
 }
@@ -100,7 +102,7 @@ func newCtxCancelledInterceptor() grpc.UnaryServerInterceptor {
 func newRateLimitingInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		if ok := tools.AllowRate(); !ok {
-			core.LogStrange("rate limit exceeded")
+			logs.LogStrange("rate limit exceeded")
 			return nil, status.Error(codes.ResourceExhausted, errs.RateLimitedMsg)
 		}
 

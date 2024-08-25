@@ -7,6 +7,7 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -48,16 +49,16 @@ func (t *tlsTool) GetClientCreds() credentials.TransportCredentials { return t.C
 // It's only holds 1 TLS certficate, used to secure all communications with the GRPC Server.
 // It must be in a .crt file.
 func newTLSCertPool(certPath string) *x509.CertPool {
-	if !core.TLSEnabled {
+	if !core.G.TLSEnabled {
 		return nil
 	}
 
 	cert, err := os.ReadFile(certPath)
-	core.LogFatalIfErr(err, errs.FailedToReadTLSCert)
+	logs.LogFatalIfErr(err, errs.FailedToReadTLSCert)
 
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(cert) {
-		core.LogFatal(errors.New(errs.FailedToAppendTLSCert))
+		logs.LogFatal(errors.New(errs.FailedToAppendTLSCert))
 	}
 
 	return certPool
@@ -65,18 +66,18 @@ func newTLSCertPool(certPath string) *x509.CertPool {
 
 // Returns the Server's transport credentials. Only called if TLS is enabled.
 func newServerTransportCreds(certPath, keyPath string) credentials.TransportCredentials {
-	if !core.TLSEnabled {
+	if !core.G.TLSEnabled {
 		return nil
 	}
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
-	core.LogFatalIfErr(err, errs.FailedToLoadTLSCreds)
+	logs.LogFatalIfErr(err, errs.FailedToLoadTLSCreds)
 	return creds
 }
 
 // Returns the client's transport credentials, either secure or insecure.
 func newClientTransportCreds(serverCertPool *x509.CertPool) credentials.TransportCredentials {
-	if !core.TLSEnabled {
-		core.LogImportant("TLS is not enabled! 🔒")
+	if !core.G.TLSEnabled {
+		logs.LogImportant("TLS is not enabled! 🔒")
 		return insecure.NewCredentials()
 	}
 	return credentials.NewClientTLSFromCert(serverCertPool, "")

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 
@@ -26,7 +27,7 @@ type Servers struct {
 func Setup(services *service.Service, tools core.Tools) *Servers {
 	var (
 		// GRPC Interceptors.
-		grpcServerOpts = getGRPCInterceptors(tools, core.TLSEnabled)
+		grpcServerOpts = getGRPCInterceptors(tools, core.G.TLSEnabled)
 
 		// Used by HTTP to connect to GRPC.
 		grpcDialOpts = getGRPCDialOpts(tools.GetClientCreds())
@@ -66,7 +67,7 @@ func setupHTTP(service *service.Service, muxOpts []runtime.ServeMuxOption, mw mi
 	mux := runtime.NewServeMux(muxOpts...)
 	service.RegisterHTTPEndpoints(mux, dialOpts...)
 	return &http.Server{
-		Addr:    core.HTTPPort,
+		Addr:    core.G.HTTPPort,
 		Handler: mw(mux),
 	}
 }
@@ -75,19 +76,19 @@ func setupHTTP(service *service.Service, muxOpts []runtime.ServeMuxOption, mw mi
 
 func (s *Servers) runGRPC() {
 	result, err := utils.Retry(listenGRPC, 5)
-	core.LogFatalIfErr(err)
+	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)
-	core.LogFatalIfErr(s.GRPC.Serve(listener))
+	logs.LogFatalIfErr(s.GRPC.Serve(listener))
 }
 
 func (s *Servers) runHTTP() {
 	result, err := utils.Retry(listenHTTP, 5)
-	core.LogFatalIfErr(err)
+	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)
 	if err := s.HTTP.Serve(listener); err != nil && err != http.ErrServerClosed {
-		core.LogFatal(err)
+		logs.LogFatal(err)
 	}
 }
 
@@ -108,22 +109,22 @@ func (s *Servers) shutdownHTTP() {
 /* -~-~-~-~-~ Helpers -~-~-~-~-~- */
 
 func listenGRPC() (any, error) {
-	return net.Listen("tcp", core.GRPCPort)
+	return net.Listen("tcp", core.G.GRPCPort)
 }
 
 func listenHTTP() (any, error) {
-	return net.Listen("tcp", core.HTTPPort)
+	return net.Listen("tcp", core.G.HTTPPort)
 }
 
 func logGRPCServicesInfo(server *grpc.Server) {
 
 	// Loop over all services.
 	for _, serviceInfo := range server.GetServiceInfo() {
-		core.ServerLogf(" 🐸 Service: %s", serviceInfo.Metadata)
+		logs.ServerLogf(" 🐸 Service: %s", serviceInfo.Metadata)
 
 		// Loop over all methods.
 		for _, method := range serviceInfo.Methods {
-			core.ServerLogf(" \t - Method: %s", method.Name)
+			logs.ServerLogf(" \t - Method: %s", method.Name)
 		}
 	}
 }

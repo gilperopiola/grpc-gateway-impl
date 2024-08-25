@@ -1,12 +1,7 @@
 package core
 
 import (
-	"strings"
-
-	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-
-	"google.golang.org/grpc"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
 )
 
 // Our Routes need manual updating when a .proto route changes.
@@ -49,55 +44,24 @@ var Routes = map[string]Route{
 	"UpdateUser":  {models.RouteAuthSelf},
 	"DeleteUser":  {models.RouteAuthSelf},
 	"GetMyGroups": {models.RouteAuthSelf},
-
-	"GetUsers": {models.RouteAuthAdmin},
+	"GetUsers":    {models.RouteAuthAdmin},
 
 	// Groups Service
-	"GetGroup": {models.RouteAuthUser},
-
+	"GetGroup":          {models.RouteAuthUser},
 	"CreateGroup":       {models.RouteAuthSelf},
 	"InviteToGroup":     {models.RouteAuthSelf},
 	"AnswerGroupInvite": {models.RouteAuthSelf},
-}
 
-// Simple enough.
-func RouteExists(routeName string) bool {
-	if _, ok := Routes[routeName]; ok {
-		return true
-	}
-	LogStrange("Route not found: " + routeName)
-	return false
+	// GPT Service
+	"NewGPTChat":     {models.RouteAuthPublic},
+	"ReplyToGPTChat": {models.RouteAuthPublic},
 }
 
 // This doesn't return any error on a not-found route, it just
-// creates a log and defaults to AuthAdmin.
+// defaults to AuthAdmin.
 func AuthForRoute(routeName string) models.RouteAuth {
 	if route, ok := Routes[routeName]; ok {
 		return route.Auth
 	}
-	LogStrange("Route with Auth not found: " + routeName)
 	return models.RouteAuthAdmin
-}
-
-// Our Routes are named by the last part of their GRPC Method.
-// It's everything after the last slash.
-//
-//	Method = /pbs.Service/Signup
-//	Route  = Signup
-func RouteNameFromGRPC(method string) string {
-	i := strings.LastIndex(method, "/")
-	if i == -1 {
-		LogStrange("No '/' found in GRPC Method " + method)
-		return ""
-	}
-	return method[i+1:]
-}
-
-// Returns the route name from the context's data.
-func RouteNameFromCtx(ctx god.Ctx) string {
-	if method, ok := grpc.Method(ctx); ok {
-		return RouteNameFromGRPC(method)
-	}
-	LogStrange("No GRPC Method found in context")
-	return ""
 }

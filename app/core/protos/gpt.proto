@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package pbs;
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+
+import "common.proto";
+import "external/google/api/annotations.proto";
+import "external/google/api/field_behavior.proto";
+import "external/protoc-gen-openapiv2/options/annotations.proto";
+
+service GPTService {
+  rpc NewGPTChat(NewGPTChatRequest) returns (NewGPTChatResponse) {
+    option (google.api.http) = { post: "/v1/gpt"; body: "*"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "new_gpt_chat";
+      tags: ["GPT"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".pbs.NewGPTChatResponse"} } };
+      };
+    };
+  }
+
+  rpc ReplyToGPTChat(ReplyToGPTChatRequest) returns (ReplyToGPTChatResponse) {
+    option (google.api.http) = { post: "/v1/gpt/{chat_id}"; body: "*" };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "reply_to_gpt_chat";
+      tags: ["GPT"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: {ref: ".pbs.ReplyToGPTChatResponse"} } };
+      };
+    };
+  }
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*       - Requests & Responses -      */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+message NewGPTChatRequest {
+  string message = 1 [ (google.api.field_behavior) = REQUIRED ];
+}
+
+message NewGPTChatResponse {
+  GPTChatInfo chat = 1;
+  string gpt_message = 2;
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+message ReplyToGPTChatRequest {
+  int32 chat_id = 1 [ (google.api.field_behavior) = REQUIRED ];
+  string message = 2 [ (google.api.field_behavior) = REQUIRED ];
+}
+
+message ReplyToGPTChatResponse {
+  GPTChatInfo chat = 1;
+  string gpt_message = 2;
+}
+

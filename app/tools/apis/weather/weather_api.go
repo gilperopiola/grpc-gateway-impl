@@ -1,13 +1,14 @@
 package weather
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/apimodels"
 )
 
@@ -15,25 +16,21 @@ var _ core.WeatherAPI = &WeatherAPI{}
 
 type WeatherAPI struct {
 	httpClient *http.Client
-	getFn      func(ctx context.Context, client *http.Client, url string, urlParams map[string]string) (int, []byte, error)
 }
 
-func NewAPI(getFn func(ctx context.Context, client *http.Client, url string, urlParams map[string]string) (int, []byte, error)) core.WeatherAPI {
-	return &WeatherAPI{
-		&http.Client{Timeout: 90},
-		getFn,
-	}
+func NewAPI(httpClient *http.Client) core.WeatherAPI {
+	return &WeatherAPI{httpClient}
 }
 
 func (api *WeatherAPI) GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimodels.GetWeatherResponse, error) {
 
-	// Prepare.
-	url := fmt.Sprintf("/weather?lat=%.2f&lon=%.2f&appid=%s", lat, lon, "f4ecb7e7e30e9c1a3219d1236a63303a")
+	// Prepare URL.
+	url := fmt.Sprintf("https://api.weathermap.org/data/2.5/weather?lat=%.2f&lon=%.2f&appid=%s", lat, lon, "f4ecb7e7e30e9c1a3219d1236a63303a")
 
-	// Act.
-	status, respBody, err := api.getFn(ctx, api.httpClient, url, nil)
+	// Send request.
+	status, respBody, err := utils.GET(ctx, url, nil, "", api.httpClient)
 	if err != nil {
-		return nil, core.LogUnexpected(fmt.Errorf("error on GET %s: %w", url, err))
+		return nil, logs.LogUnexpected(err)
 	}
 
 	if status != http.StatusOK {
@@ -42,7 +39,7 @@ func (api *WeatherAPI) GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimod
 
 	var out apimodels.GetWeatherResponse
 	if err := json.Unmarshal(respBody, &out); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error unmarshalling GetWeatherResponse: %w", err)
 	}
 
 	return &out, nil

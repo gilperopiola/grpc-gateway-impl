@@ -5,11 +5,10 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 
-	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 )
 
-var _ core.DBTool = (*sqlDBTool)(nil)
+var _ core.DBTool = &sqlDBTool{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*        - SQL Database Tool -        */
@@ -28,16 +27,6 @@ func NewDBTool(db core.SqlDB) core.DBTool {
 	return &sqlDBTool{db}
 }
 
-func (sdbt sqlDBTool) GetDB() core.AnyDB {
-	return sdbt.DB
-}
-
-func (sdbt sqlDBTool) CloseDB() {
-	sdbt.DB.Close()
-}
-
-func (sdbt sqlDBTool) IsNotFound(err error) bool {
-	return errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, mongo.ErrNoDocuments)
-}
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+func (this sqlDBTool) GetDB() core.AnyDB         { return this.DB }
+func (this sqlDBTool) CloseDB()                  { this.DB.Close() }
+func (this sqlDBTool) IsNotFound(err error) bool { return errors.Is(err, gorm.ErrRecordNotFound) }

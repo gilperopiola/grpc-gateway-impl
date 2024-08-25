@@ -7,7 +7,8 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"go.uber.org/zap"
 
@@ -42,7 +43,7 @@ func NewSqlDB(cfg *core.DBCfg) core.SqlDB {
 
 	// We need to adapt our connectToDB and createDB funcs so they can be used with the Retrier.
 	var (
-		connectToDB = getConnectToDB(cfg.GetSQLConnString(), gormCfg)
+		connectToDB = getConnectToDB(cfg.GetSQLConnectionString(), gormCfg)
 		createDB    = getCreateDB(cfg)
 	)
 
@@ -52,7 +53,7 @@ func NewSqlDB(cfg *core.DBCfg) core.SqlDB {
 	//
 	// This process is retried a few times until it succeeds or we run out of retries.
 	dbConn, err := utils.Retry(connectToDB, cfg.Retries, utils.Fallback(createDB))
-	core.LogFatalIfErr(err, errs.FailedDBConn)
+	logs.LogFatalIfErr(err, errs.FailedDBConn)
 
 	sqlDB := dbConn.(*sqlDB)
 
@@ -82,9 +83,9 @@ var getConnectToDB = func(connString string, gormCfg *gorm.Config) func() (any, 
 // Adapts our createDB func so it can be used with the Retrier.
 var getCreateDB = func(cfg *core.DBCfg) func() {
 	return func() {
-		if db, err := sql.Open("mysql", cfg.GetSQLConnStringNoSchema()); err == nil {
+		if db, err := sql.Open("mysql", cfg.GetSQLConnectionStringNoDB()); err == nil {
 			defer db.Close()
-			db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", cfg.Schema))
+			db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", cfg.Database))
 		}
 	}
 }
@@ -115,6 +116,10 @@ func (sdb *sqlDB) Offset(value int) core.SqlDB { return &sqlDB{sdb.DB.Offset(val
 
 func (sdb *sqlDB) Order(value string) core.SqlDB { return &sqlDB{sdb.DB.Order(value)} }
 
+func (sdb *sqlDB) Row() core.SqlRow { return sdb.DB.Row() }
+
+func (sdb *sqlDB) Rows() (core.SqlRows, error) { return sdb.DB.Rows() }
+
 func (sdb *sqlDB) RowsAffected() int64 { return sdb.DB.RowsAffected }
 
 func (sdb *sqlDB) Save(value any) core.SqlDB { return &sqlDB{sdb.DB.Save(value)} }
@@ -123,10 +128,10 @@ func (sdb *sqlDB) Scan(to any) core.SqlDB { return &sqlDB{sdb.DB.Scan(to)} }
 
 func (sdb *sqlDB) Close() {
 	innerDB, err := sdb.DB.DB()
-	core.LogIfErr(err, errs.FailedToGetSQLDB)
+	logs.LogIfErr(err, errs.FailedToGetSQLDB)
 
 	if innerDB != nil {
-		core.LogIfErr(innerDB.Close(), errs.FailedToCloseSQLDB)
+		logs.LogIfErr(innerDB.Close(), errs.FailedToCloseSQLDB)
 	}
 }
 
@@ -148,7 +153,7 @@ func (sdb *sqlDB) FirstOrCreate(out any, where ...any) core.SqlDB {
 
 func (sdb *sqlDB) InsertAdmin(hashedPwd string) {
 	admin := models.User{Username: "admin", Password: hashedPwd, Role: models.AdminRole}
-	core.WarnIfErr(sdb.DB.FirstOrCreate(&admin).Error, errs.FailedToInsertDBAdmin)
+	logs.WarnIfErr(sdb.DB.FirstOrCreate(&admin).Error, errs.FailedToInsertDBAdmin)
 }
 
 func (sdb *sqlDB) Joins(qry string, args ...any) core.SqlDB {
@@ -163,13 +168,13 @@ func (sdb *sqlDB) Pluck(col string, val any) core.SqlDB {
 	return &sqlDB{sdb.DB.Pluck(col, val)}
 }
 
+func (sdb *sqlDB) Preload(query string, args ...any) core.SqlDB {
+	return &sqlDB{sdb.DB.Preload(query, args...)}
+}
+
 func (sdb *sqlDB) Raw(sql string, vals ...any) core.SqlDB {
 	return &sqlDB{sdb.DB.Raw(sql, vals...)}
 }
-
-func (sdb *sqlDB) Row() core.SqlRow { return sdb.DB.Row() }
-
-func (sdb *sqlDB) Rows() (core.SqlRows, error) { return sdb.DB.Rows() }
 
 func (sdb *sqlDB) Scopes(fns ...func(core.SqlDB) core.SqlDB) core.SqlDB {
 	adaptedFns := make([]func(*gorm.DB) *gorm.DB, len(fns))

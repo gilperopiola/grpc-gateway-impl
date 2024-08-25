@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
@@ -42,15 +43,15 @@ type App struct {
 func Setup() (runAppFunc, cleanUpFunc) {
 
 	app := App{
-		Config:  new(core.Config),
-		Servers: new(servers.Servers),
-		Service: new(service.Service),
-		Tools:   new(tools.Tools),
+		Config:  new(core.Config),     // The Heavens.
+		Servers: new(servers.Servers), // The Earth.
+		Service: new(service.Service), // The Bourgeoisie.
+		Tools:   new(tools.Tools),     // The Proletariat.
 	}
 
 	func() {
 		app.Config = core.LoadConfig()
-		core.SetupLogger(&app.Config.LoggerCfg)
+		logs.SetupLogger(&app.Config.LoggerCfg)
 	}()
 
 	func() {

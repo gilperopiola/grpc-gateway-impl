@@ -8,7 +8,8 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"
@@ -65,7 +66,7 @@ func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
 	}
 
 	if !strings.HasPrefix(bearer, "Bearer ") {
-		core.LogStrange(errs.AuthTokenMalformed)
+		logs.LogStrange(errs.AuthTokenMalformed)
 		return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenMalformed)
 	}
 
@@ -106,7 +107,7 @@ func (v jwtValidator) canAccessRoute(route string, claims *models.Claims, req an
 	// These routes only allow admin users to go through.
 	case models.RouteAuthAdmin:
 		if claims.Role != models.AdminRole {
-			core.LogThreat("User " + claims.ID + " tried to access admin route " + route)
+			logs.LogThreat("User " + claims.ID + " tried to access admin route " + route)
 			return status.Errorf(codes.PermissionDenied, errs.AuthRoleInvalid)
 		}
 
@@ -116,7 +117,7 @@ func (v jwtValidator) canAccessRoute(route string, claims *models.Claims, req an
 		return nil
 
 	default:
-		core.LogStrange("Auth for route " + route + " unhandled")
+		logs.LogStrange("Auth for route " + route + " unhandled")
 		return status.Errorf(codes.Unknown, errs.AuthRouteInvalid)
 	}
 

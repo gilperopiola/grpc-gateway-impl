@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -24,7 +24,7 @@ func getHTTPMiddlewareChain() middlewareFunc {
 		return addCustomRespWriter(
 			handleCORS(
 				setResponseHeaders(
-					core.LogHTTPRequest(handler),
+					logs.LogHTTPRequest(handler),
 				),
 			),
 		)
@@ -41,7 +41,7 @@ var addCustomRespWriter middlewareFunc = func(handler http.Handler) http.Handler
 // Adds CORS headers and handles preflight requests
 var handleCORS middlewareFunc = func(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		core.LogDebug("CORS " + req.Method + " from " + req.RemoteAddr)
+		logs.LogDebug("CORS " + req.Method + " from " + req.RemoteAddr)
 
 		for key, value := range corsHeaders {
 			rw.Header().Set(key, value)

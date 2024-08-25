@@ -6,6 +6,7 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 )
 
 var _ core.CtxTool = ctxTool{}
@@ -45,7 +46,7 @@ func (ct ctxTool) AddUserInfoToCtx(ctx god.Ctx, userID, username string) god.Ctx
 func (ct ctxTool) GetUserIDFromCtx(ctx god.Ctx) string {
 	userID, err := ct.GetFromCtx(ctx, CtxKeyUserID)
 	if err != nil {
-		core.LogStrange("Could not get user ID from context: %v", err)
+		logs.LogStrange("Could not get user ID from context: %v", err)
 	}
 	return userID
 }
@@ -54,7 +55,7 @@ func (ct ctxTool) GetUserIDFromCtx(ctx god.Ctx) string {
 func (ct ctxTool) GetUsernameFromCtx(ctx god.Ctx) string {
 	username, err := ct.GetFromCtx(ctx, CtxKeyUsername)
 	if err != nil {
-		core.LogStrange("Could not get username from context: %v", err)
+		logs.LogStrange("Could not get username from context: %v", err)
 	}
 	return username
 }

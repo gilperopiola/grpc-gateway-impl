@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"google.golang.org/grpc/codes"
@@ -27,10 +28,10 @@ func (h *HealthSubService) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRe
 
 	// Make HTTP call or return unhealthy.
 	if _, err := h.Tools.GetCurrentWeather(ctx, 50, 50); err != nil {
-		core.LogUnexpected(fmt.Errorf("network call unhealthy: %w", err))
+		logs.LogUnexpected(fmt.Errorf("network call unhealthy: %w", err))
 		return nil, status.Error(codes.Unavailable, "network call unhealthy")
 	}
 
-	msg := core.AppName + " " + core.AppVersion + " healthy"
+	msg := core.G.AppName + " " + core.G.Version + " healthy"
 	return &pbs.CheckHealthResponse{Info: msg}, nil
 }

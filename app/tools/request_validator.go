@@ -7,6 +7,7 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/bufbuild/protovalidate-go"
@@ -29,7 +30,7 @@ type protoRequestValidator struct {
 
 func NewProtoRequestValidator() core.RequestValidator {
 	validator, err := protovalidate.New()
-	core.LogFatalIfErr(err, errs.FailedToCreateProtoVal)
+	logs.LogFatalIfErr(err, errs.FailedToCreateProtoVal)
 	return &protoRequestValidator{validator}
 }
 
@@ -56,11 +57,11 @@ func validationErrToGRPCErr(err error) error {
 
 	var runtimeErr *protovalidate.RuntimeError
 	if ok := errors.As(err, &runtimeErr); ok {
-		core.LogUnexpected(runtimeErr)
+		logs.LogUnexpected(runtimeErr)
 		return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequestRuntime, runtimeErr))
 	}
 
-	core.LogUnexpected(err)
+	logs.LogUnexpected(err)
 	return status.Error(codes.InvalidArgument, fmt.Sprintf(errs.ValidatingRequestUnexpected, err))
 }
 

@@ -10,4 +10,7 @@ var AllDBModels = []any{
 	User{},
 	Group{},
 	UsersInGroup{},
+
+	GPTChat{},
+	GPTMessage{},
 }

@@ -7,68 +7,74 @@ import (
 	"net/http"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/apimodels"
 )
 
+var _ core.ChatGPTAPI = &ChatGptAPI{}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*            - Gpt API -           */
+/*              - GPT API -            */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-var _ core.GptAPI = &GptAPI{}
-
-type GptAPI struct {
+type ChatGptAPI struct {
 	httpClient *http.Client
-	postFn     func(context.Context, *http.Client, string, any) (int, []byte, error)
+	baseURL    string
+	key        string
 }
 
-func NewAPI(postFn func(context.Context, *http.Client, string, any) (int, []byte, error)) core.GptAPI {
-	return &GptAPI{
-		httpClient: &http.Client{Timeout: 90},
-		postFn:     postFn,
+func NewAPI(httpClient *http.Client, apiKey string) core.ChatGPTAPI {
+	return &ChatGptAPI{
+		httpClient: httpClient,
+		baseURL:    "https://api.openai.com/v1",
+		key:        apiKey,
 	}
 }
 
-/* -~-~-~- Types -~-~-~- */
-
-type Endpoint string
-
-const (
-	ChatEndpoint Endpoint = "/chat/completions"
-)
-
 /* -~-~-~- Chat Completion Endpoint -~-~-~- */
 
-// NewCompletion generates a text completion from the Gpt API.
-func (api *GptAPI) NewCompletion(ctx context.Context, prompt, content string) (string, error) {
+const endpoint = "/chat/completions"
 
-	var (
-		path = string(ChatEndpoint)
-		req  = apimodels.Request{
-			Model: apimodels.GPT4oMini,
-			Messages: []apimodels.Message{
-				{Role: "user", Content: prompt},
-				{Role: "user", Content: content},
-			},
-		}
-	)
+// Get a text completion from the OpenAI API.
+func (api *ChatGptAPI) SendToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTMessage) (string, error) {
 
-	status, body, err := api.postFn(ctx, api.httpClient, path, req)
+	// We have 1 API Endpoint for both new conversations
+	// and existing ones. If no previous messages are
+	// provided, we use a default starting message.
+	if len(prevMsgs) == 0 {
+		prevMsgs = append(prevMsgs, defaultSystemMessage)
+	}
+
+	var url = api.baseURL + endpoint
+	var req = apimodels.GPTChatRequest{
+		Model: apimodels.GPT4Turbo,
+		Messages: append(prevMsgs, apimodels.GPTMessage{
+			Role:    "user",
+			Content: prompt,
+		}),
+	}
+
+	status, body, err := utils.POST(ctx, url, &req, api.key, api.httpClient)
 	if err != nil {
 		return "", err
 	}
 
-	core.LogAPICall(path, status, body)
+	logs.LogAPICall(url, status, body)
 
-	var response apimodels.Response
+	var response apimodels.GPTChatResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return "", fmt.Errorf("error unmarshalling chat completion response: %w", err)
 	}
 
 	if len(response.Choices) == 0 {
-		return "", fmt.Errorf("no choices in completion response")
+		return "", fmt.Errorf("no choices in chat completion response")
 	}
 
 	return response.Choices[0].Message.Content, nil
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+var defaultSystemMessage = apimodels.GPTMessage{
+	Role:    "system",
+	Content: "You are a highly intelligent and useful AI, showing expertise and excellence in all fields. Keep your answers concise and to the point, without being repetitive. At the beginning of each message, write Title: and a short title for the message.",
+}

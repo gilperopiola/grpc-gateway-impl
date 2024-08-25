@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -21,6 +22,7 @@ type Service struct {
 	AuthSubService
 	UsersSubService
 	GroupsSubService
+	GPTSubService
 	HealthSubService
 }
 
@@ -35,6 +37,7 @@ func Setup(tools core.Tools) *Service {
 		AuthSubService:   AuthSubService{Tools: tools},
 		UsersSubService:  UsersSubService{Tools: tools},
 		GroupsSubService: GroupsSubService{Tools: tools},
+		GPTSubService:    GPTSubService{Tools: tools},
 		HealthSubService: HealthSubService{Tools: tools},
 	}
 }
@@ -47,6 +50,7 @@ func (s *Service) RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar) {
 		pbs.AuthService_ServiceDesc,
 		pbs.UsersService_ServiceDesc,
 		pbs.GroupsService_ServiceDesc,
+		pbs.GPTService_ServiceDesc,
 		pbs.HealthService_ServiceDesc,
 	}
 
@@ -63,10 +67,11 @@ func (s *Service) RegisterHTTPEndpoints(mux *runtime.ServeMux, opts ...grpc.Dial
 		pbs.RegisterAuthServiceHandlerFromEndpoint,
 		pbs.RegisterUsersServiceHandlerFromEndpoint,
 		pbs.RegisterGroupsServiceHandlerFromEndpoint,
+		pbs.RegisterGPTServiceHandlerFromEndpoint,
 		pbs.RegisterHealthServiceHandlerFromEndpoint,
 	}
 
 	for _, registerService := range registerServiceFns {
-		core.LogFatalIfErr(registerService(context.Background(), mux, core.GRPCPort, opts))
+		logs.LogFatalIfErr(registerService(context.Background(), mux, core.G.GRPCPort, opts))
 	}
 }

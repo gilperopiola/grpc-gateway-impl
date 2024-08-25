@@ -8,14 +8,13 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"gorm.io/gorm"
 )
 
-var _ core.DBTool = (*mongoDBTool)(nil)
+var _ core.DBTool = &mongoDBTool{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*     - External Layer: Storage -     */
@@ -28,8 +27,9 @@ type mongoDBTool struct {
 type Collections string
 
 const (
-	UsersCollection  Collections = "users"
-	GroupsCollection Collections = "groups"
+	UsersCollection    Collections = "users"
+	GroupsCollection   Collections = "groups"
+	GPTChatsCollection Collections = "gpt_chats"
 )
 
 func SetupDBTool(db core.MongoDB) *mongoDBTool {
@@ -47,7 +47,7 @@ func (dbt *mongoDBTool) CloseDB() {
 }
 
 func (dbt *mongoDBTool) IsNotFound(err error) bool {
-	return errors.Is(err, mongo.ErrNoDocuments) || errors.Is(err, gorm.ErrRecordNotFound)
+	return errors.Is(err, mongo.ErrNoDocuments)
 }
 
 func (dbt *mongoDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
@@ -160,3 +160,13 @@ var (
 	CountUsersErr = errs.DBCountingUsers
 	NoOptionsErr  = errs.DBNoQueryOpts
 )
+
+func (db *mongoDBTool) GetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error) {
+	return nil, nil
+}
+func (db *mongoDBTool) CreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error) {
+	return nil, nil
+}
+func (db *mongoDBTool) CreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error) {
+	return nil, nil
+}

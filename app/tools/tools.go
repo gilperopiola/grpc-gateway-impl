@@ -3,7 +3,7 @@ package tools
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/tools/dbs/sqldb"
 )
 
 var _ core.Tools = &Tools{}
@@ -20,10 +20,11 @@ var _ core.Tools = &Tools{}
 // Well defined Tools make the business logic easier to read and understand.
 type Tools struct {
 	core.APIs             // -> API Clients.
-	core.DBTool           // -> Storage (DB, Cache, etc).
+	core.DBTool           // -> High-level DB operations.
 	core.TLSTool          // -> Holds and retrieves data for TLS communication.
 	core.CtxTool          // -> Manages context.
-	core.FileManager      // -> Creates folders and file s.
+	core.FileManager      // -> Creates folders and files.
+	core.ImageLoader      // -> Loads images from different sources.
 	core.ModelConverter   // -> Converts between models and PBs.
 	core.PwdHasher        // -> Hashes and compares passwords.
 	core.RateLimiter      // -> Limits rate of requests.
@@ -38,7 +39,7 @@ func Setup(cfg *core.Config) *Tools {
 	tools := Tools{}
 
 	// APIs.
-	tools.APIs = apis.NewAPIs()
+	tools.APIs = apis.NewAPIs(cfg.APIsCfg)
 
 	// DBs.
 	sqlDB := sqldb.NewSqlDB(&cfg.DBCfg)
@@ -57,11 +58,12 @@ func Setup(cfg *core.Config) *Tools {
 	tools.TokenValidator = NewJWTValidator(tools.CtxTool, cfg.JWTCfg.Secret)
 
 	// Other utilities.
-	tools.ShutdownJanitor = NewShutdownJanitor()
-	tools.ModelConverter = NewModelConverter()
 	tools.FileManager = NewFileManager("etc/data/")
-	tools.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
+	tools.ImageLoader = NewImageLoader()
 	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
+	tools.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
+	tools.ModelConverter = NewModelConverter()
+	tools.ShutdownJanitor = NewShutdownJanitor()
 
 	return &tools
 }

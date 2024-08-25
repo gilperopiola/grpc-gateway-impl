@@ -8,4 +8,3 @@ import (
 func New(msg any) error {
 	return fmt.Errorf("%v", msg)
 }
- 

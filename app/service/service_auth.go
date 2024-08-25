@@ -1,16 +1,16 @@
 package service
 
 import (
-	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/db_tool/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/dbs/sqldb"
 
 	"go.uber.org/zap"
 )
@@ -49,7 +49,7 @@ func (s *AuthSubService) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Tools.CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 
 	w, err := s.Tools.GetCurrentWeather(ctx, 44.34, 10.99)
-	core.LogIfErr(err)
+	logs.LogIfErr(err)
 	zap.S().Info("Weather", w)
 }
 
@@ -64,7 +64,7 @@ func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginRe
 		return nil, errs.GRPCNotFound("user", req.Username)
 	}
 	if err != nil || user == nil {
-		return nil, errs.GRPCFromDB(err, core.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))
 	}
 
 	if !s.Tools.PasswordsMatch(req.Password, user.Password) {
@@ -79,24 +79,8 @@ func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginRe
 	zap.L().Info(req.String())
 
 	w, err := s.Tools.GetCurrentWeather(ctx, 44.34, 10.99)
-	core.LogIfErr(err)
+	logs.LogIfErr(err)
 	zap.S().Info("Weather", w)
-
-	got, err := s.Tools.NewCompletion(ctx, "Gimme just the latitude and longitude of buenos aires, response must follow format: -35.03, -54.33", "")
-	core.LogIfErr(err)
-	zap.S().Info(fmt.Sprintf("Got %s", got))
-
-	splat := strings.Split(got, ",")
-	if len(splat) == 2 {
-		lat, err := strconv.ParseFloat(strings.TrimSpace(splat[0]), 64)
-		core.LogIfErr(err)
-		lon, err := strconv.ParseFloat(strings.TrimSpace(splat[1]), 64)
-		core.LogIfErr(err)
-
-		w, err := s.Tools.GetCurrentWeather(ctx, lat, lon)
-		core.LogIfErr(err)
-		zap.S().Info("Weather in bsas", w)
-	}
 
 	return &pbs.LoginResponse{Token: token}, nil
 }

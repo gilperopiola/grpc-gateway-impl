@@ -2,6 +2,7 @@ package tools
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 )
 
 // This was previously named CleanupTool, but
@@ -34,7 +35,7 @@ func (sj *shutdownJanitor) AddCleanupFuncWithErr(fn func() error) {
 	// This allows us to handle the error and still
 	// be able to add the function to the cleanup list.
 	adapter := func() {
-		core.LogIfErr(fn(), "ungraceful shutdown: %v")
+		logs.LogIfErr(fn(), "ungraceful shutdown: %v")
 	}
 
 	sj.cleanupFns = append(sj.cleanupFns, adapter)
