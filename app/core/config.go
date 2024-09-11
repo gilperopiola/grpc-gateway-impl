@@ -5,27 +5,31 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/types"
 
 	"github.com/joho/godotenv"
 )
 
+// Read the .env file, setting env vars and globals.
+func init() {
+	if err := godotenv.Overload(); err != nil {
+		log.Printf("🚨 WARNING: No .env file found: %v", err)
+	}
+	setGlobals()
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*                                   - Core: Configuration -                                 */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-/* - We have a Config struct, it's loaded on the App's Setup function and holds many
-/*   different sub-configs: APIsCfg, DBCfg, LoggerCfg, etc.
-/* - We also have some... 🌍 Global Configs! :)
-/* - We use the .env file on the project's root to set the environment, some configs have
-/*   defaults but some of them don't. For now we only support 1 file named '.env'.
-/* - IMPORTANT: Add any new configs to the .env.example file.
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+// -> A .env file on the root of the project is required to run the app.
+// -> Please add any new configs to the .env.example file.
 
-// Standard Configs 🛠
+// ⭐️ Our App has a reference to one of this.
 type Config struct {
-	APIsCfg      // -> APIs URLs, keys, etc.
+	APIsCfg      // -> API URLs, keys, etc
 	DBCfg        // -> DB Credentials and such
 	JWTCfg       // -> JWT Secret
 	TLSCfg       // -> TLS Certs paths
@@ -35,9 +39,26 @@ type Config struct {
 	RLimiterCfg  // -> Rate settings
 }
 
-// Global Configs 🌍
-// ~ Access these from A n y w h e r e !!! 🚀
-//   with core.G.xxx.
+// As on the init func we load the .env file, here we already
+// have available all the env vars.
+func LoadConfig() *Config {
+	return &Config{
+		APIsCfg:      loadAPIsConfig(),
+		DBCfg:        loadDBConfig(),
+		JWTCfg:       loadJWTConfig(),
+		TLSCfg:       loadTLSConfig(),
+		LoggerCfg:    loadLoggerConfig(),
+		PwdHasherCfg: loadPwdHasherConfig(),
+		RetrierCfg:   loadRetrierConfig(),
+		RLimiterCfg:  loadRateLimiterConfig(),
+	}
+}
+
+/* -~-~-~-~ Global Config ~-~-~-~- */
+
+var G = new(Globals)
+
+// 🌍 Global Configs
 type Globals struct {
 	AppName     string
 	Version     string // -> TODO - Makefile should set this value.
@@ -51,53 +72,20 @@ type Globals struct {
 	LogAPICalls bool
 }
 
-var G = &Globals{
-	AppName:     "grpc-gateway-impl",
-	Version:     "v1.0",
-	Env:         "local",
-	IsProd:      false,
-	IsStage:     false,
-	IsDev:       true,
-	GRPCPort:    ":50053",
-	HTTPPort:    ":8083",
-	TLSEnabled:  false,
-	LogAPICalls: true,
-}
-
-// Loads and returns the Config from the .env file.
-// Also sets globals in core.G.
-func LoadConfig() *Config {
-	if err := godotenv.Overload(); err != nil {
-		log.Println("🚨 WARNING: No .env file found.")
+func setGlobals() {
+	var env = envVar("ENV", "local")
+	G = &Globals{
+		Env:         env,
+		IsProd:      env == "prod" || env == "production" || env == "live",
+		IsStage:     env == "stage" || env == "staging" || env == "test",
+		IsDev:       env == "local" || env == "dev" || env == "development",
+		AppName:     envVar("APP_NAME", "grpc-gateway-impl"),
+		Version:     envVar("APP_VERSION", "v1.0"),
+		GRPCPort:    envVar("GRPC_PORT", ":50053"),
+		HTTPPort:    envVar("HTTP_PORT", ":8083"),
+		TLSEnabled:  envVar("TLS_ENABLED", false),
+		LogAPICalls: envVar("LOG_API_CALLS", true),
 	}
-
-	G = loadGlobalConfig()
-
-	return &Config{
-		APIsCfg:      loadAPIsConfig(),
-		DBCfg:        loadDBConfig(),
-		JWTCfg:       loadJWTConfig(),
-		TLSCfg:       loadTLSConfig(),
-		LoggerCfg:    loadLoggerConfig(),
-		PwdHasherCfg: loadPwdHasherConfig(),
-		RetrierCfg:   loadRetrierConfig(),
-		RLimiterCfg:  loadRateLimiterConfig(),
-	}
-}
-
-func loadGlobalConfig() *Globals {
-	g := new(Globals)
-	g.AppName = envVar("APP_NAME", G.AppName)
-	g.Version = envVar("APP_VERSION", G.Version)
-	g.Env = envVar("ENV", G.Env)
-	g.IsProd = G.Env == "prod" || G.Env == "production" || G.Env == "live"
-	g.IsStage = G.Env == "stage" || G.Env == "staging" || G.Env == "test"
-	g.IsDev = !G.IsProd && !G.IsStage
-	g.GRPCPort = envVar("GRPC_PORT", G.GRPCPort)
-	g.HTTPPort = envVar("HTTP_PORT", G.HTTPPort)
-	g.TLSEnabled = envVar("TLS_ENABLED", G.TLSEnabled)
-	g.LogAPICalls = envVar("LOG_API_CALLS", G.LogAPICalls)
-	return g
 }
 
 /* -~-~-~-~ APIs Config ~-~-~-~- */
@@ -133,20 +121,18 @@ func loadAPIsConfig() APIsCfg {
 /* -~-~-~-~ DB Config ~-~-~-~- */
 
 type DBCfg struct {
-	Username string
-	Password string
-	Hostname string
-	Port     string
-	Database string
-	Params   string
-	Retries  int
-
+	Username       string
+	Password       string
+	Hostname       string
+	Port           string
+	Database       string
+	Params         string
+	Retries        int
 	EraseAllData   bool
 	MigrateModels  bool
 	InsertAdmin    bool
 	InsertAdminPwd string // hashed with our PwdHasher
-
-	LogLevel int
+	LogLevel       int
 }
 
 func loadDBConfig() DBCfg {
@@ -198,6 +184,7 @@ func loadJWTConfig() JWTCfg {
 
 /* -~-~-~-~ TLS Config ~-~-~-~- */
 
+// For TLSEnabled, see the Globals struct.
 type TLSCfg struct {
 	CertPath string
 	KeyPath  string
@@ -217,7 +204,9 @@ type PwdHasherCfg struct {
 }
 
 func loadPwdHasherConfig() PwdHasherCfg {
-	return PwdHasherCfg{Salt: envVar("PWD_HASHER_SALT", "")}
+	return PwdHasherCfg{
+		Salt: envVar("PWD_HASHER_SALT", ""),
+	}
 }
 
 /* -~-~-~-~ Retrier Config ~-~-~-~- */
@@ -245,20 +234,22 @@ func loadRateLimiterConfig() RLimiterCfg {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func envVar[T string | bool | int](key string, fallback T) T {
-	val, exists := os.LookupEnv(key)
-	if !exists {
+	val, isSet := os.LookupEnv(key)
+	if !isSet {
 		return fallback
 	}
+
 	switch any(fallback).(type) {
 	case string:
 		return any(val).(T)
 	case bool:
-		return any(val == "true" || val == "TRUE" || val == "1").(T)
+		return any(strings.ToLower(val) == "true" || val == "1").(T)
 	case int:
 		if intVal, err := strconv.Atoi(val); err == nil {
 			return any(intVal).(T)
 		}
 	}
+	log.Printf("🚨 WARNING: Env var %s set to an unsupported value: %s", key, val)
 	return fallback
 }
 
@@ -273,3 +264,5 @@ func (c *DBCfg) GetSQLConnectionString() string {
 func (c *DBCfg) GetSQLConnectionStringNoDB() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", c.Username, c.Password, c.Hostname, c.Port, c.Params)
 }
+
+// TODO -> Be able to change some of these config values at runtime.

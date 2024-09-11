@@ -18,9 +18,9 @@ func main() {
 
 	runApp()
 
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
+	waitForSignal := make(chan os.Signal, 1)
+	signal.Notify(waitForSignal, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-waitForSignal
 }
 
 // ---             ╭───────────────╮                         ╭───────────╮

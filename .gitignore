@@ -27,8 +27,7 @@ coverage.txt
 *.crt~
 *.pem
 
-## Etc
+## Third party
 .DS_Store
 .vscode/
 .idea/
-

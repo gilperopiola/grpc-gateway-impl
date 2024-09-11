@@ -13,19 +13,7 @@ import (
 /*               - App -               */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
-// ╭───────────────────┬───────────────────┬────────────┬───────────────────────────────────────╮
-// │ Field             │ Type              │ Interface  │ Contains                              │
-// ├───────────────────┼───────────────────┼────────────┼───────────────────────────────────────┤
-// │ Configuration     │ *core.Config      │            │ All settings, split by module.        │
-// │ GRPC-HTTP Servers │ *servers.Servers  │            │ Our GRPC and HTTP Servers.            │
-// │ Main Service      │ *service.Services │            │ Endpoints and business logic.         │
-// │ Tools             │ *tools.Tools      │ core.Tools │ Specific actions used by our Service. │
-// ╰───────────────────┴───────────────────┴────────────┴───────────────────────────────────────╯
-// - We use a global Logger, so we don't store it anywhere.
-
-// ⭐️ Our main App.
-//
-// Holds everything - does nothing.
+// ⭐️ Holds everything, but does nothing on its own.
 type App struct {
 	Config  *core.Config
 	Servers *servers.Servers
@@ -33,13 +21,23 @@ type App struct {
 	Tools   *tools.Tools
 }
 
-// Called by main.go.
-//
-// Initializes a new App: Loads the Config, Logger,
+// ╭───────────────────┬───────────────────┬────────────┬──────────────────────────────────────────────╮
+// │ App Field         │ Field Type        │ Interface  │ Contains                                     │
+// ├───────────────────┼───────────────────┼────────────┼──────────────────────────────────────────────┤
+// │ Configuration     │ *core.Config      │     ~      │ All settings, split by module.               │
+// │ GRPC-HTTP Servers │ *servers.Servers  │     ~      │ Our GRPC and HTTP Servers.                   │
+// │ Main Service      │ *service.Services │     ~      │ Endpoints and business logic.                │
+// │ Tools             │ *tools.Tools      │ core.Tools │ Specific actions mainly used by the Service. │
+// ╰───────────────────┴───────────────────┴────────────┴──────────────────────────────────────────────╯
+// * We use a global Logger, so we don't store it anywhere.
+
+// ⭐️ Sets up a new App - Loads the Config, Logger,
 // then the Tools, Service and Servers.
 //
-// Returns a func to run the Servers and another one to free
-// used resources before exiting.
+// Returns a func to run the Servers and another one to clean
+// up used resources before exiting. Remember to defer that one.
+//
+// If something goes wrong, we just log it and quit.
 func Setup() (runAppFunc, cleanUpFunc) {
 
 	app := App{
