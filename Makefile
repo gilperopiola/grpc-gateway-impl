@@ -26,7 +26,7 @@ PROTOS_DIR := ./app/core/protos
 
 # All .proto files in the PROTOS_DIR.
 # Just top-level, not subfolders.
-PROTO_FILES := $(shell find $(PROTOS_DIR) -maxdepth 1 -name "*.proto")
+PROTO_FILES := $(wildcard $(PROTOS_DIR)/*.proto)
 
 # Don't print unnecessary output.
 MAKEFLAGS += --no-print-directory 
