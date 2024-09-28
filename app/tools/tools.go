@@ -2,8 +2,6 @@ package tools
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/dbs/sqldb"
 )
 
 var _ core.Tools = &Tools{}
@@ -19,8 +17,6 @@ var _ core.Tools = &Tools{}
 //
 // Well defined Tools make the business logic easier to read and understand.
 type Tools struct {
-	core.APIs             // -> API Clients.
-	core.DBTool           // -> High-level DB operations.
 	core.TLSTool          // -> Holds and retrieves data for TLS communication.
 	core.CtxTool          // -> Manages context.
 	core.FileManager      // -> Creates folders and files.
@@ -38,26 +34,19 @@ type Tools struct {
 func Setup(cfg *core.Config) *Tools {
 	tools := Tools{}
 
-	// APIs.
-	tools.APIs = apis.NewAPIs(cfg.APIsCfg)
-
-	// DBs.
-	sqlDB := sqldb.NewSqlDB(&cfg.DBCfg)
-	tools.DBTool = sqldb.NewDBTool(sqlDB)
-
-	// Security.
+	// Security
 	tools.TLSTool = NewTLSTool(&cfg.TLSCfg)
 
-	// Request handling.
+	// Request handling
 	tools.CtxTool = NewCtxTool()
 	tools.RequestPaginator = NewRequestsPaginator(1, 10) // TODO - Config
 	tools.RequestValidator = NewProtoRequestValidator()
 
-	// Auth -> JWT Tokens.
+	// Auth -> JWT Tokens
 	tools.TokenGenerator = NewJWTGenerator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
 	tools.TokenValidator = NewJWTValidator(tools.CtxTool, cfg.JWTCfg.Secret)
 
-	// Other utilities.
+	// Other utilities
 	tools.FileManager = NewFileManager("etc/data/")
 	tools.ImageLoader = NewImageLoader()
 	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)

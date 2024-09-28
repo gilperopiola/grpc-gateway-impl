@@ -12,6 +12,12 @@ import (
 /*          - Global Retrier -         */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+func RetryWrapper1(fn func() any, nTries int, opts ...RetryOpt) (any, error) {
+	return Retry(func() (any, error) {
+		return fn(), nil
+	}, nTries, opts...)
+}
+
 // Executes a function.
 // On failure, it calls a fallback (if set), sleeps some time, then retries.
 func Retry(fn func() (any, error), nTries int, opts ...RetryOpt) (any, error) {
@@ -85,13 +91,6 @@ func newRetryCfg() *retryCfg {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type RetryOpt func(*retryCfg)
-
-// DontLog disables logs for failed tries.
-func DontLog() RetryOpt {
-	return func(cfg *retryCfg) {
-		cfg.dontLogFailures = true
-	}
-}
 
 // Fallback sets the fallback function.
 func Fallback(fallbackFn func()) RetryOpt {

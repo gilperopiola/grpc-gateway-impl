@@ -2,12 +2,13 @@ package servers
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
@@ -122,7 +123,9 @@ func newPanicRecovererInterceptor() grpc.UnaryServerInterceptor {
 		// Panics will recover, logging the error and returning to the user a standard panic response.
 		defer func() {
 			if err := recover(); err != nil || !handlerFinishedOK {
-				zap.L().Error("GRPC Panic", zap.Any("error", err), zap.Any("context", c))
+				stackBuf := make([]byte, 2048)
+				stackBuf = stackBuf[:runtime.Stack(stackBuf, false)]
+				zap.L().Error("GRPC Panic", zap.Any("error", err), zap.Any("stack", stackBuf))
 				err = status.Error(codes.Internal, errs.PanicMsg)
 			}
 		}()

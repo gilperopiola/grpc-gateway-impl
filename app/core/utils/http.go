@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/apimodels"
+	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
 )
 
 func POST(ctx context.Context, url string, payload *apimodels.GPTChatRequest, bearer string, client *http.Client) (int, []byte, error) {

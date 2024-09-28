@@ -36,10 +36,10 @@ func WithUsername(username string) core.SqlDBOpt {
 func WithCondition(operation Operation, field, value string) core.SqlDBOpt {
 	if field == "" {
 		logs.LogStrange("Empty field in SQL condition -> value = " + value)
-		return func(db core.SqlDB) {} // No-op
+		return func(db core.BaseSQLDB) {} // No-op
 	}
 
-	return func(db core.SqlDB) {
+	return func(db core.BaseSQLDB) {
 		if operation == Where || operation == And { // Where / And
 			db.Where(fmt.Sprintf("%s = ?", field), value)
 			return

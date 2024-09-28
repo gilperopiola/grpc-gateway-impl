@@ -4,14 +4,14 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*       - SQL DB Tool: Groups -       */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (sdbt *sqlDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
+func (sdbt *DB) DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
 	group := models.Group{Name: name, OwnerID: ownerID}
 
 	if err := sdbt.DB.WithContext(ctx).Create(&group).Error(); err != nil {
@@ -27,7 +27,7 @@ func (sdbt *sqlDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invite
 	return &group, nil
 }
 
-func (sdbt *sqlDBTool) GetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
+func (sdbt *DB) DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
 	if len(opts) == 0 {
 		return nil, &errs.DBErr{nil, NoOptionsErr}
 	}

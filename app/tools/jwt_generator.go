@@ -7,7 +7,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"

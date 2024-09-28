@@ -28,7 +28,7 @@ const (
 
 	FailedToInsertDBAdmin = "Failed to insert admin to DB: %v"
 	FailedToGetSQLDB      = "Failed to get SQL DB connection: %v"
-	FailedToCloseSQLDB    = "Failed to close SQL DB connection: %v"
+	FailedToCloseSqlDB    = "Failed to close SQL DB connection: %v"
 )
 
 const (

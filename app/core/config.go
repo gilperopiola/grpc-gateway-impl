@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types"
-
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 // Read the .env file, setting env vars and globals.
@@ -42,7 +42,7 @@ type Config struct {
 // As on the init func we load the .env file, here we already
 // have available all the env vars.
 func LoadConfig() *Config {
-	return &Config{
+	config := Config{
 		APIsCfg:      loadAPIsConfig(),
 		DBCfg:        loadDBConfig(),
 		JWTCfg:       loadJWTConfig(),
@@ -52,6 +52,8 @@ func LoadConfig() *Config {
 		RetrierCfg:   loadRetrierConfig(),
 		RLimiterCfg:  loadRateLimiterConfig(),
 	}
+
+	return &config
 }
 
 /* -~-~-~-~ Global Config ~-~-~-~- */
@@ -148,7 +150,7 @@ func loadDBConfig() DBCfg {
 		MigrateModels:  envVar("DB_MIGRATE_MODELS", true),
 		InsertAdmin:    envVar("DB_INSERT_ADMIN", true),
 		InsertAdminPwd: envVar("DB_INSERT_ADMIN_PWD", ""),
-		LogLevel:       types.DBLogLevels[envVar("DB_LOG_LEVEL", "error")],
+		LogLevel:       DBLogLevels[envVar("DB_LOG_LEVEL", "error")],
 	}
 }
 
@@ -162,8 +164,8 @@ type LoggerCfg struct {
 
 func loadLoggerConfig() LoggerCfg {
 	return LoggerCfg{
-		Level:       types.LogLevels[envVar("LOGGER_LEVEL", "info")],
-		LevelStackT: types.LogLevels[envVar("LOGGER_LEVEL_STACKTRACE", "fatal")],
+		Level:       LogLevels[envVar("LOGGER_LEVEL", "info")],
+		LevelStackT: LogLevels[envVar("LOGGER_LEVEL_STACKTRACE", "fatal")],
 		LogCaller:   envVar("LOGGER_LOG_CALLER", false),
 	}
 }
@@ -263,6 +265,40 @@ func (c *DBCfg) GetSQLConnectionString() string {
 // Used if the DB we need is not yet created.
 func (c *DBCfg) GetSQLConnectionStringNoDB() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", c.Username, c.Password, c.Hostname, c.Port, c.Params)
+}
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+// Unsure about the location of these 2 maps.
+
+// Levels go from debug (lowest) to fatal (highest).
+//
+// We only log messages with a Level equal or higher
+// than the one in the [LoggerCfg].
+var LogLevels = map[string]int{
+	"debug": int(zap.DebugLevel), // Lowest.
+	"info":  int(zap.InfoLevel),
+	"warn":  int(zap.WarnLevel),
+	"error": int(zap.ErrorLevel),
+	"fatal": int(zap.FatalLevel), // Highest.
+}
+
+// Gorm Levels go from silent (lowest) to info (highest),
+// as opposed to our Logger Levels.
+//
+//	info 	-> 	logs everything
+//	warn 	-> 	logs warnings + errors
+//	error 	-> 	logs errors
+//	silent 	-> 	logs nothing
+//
+// We also added debug and fatal, but they just map to info and error.
+var DBLogLevels = map[string]int{
+	"debug":  int(gormLogger.Info),
+	"info":   int(gormLogger.Info),
+	"warn":   int(gormLogger.Warn),
+	"error":  int(gormLogger.Error),
+	"fatal":  int(gormLogger.Error),
+	"silent": int(gormLogger.Silent),
 }
 
 // TODO -> Be able to change some of these config values at runtime.

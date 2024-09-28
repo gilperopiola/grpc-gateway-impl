@@ -1,9 +1,11 @@
 package app
 
+// Outdated: update or remove.
+
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
@@ -66,8 +68,8 @@ var (
 // Concrete implementations are in the tools pkg.
 var (
 	_ core.APIs
-	_ core.AnyDB
-	_ core.DBTool
+	_ core.DB
+	_ core.DB
 	_ core.TLSTool
 	_ core.CtxTool
 	_ core.FileManager

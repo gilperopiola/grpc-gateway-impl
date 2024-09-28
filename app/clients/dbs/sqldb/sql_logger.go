@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/gilperopiola/god"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
 )
 
-var _ gormLogger.Interface = (*sqlDBLogger)(nil)
+var _ gormLogger.Interface = &sqlDBLogger{}
 
 // Adapter for the gormLogger.Interface.
 // It wraps our *zap.Logger.

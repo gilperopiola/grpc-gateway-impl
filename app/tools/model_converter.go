@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
 )
 
 var _ core.ModelConverter = (*modelConverter)(nil)

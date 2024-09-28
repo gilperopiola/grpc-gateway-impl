@@ -77,7 +77,6 @@ func newServerTransportCreds(certPath, keyPath string) credentials.TransportCred
 // Returns the client's transport credentials, either secure or insecure.
 func newClientTransportCreds(serverCertPool *x509.CertPool) credentials.TransportCredentials {
 	if !core.G.TLSEnabled {
-		logs.LogImportant("TLS is not enabled! 🔒")
 		return insecure.NewCredentials()
 	}
 	return credentials.NewClientTLSFromCert(serverCertPool, "")

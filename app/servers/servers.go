@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -44,6 +45,15 @@ func Setup(services *service.Service, tools core.Tools) *Servers {
 }
 
 func (s *Servers) Run() {
+	logs.Step(2, "Run")
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		logEndpointsPerService(s.GRPC)
+		time.Sleep(1 * time.Second)
+		log.Println("")
+		logs.Step(3, "Enjoy")
+	}()
+
 	go s.runGRPC()
 	go s.runHTTP()
 }
@@ -59,7 +69,6 @@ func (s *Servers) Shutdown() {
 func setupGRPC(service *service.Service, serverOpts []grpc.ServerOption) *grpc.Server {
 	grpcServer := grpc.NewServer(serverOpts...)
 	service.RegisterGRPCEndpoints(grpcServer)
-	logGRPCServicesInfo(grpcServer)
 	return grpcServer
 }
 
@@ -116,15 +125,14 @@ func listenHTTP() (any, error) {
 	return net.Listen("tcp", core.G.HTTPPort)
 }
 
-func logGRPCServicesInfo(server *grpc.Server) {
-
+func logEndpointsPerService(server *grpc.Server) {
 	// Loop over all services.
-	for _, serviceInfo := range server.GetServiceInfo() {
-		logs.ServerLogf(" 🐸 Service: %s", serviceInfo.Metadata)
+	for serviceName, serviceInfo := range server.GetServiceInfo() {
+		log.Printf("\t 🟢 %s ▶ [%s]", serviceName, serviceInfo.Metadata)
 
 		// Loop over all methods.
 		for _, method := range serviceInfo.Methods {
-			logs.ServerLogf(" \t - Method: %s", method.Name)
+			log.Printf("\t\t · %s", method.Name)
 		}
 	}
 }

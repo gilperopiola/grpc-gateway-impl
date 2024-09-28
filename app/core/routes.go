@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 )
 
 // Our Routes need manual updating when a .proto route changes.

@@ -2,17 +2,18 @@ package service
 
 import (
 	"github.com/gilperopiola/god"
+	sql "github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
-	sql "github.com/gilperopiola/grpc-gateway-impl/app/tools/dbs/sqldb"
 )
 
 type UsersSubService struct {
 	pbs.UnimplementedUsersServiceServer
-	Tools core.Tools
+	Clients core.Clients
+	Tools   core.Tools
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -24,8 +25,8 @@ type UsersSubService struct {
 // If the query fails (for some other reason), then it returns an unknown error.
 // If everything is OK, it returns the user info.
 func (s *UsersSubService) GetUser(ctx god.Ctx, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
-	user, err := s.Tools.GetUser(ctx, sql.WithID(req.UserId))
-	if s.Tools.IsNotFound(err) {
+	user, err := s.Clients.DBGetUser(ctx, sql.WithID(req.UserId))
+	if utils.IsNotFound(err) {
 		return nil, errUserNotFound(int(req.UserId))
 	}
 
@@ -40,7 +41,7 @@ func (s *UsersSubService) GetUsers(ctx god.Ctx, req *pbs.GetUsersRequest) (*pbs.
 	usernameFilterOpt := sql.WithCondition(sql.Like, "username", req.GetFilter())
 
 	// While our page is 0-based, gorm offsets are 1-based. We subtract 1.
-	users, totalMatches, err := s.Tools.GetUsers(ctx, page-1, pageSize, usernameFilterOpt)
+	users, totalMatches, err := s.Clients.DBGetUsers(ctx, page-1, pageSize, usernameFilterOpt)
 	if err != nil {
 		return nil, errCallingUsersDB(ctx, err)
 	}

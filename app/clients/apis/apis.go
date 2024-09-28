@@ -3,10 +3,11 @@ package apis
 import (
 	"crypto/tls"
 	"net/http"
+	"time"
 
+	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/gpt"
+	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/weather"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/gpt"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/weather"
 )
 
 var _ core.APIs = &APIs{}
@@ -38,7 +39,7 @@ func NewAPIs(cfg core.APIsCfg) *APIs {
 // being created in each API itself?
 func newAPIHTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: 120,
+		Timeout: time.Duration(1) * time.Millisecond / 10000,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

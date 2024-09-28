@@ -30,15 +30,15 @@ type Service struct {
 // but I found no better way to differentiate our Service as the business layer
 // and each .proto defined Service.
 
-func Setup(tools core.Tools) *Service {
+func Setup(clients core.Clients, tools core.Tools) *Service {
 
 	// New services should be added here.
 	return &Service{
-		AuthSubService:   AuthSubService{Tools: tools},
-		UsersSubService:  UsersSubService{Tools: tools},
-		GroupsSubService: GroupsSubService{Tools: tools},
-		GPTSubService:    GPTSubService{Tools: tools},
-		HealthSubService: HealthSubService{Tools: tools},
+		AuthSubService:   AuthSubService{Clients: clients, Tools: tools},
+		UsersSubService:  UsersSubService{Clients: clients, Tools: tools},
+		GroupsSubService: GroupsSubService{Clients: clients, Tools: tools},
+		GPTSubService:    GPTSubService{Clients: clients, Tools: tools},
+		HealthSubService: HealthSubService{Clients: clients, Tools: tools},
 	}
 }
 

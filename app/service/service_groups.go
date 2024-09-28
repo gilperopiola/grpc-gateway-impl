@@ -3,16 +3,17 @@ package service
 import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/god/etc"
+	"github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/dbs/sqldb"
 )
 
 type GroupsSubService struct {
 	pbs.UnimplementedGroupsServiceServer
-	Tools core.Tools
+	Clients core.Clients
+	Tools   core.Tools
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -27,7 +28,7 @@ func (s *GroupsSubService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest)
 
 	invitedUserIDs := etc.I32Slice(req.InvitedUserIds).ToIntSlice()
 
-	group, err := s.Tools.CreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
+	group, err := s.Clients.DBCreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
 	if err != nil {
 		return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))
 	}
@@ -36,9 +37,9 @@ func (s *GroupsSubService) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest)
 }
 
 func (s *GroupsSubService) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGroupResponse, error) {
-	group, err := s.Tools.GetGroup(ctx, sqldb.WithID(req.GroupId))
+	group, err := s.Clients.DBGetGroup(ctx, sqldb.WithID(req.GroupId))
 	if err != nil {
-		if s.Tools.IsNotFound(err) {
+		if utils.IsNotFound(err) {
 			return nil, errs.GRPCNotFound("group", int(req.GroupId))
 		}
 		return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
-	"github.com/gilperopiola/grpc-gateway-impl/app/tools/apis/apimodels"
 )
 
 var _ core.ChatGPTAPI = &ChatGptAPI{}

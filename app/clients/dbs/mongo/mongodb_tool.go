@@ -1,27 +1,26 @@
 package mongo
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/types/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var _ core.DBTool = &mongoDBTool{}
+var _ core.DB = &mongoDBConn{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*     - External Layer: Storage -     */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-type mongoDBTool struct {
-	DB core.MongoDB
+type mongoDBConn struct {
+	DB core.BaseMongoDB
 }
 
 type Collections string
@@ -32,25 +31,19 @@ const (
 	GPTChatsCollection Collections = "gpt_chats"
 )
 
-func SetupDBTool(db core.MongoDB) *mongoDBTool {
-	return &mongoDBTool{db}
+func SetupDBConn(db core.BaseMongoDB) *mongoDBConn {
+	return &mongoDBConn{db}
 }
 
-func (dbt *mongoDBTool) GetDB() core.AnyDB {
-	return dbt.DB
-}
+func (dbt *mongoDBConn) GetDB() any { return dbt.DB }
 
-func (dbt *mongoDBTool) CloseDB() {
+func (dbt *mongoDBConn) CloseDB() {
 	ctx, cancel := god.NewCtxWithTimeout(5 * time.Second)
 	dbt.DB.Close(ctx)
 	cancel()
 }
 
-func (dbt *mongoDBTool) IsNotFound(err error) bool {
-	return errors.Is(err, mongo.ErrNoDocuments)
-}
-
-func (dbt *mongoDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
+func (dbt *mongoDBConn) DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
 	group := &models.Group{Name: name, OwnerID: ownerID}
 
 	result, err := dbt.DB.InsertOne(ctx, string(GroupsCollection), group)
@@ -61,7 +54,7 @@ func (dbt *mongoDBTool) CreateGroup(ctx god.Ctx, name string, ownerID int, invit
 	return group, nil
 }
 
-func (dbt *mongoDBTool) GetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
+func (dbt *mongoDBConn) DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
 	}
@@ -88,7 +81,7 @@ func (dbt *mongoDBTool) GetGroup(ctx god.Ctx, opts ...any) (*models.Group, error
 	return &group, nil
 }
 
-func (dbt *mongoDBTool) CreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
+func (dbt *mongoDBConn) DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
 	user := &models.User{Username: username, Password: hashedPwd}
 
 	result, err := dbt.DB.InsertOne(ctx, string(UsersCollection), user)
@@ -99,7 +92,7 @@ func (dbt *mongoDBTool) CreateUser(ctx god.Ctx, username, hashedPwd string) (*mo
 	return user, nil
 }
 
-func (dbt *mongoDBTool) GetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
+func (dbt *mongoDBConn) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 
 	if len(opts) == 0 {
 		return nil, errs.DBErr{nil, NoOptionsErr}
@@ -126,7 +119,7 @@ func (dbt *mongoDBTool) GetUser(ctx god.Ctx, opts ...any) (*models.User, error) 
 	return &user, nil
 }
 
-func (dbt *mongoDBTool) GetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error) {
+func (dbt *mongoDBConn) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error) {
 	filter := &bson.D{}
 	for _, opt := range opts {
 		opt.(core.MongoDBOpt)(filter)
@@ -161,12 +154,12 @@ var (
 	NoOptionsErr  = errs.DBNoQueryOpts
 )
 
-func (db *mongoDBTool) GetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error) {
+func (db *mongoDBConn) DBGetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error) {
 	return nil, nil
 }
-func (db *mongoDBTool) CreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error) {
+func (db *mongoDBConn) DBCreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error) {
 	return nil, nil
 }
-func (db *mongoDBTool) CreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error) {
+func (db *mongoDBConn) DBCreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error) {
 	return nil, nil
 }
