@@ -7,7 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// Works with gorm and mongo errors
+// Works with gorm and mongo errors.
+// Adds a tiny slight insignificant overhead.
 func IsNotFound(err error) bool {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return true

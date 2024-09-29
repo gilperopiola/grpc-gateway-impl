@@ -57,7 +57,7 @@ func (api *ChatGptAPI) SendToGPT(ctx context.Context, prompt string, prevMsgs ..
 
 	status, body, err := utils.POST(ctx, url, &req, api.key, api.httpClient)
 	if err != nil {
-		return "", err
+		return "", logs.LogUnexpected(err)
 	}
 
 	logs.LogAPICall(url, status, body)

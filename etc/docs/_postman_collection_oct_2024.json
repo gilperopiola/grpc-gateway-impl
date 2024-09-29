@@ -4,13 +4,87 @@
 		"name": "🐿️ GRPC Gateway Impl.",
 		"description": "Pre-request Scripts and Tests are used across the Collection to set environment variables and other necessary stuff.\n\nThe BaseURL, for example, is configured on the Pre-Request Script of this Collection.\n\n🚀",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "5310198",
-		"_collection_link": "https://warped-escape-42133.postman.co/workspace/NotSpoton~8743d5aa-98de-435e-839b-e4188f191c81/collection/5310198-36b1cc57-9f4e-44f6-a383-7e4cfd2b5348?action=share&source=collection_link&creator=5310198"
+		"_exporter_id": "5310198"
 	},
 	"item": [
 		{
 			"name": "Happy Path",
 			"item": [
+				{
+					"name": "Health OK",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (pm.environment.get(\"baseURL\") == \"\") {\r",
+									"    postman.setEnvironmentVariable(\"baseURL\", \"localhost:8083\")\r",
+									"\r",
+									"    utils = {\r",
+									"        generateRandomString: function (length){\r",
+									"            const characters = 'abcdefghijklmnopqrstuvwxyz';\r",
+									"            let result = '';\r",
+									"            \r",
+									"            for (let i = 0; i < length; i++) {\r",
+									"                result += characters.charAt(Math.floor(Math.random() * characters.length));\r",
+									"            }\r",
+									"\r",
+									"            return result;\r",
+									"        },\r",
+									"    }\r",
+									"}\r",
+									"\r",
+									"let username = \"user\" + utils.generateRandomString(8)\r",
+									"postman.setEnvironmentVariable(\"username\", username);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => { pm.response.to.have.status(200) });\r",
+									"\r",
+									"var response = pm.response.json();\r",
+									"pm.test(\"Response has a field 'info' with a numeric value\", () => {\r",
+									"    pm.expect(response).to.have.property(\"info\");\r",
+									"    pm.expect(response.info).to.be.a(\"string\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/health/check",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"health",
+								"check"
+							]
+						}
+					},
+					"response": []
+				},
 				{
 					"name": "Signup OK",
 					"event": [
@@ -18,7 +92,24 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"let username = \"user_\" + utils.generateRandomString(6)\r",
+									"if (pm.environment.get(\"baseURL\") == \"\") {\r",
+									"    postman.setEnvironmentVariable(\"baseURL\", \"localhost:8083\")\r",
+									"\r",
+									"    utils = {\r",
+									"        generateRandomString: function (length){\r",
+									"            const characters = 'abcdefghijklmnopqrstuvwxyz';\r",
+									"            let result = '';\r",
+									"            \r",
+									"            for (let i = 0; i < length; i++) {\r",
+									"                result += characters.charAt(Math.floor(Math.random() * characters.length));\r",
+									"            }\r",
+									"\r",
+									"            return result;\r",
+									"        },\r",
+									"    }\r",
+									"}\r",
+									"\r",
+									"let username = \"user\" + utils.generateRandomString(8)\r",
 									"postman.setEnvironmentVariable(\"username\", username);\r",
 									""
 								],
@@ -54,12 +145,13 @@
 							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/signup",
+							"raw": "{{baseURL}}/v1/auth/signup",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"signup"
 							]
 						}
@@ -97,12 +189,13 @@
 							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/login",
+							"raw": "{{baseURL}}/v1/auth/login",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"login"
 							]
 						}
@@ -138,8 +231,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
+								"value": "Bearer {{token}}"
 							}
 						],
 						"body": {
@@ -191,12 +283,13 @@
 							"raw": "{\r\n    \"username\": \"admin\",\r\n    \"password\": \"please_set_the_env_var\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/login",
+							"raw": "{{baseURL}}/v1/auth/login",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"login"
 							]
 						}
@@ -232,8 +325,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{token_admin}}",
-								"type": "text"
+								"value": "Bearer {{token_admin}}"
 							}
 						],
 						"body": {
@@ -308,6 +400,42 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "New GPT Chat",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {pm.response.to.have.status(200);});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"message\": \"And how do they compare?\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/gpt",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"gpt"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -355,12 +483,13 @@
 							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/signup",
+							"raw": "{{baseURL}}/v1/auth/signup",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"signup"
 							]
 						}
@@ -408,12 +537,13 @@
 							"raw": ""
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/signup",
+							"raw": "{{baseURL}}/v1/auth/signup",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"signup"
 							]
 						}
@@ -461,12 +591,13 @@
 							"raw": "{\r\n    \"username\": \"invalid_username_invalid_username_invalid_username\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/signup",
+							"raw": "{{baseURL}}/v1/auth/signup",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"signup"
 							]
 						}
@@ -514,12 +645,13 @@
 							"raw": "{\r\n    \"username\": \"username\",\r\n    \"password\": \"invalid_p4ssw0rd_invalid_p4ssw0rd_invalid_p4ssw0rd\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/signup",
+							"raw": "{{baseURL}}/v1/auth/signup",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"signup"
 							]
 						}
@@ -557,12 +689,13 @@
 							"raw": "{\r\n    \"username\": \"non_existing_user\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/login",
+							"raw": "{{baseURL}}/v1/auth/login",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"login"
 							]
 						}
@@ -600,12 +733,13 @@
 							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"wr0ng_p4ssw0rd\"\r\n}"
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/login",
+							"raw": "{{baseURL}}/v1/auth/login",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"login"
 							]
 						}
@@ -643,12 +777,13 @@
 							"raw": ""
 						},
 						"url": {
-							"raw": "{{baseURL}}/v1/login",
+							"raw": "{{baseURL}}/v1/auth/login",
 							"host": [
 								"{{baseURL}}"
 							],
 							"path": [
 								"v1",
+								"auth",
 								"login"
 							]
 						}

@@ -1,8 +1,8 @@
-# - GRPC
-### - Gateway
-##### - Implementation 
+##\ GRPC
+####\ Gateway
+######\ Implementation 
 ##### 
-##### Made with love, @gilperopiola~
+##### with love - @gilperopiola
 
 #-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
 #        - Make Setup -        #
@@ -49,12 +49,17 @@ run:
 	go mod tidy
 	go run main.go
 
+rungen:
+	go mod tidy
+	go generate ./...
+	go run main.go
+
 # On 'make test' executes tests.
 test:
 	go test ./... -cover
 
 # On 'make generate', auto-generates the .pb.go files and the swagger
-# based on the .proto files.
+# based on the .proto files. Also runs scripts called by go generate.
 #
 # A succesful 'make generate' command should output something like this:
 #

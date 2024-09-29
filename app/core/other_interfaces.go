@@ -80,6 +80,7 @@ type (
 	CtxTool interface {
 		AddToCtx(ctx god.Ctx, key, value string) god.Ctx
 		GetFromCtx(ctx god.Ctx, key string) (string, error)
+		GetFromCtxMD(ctx god.Ctx, key string) (string, error)
 
 		AddUserInfoToCtx(ctx god.Ctx, userID, username string) god.Ctx
 		GetUserIDFromCtx(ctx god.Ctx) string

@@ -12,117 +12,135 @@ import (
 	"strings"
 )
 
+// This script generates the AllModels slice in all_models.go by parsing the models package
+// and extracting the names of all model structs. It then writes the updated AllModels slice
+// back to all_models.go. This script should be run whenever a new model is added to the models
+// package or an existing model is removed.
+
 func main() {
 
-	// Define paths
-	modelsFolderPath := "../models"
-	allModelsFilePath := modelsFolderPath + "/all_models.go"
+	modelsFolder := "."
+	allModelsFile := modelsFolder + "/all_models.go"
 
-	// Step 1: Parse the models package and get model names
-	modelNames, err := getModelNames(modelsFolderPath)
+	// Step 1️⃣ - Parse the models package and get all model names
+	allModelNames, err := getModelStructNames(modelsFolder)
 	if err != nil {
 		log.Fatalf("Failed to get model names: %v", err)
 	}
 
-	// Step 2: Read and update the all_models.go file
-	err = updateAllModelsFile(allModelsFilePath, modelNames)
+	// Step 2️⃣ - Generate the new code to append
+	allModelsCode := generateAllModelsSliceCode(allModelNames)
+
+	// Step 3️⃣ - Update the all_models.go file with the new code
+	err = updateAllModelsFile(allModelsFile, allModelsCode)
 	if err != nil {
 		log.Fatalf("Failed to update all_models.go: %v", err)
 	}
 }
 
-// getModelNames parses the models package and returns a slice of model struct names
-func getModelNames(modelsFolderPath string) ([]string, error) {
-	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, modelsFolderPath, nil, 0)
+// 🔽 Implementation
+
+// Crawls through the models pkg, returns all model struct names in a slice.
+func getModelStructNames(modelsFolder string) ([]string, error) {
+	var out []string
+
+	pkg, err := getPackage(modelsFolder)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get package: %w", err)
 	}
 
-	pkg, ok := pkgs["models"]
-	if !ok {
-		return nil, fmt.Errorf("package 'models' not found: %v", pkgs)
-	}
-
-	var modelStructNames []string
+	// For each file
 	for _, file := range pkg.Files {
-		// Iterate over all declarations in the file
+
+		// get all things declared in the top-level scope,
 		for _, decl := range file.Decls {
 			genDecl, ok := decl.(*ast.GenDecl)
 			if !ok || genDecl.Tok != token.TYPE {
 				continue
 			}
-			// Iterate over all type specifications
+			// if it's a new type that is being declared
 			for _, spec := range genDecl.Specs {
 				typeSpec, ok := spec.(*ast.TypeSpec)
 				if !ok {
 					continue
 				}
-				// Check if the type is a struct
+				// and that type is a struct, then we append :)
 				if _, ok := typeSpec.Type.(*ast.StructType); ok {
-					modelStructNames = append(modelStructNames, typeSpec.Name.Name)
+					out = append(out, typeSpec.Name.Name)
 				}
 			}
 		}
 	}
 
-	return modelStructNames, nil
+	return out, nil
 }
 
-// updateAllModelsFile reads the existing all_models.go file, removes the old AllModels slice,
-// and writes the new AllModels slice with the updated model names
-func updateAllModelsFile(filePath string, modelNames []string) error {
+// Generates the code for the AllModels slice
+func generateAllModelsSliceCode(modelNames []string) string {
+	var sb strings.Builder
+
+	sb.WriteString("// DO NOT EDIT this slice manually, just run go generate ./...\n")
+	sb.WriteString("// and any model defined in this package should be added automatically.\n")
+	sb.WriteString("var AllModels = []any{\n")
+
+	for _, modelName := range modelNames {
+		sb.WriteString("\t&" + modelName + "{},\n")
+	}
+
+	sb.WriteString("}\n")
+	return sb.String()
+}
+
+// Reads the existing all_models.go file, removes the old auto-generated AllModels code
+// and writes the new code, the AllModels slice with the updated model names
+func updateAllModelsFile(allModelsFile string, allModelsCode string) error {
+
 	// Read the existing all_models.go file
-	contentBytes, err := os.ReadFile(filePath)
+	fileBytes, err := os.ReadFile(allModelsFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read file: %w", err)
 	}
-	content := string(contentBytes)
+	fileString := string(fileBytes)
 
-	// Find the index where "var AllModels =" starts
-	splitMarker := "var AllModels ="
-	idx := strings.Index(content, splitMarker)
+	// Find the index where the auto-generated code starts
+	startOfAutoGenCode := "// DO NOT EDIT this slice manually, just"
+	appendIndex := strings.Index(fileString, startOfAutoGenCode)
 
-	if idx != -1 {
-		// Remove everything from "var AllModels =" onwards
-		content = content[:idx]
+	// If the auto-generated code is found, remove everything from that point onwards
+	if appendIndex != -1 {
+		fileString = fileString[:appendIndex]
 	} else {
-		// Ensure we have a newline before appending
-		if !strings.HasSuffix(content, "\n") {
-			content += "\n"
-		}
+		fileString += "\n"
 	}
-
-	// Generate the new AllModels code
-	allModelsCode := generateAllModelsCode(modelNames)
 
 	// Combine the content and the generated code
-	newContent := content + allModelsCode
+	fileString += allModelsCode
 
-	// Format the combined code
-	formattedContent, err := format.Source([]byte(newContent))
+	// Fmt it
+	newFileBytes, err := format.Source([]byte(fileString))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to format code: %w", err)
 	}
 
-	// Write the updated content back to all_models.go
-	err = os.WriteFile(filePath, formattedContent, fs.FileMode(0644))
-	if err != nil {
-		return err
+	// Replace the content of the file with the new code
+	if err = os.WriteFile(allModelsFile, newFileBytes, fs.FileMode(0644)); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return nil
 }
 
-// generateAllModelsCode generates the code for the AllModels slice
-func generateAllModelsCode(modelNames []string) string {
-	var sb strings.Builder
-	sb.WriteString("\n\n// AllModels is a list of all models to be migrated.\n")
-	sb.WriteString("// Code generated by generate_all_models.go; DO NOT EDIT.\n")
-	sb.WriteString("var AllModels = []interface{}{\n")
-	for _, modelName := range modelNames {
-		sb.WriteString("\t&" + modelName + "{},\n")
+// Helper. Parses a go pkg and returns it as an *ast.Package
+func getPackage(modelsFolder string) (*ast.Package, error) {
+	packages, err := parser.ParseDir(token.NewFileSet(), modelsFolder, nil, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse dir: %w", err)
 	}
-	sb.WriteString("}\n")
-	return sb.String()
+
+	pkg, ok := packages["models"]
+	if !ok {
+		return nil, fmt.Errorf("package 'models' not found in %v", packages)
+	}
+
+	return pkg, nil
 }

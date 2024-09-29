@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	"go.uber.org/zap"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,15 +32,17 @@ func (h *HealthSubService) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRe
 
 	// Make HTTP call or return unhealthy.
 	if _, err := h.Clients.GetCurrentWeather(ctx, 50, 50); err != nil {
-		gptResponse, err := h.Clients.SendToGPT(ctx, "your response is going to be shown to a user of my API who is consulting the /health endpoint, so if you get this message just respond with something the user would expect to see in case it's healthy.")
+		gptResponse, err := h.Clients.SendToGPT(ctx, "give a really short response, which includes the word 'healthy'.")
 		if err != nil {
 			return nil, status.Error(codes.Unavailable, msg+" unhealthy: http calls not working")
 		}
 
-		msg += " " + gptResponse
-	} else {
-		msg += " healthy"
+		if !strings.Contains(strings.ToLower(gptResponse), "healthy") {
+			zap.S().Warnf("GPT response does not contain 'healthy': %s", gptResponse)
+		}
 	}
+
+	msg += " healthy"
 
 	return &pbs.CheckHealthResponse{Info: msg}, nil
 }

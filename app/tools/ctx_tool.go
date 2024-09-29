@@ -7,6 +7,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"google.golang.org/grpc/metadata"
 )
 
 var _ core.CtxTool = ctxTool{}
@@ -32,6 +33,13 @@ func (ct ctxTool) GetFromCtx(ctx god.Ctx, key string) (string, error) {
 		return value.(string), nil
 	}
 	return "", fmt.Errorf("ctx value with key '%s' not found", key)
+}
+
+func (ctxTool) GetFromCtxMD(ctx god.Ctx, key string) (string, error) {
+	if val := metadata.ValueFromIncomingContext(ctx, key); len(val) > 0 {
+		return val[0], nil
+	}
+	return "", fmt.Errorf("ctx metadata with key %s not found", key)
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

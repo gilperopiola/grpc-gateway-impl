@@ -60,9 +60,13 @@ func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) 
 
 // Returns the authorization field from the data that lives in the request's context.
 func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
-	bearer, err := v.ctxTool.GetFromCtx(ctx, "authorization")
+
+	// Get the authorization header, should be in lowercase but we check both cases.
+	bearer, err := v.ctxTool.GetFromCtxMD(ctx, "authorization")
 	if err != nil {
-		return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenNotFound)
+		if bearer, err = v.ctxTool.GetFromCtxMD(ctx, "Authorization"); err != nil {
+			return "", status.Errorf(codes.Unauthenticated, errs.AuthTokenNotFound)
+		}
 	}
 
 	if !strings.HasPrefix(bearer, "Bearer ") {

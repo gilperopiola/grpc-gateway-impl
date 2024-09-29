@@ -77,11 +77,5 @@ func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginRe
 		return nil, errs.GRPCGeneratingToken(err)
 	}
 
-	zap.L().Info(req.String())
-
-	w, err := s.Clients.GetCurrentWeather(ctx, 44.34, 10.99)
-	logs.LogIfErr(err)
-	zap.S().Info("Weather", w)
-
 	return &pbs.LoginResponse{Token: token}, nil
 }

@@ -19,17 +19,16 @@ type APIs struct {
 
 func NewAPIs(cfg core.APIsCfg) *APIs {
 
-	// OpenAI GPT API
-	gptHTTPClient := newAPIHTTPClient()
-	gptAPI := gpt.NewAPI(gptHTTPClient, cfg.GPT.APIKey)
+	var (
+		gptAPIHTTPClient = newAPIHTTPClient()
+		gptAPI           = gpt.NewAPI(gptAPIHTTPClient, cfg.GPT.APIKey)
 
-	// OpenWeatherMap API
-	weatherHTTPClient := newAPIHTTPClient()
-	weatherAPI := weather.NewAPI(weatherHTTPClient)
+		weatherAPIHTTPClient = newAPIHTTPClient()
+		weatherAPI           = weather.NewAPI(weatherAPIHTTPClient)
+	)
 
 	return &APIs{
-		gptAPI,
-		weatherAPI,
+		gptAPI, weatherAPI,
 	}
 }
 
@@ -39,7 +38,7 @@ func NewAPIs(cfg core.APIsCfg) *APIs {
 // being created in each API itself?
 func newAPIHTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: time.Duration(1) * time.Millisecond / 10000,
+		Timeout: 90 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

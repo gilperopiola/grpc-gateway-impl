@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
-
-	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
+	"net/url"
 )
 
-func POST(ctx context.Context, url string, payload *apimodels.GPTChatRequest, bearer string, client *http.Client) (int, []byte, error) {
+func POST(ctx context.Context, url string, payload any, bearer string, client *http.Client) (int, []byte, error) {
 
 	// Prepare request.
 	body, err := json.Marshal(payload)
@@ -26,14 +24,13 @@ func POST(ctx context.Context, url string, payload *apimodels.GPTChatRequest, be
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-
 	if bearer != "" {
 		req.Header.Set("Authorization", "Bearer "+bearer)
 	}
 
 	// Send request.
 	resp, err := client.Do(req)
-	if err != nil {
+	if err != nil || resp == nil {
 		return 0, nil, fmt.Errorf("error sending POST %s: %w", url, err)
 	}
 	defer resp.Body.Close()
@@ -49,22 +46,16 @@ func POST(ctx context.Context, url string, payload *apimodels.GPTChatRequest, be
 
 func GET(ctx context.Context, url string, urlParams map[string]string, bearer string, client *http.Client) (int, []byte, error) {
 
-	// Add URL params to URL.
-	if len(urlParams) > 0 {
-		buf := bytes.NewBufferString("?")
-		for key, val := range urlParams {
-			buf.WriteString(key + "=" + val + "&")
-		}
-		url += strings.TrimRight(buf.String(), "&")
+	// Prepare request.
+	var err error
+	if url, err = AddQueryParamsToURL(url, urlParams); err != nil || url == "" {
+		return 0, nil, err
 	}
 
-	// Prepare request.
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return 0, nil, fmt.Errorf("error creating GET %s request: %w", url, err)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 
 	if bearer != "" {
 		req.Header.Set("Authorization", "Bearer "+bearer)
@@ -72,7 +63,7 @@ func GET(ctx context.Context, url string, urlParams map[string]string, bearer st
 
 	// Send request.
 	resp, err := client.Do(req)
-	if err != nil {
+	if err != nil || resp == nil {
 		return 0, nil, fmt.Errorf("error sending GET %s: %w", url, err)
 	}
 	defer resp.Body.Close()
@@ -84,4 +75,19 @@ func GET(ctx context.Context, url string, urlParams map[string]string, bearer st
 	}
 
 	return resp.StatusCode, respBody, nil
+}
+
+func AddQueryParamsToURL(baseURL string, queryParams map[string]string) (string, error) {
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return "", fmt.Errorf("error parsing URL %s: %w", baseURL, err)
+	}
+
+	urlQuery := parsedURL.Query()
+	for key, val := range queryParams {
+		urlQuery.Set(key, val)
+	}
+	baseURL += "?" + urlQuery.Encode()
+
+	return baseURL, nil
 }
