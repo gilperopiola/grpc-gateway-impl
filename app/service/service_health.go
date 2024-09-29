@@ -24,7 +24,7 @@ func (h *HealthSubService) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRe
 	msg := core.G.AppName + " " + core.G.Version
 
 	// Get the DB or return unhealthy.
-	if _, err := utils.RetryWrapper1(h.Clients.GetDB, 2); err != nil {
+	if _, err := utils.RetryV2(h.Clients.GetDB, utils.BasicRetryCfg(2, nil)); err != nil {
 		return nil, status.Error(codes.Unavailable, msg+" unhealthy: database connection not working")
 	}
 

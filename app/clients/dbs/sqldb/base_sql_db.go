@@ -6,6 +6,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 
 	"gorm.io/gorm"
 )
@@ -23,6 +24,15 @@ type baseSQLDB struct {
 }
 
 func (this *baseSQLDB) GetInnerDB() any { return this.DB }
+
+func (this *baseSQLDB) InsertAdmin(hashedPwd string) {
+	admin := models.User{
+		Username: "admin",
+		Password: hashedPwd,
+		Role:     shared.AdminRole,
+	}
+	logs.WarnIfErr(this.DB.FirstOrCreate(&admin).Error, errs.FailedToInsertDBAdmin)
+}
 
 func (this *baseSQLDB) Association(column string) core.SqlDBAssoc { return this.DB.Association(column) }
 
@@ -77,11 +87,6 @@ func (this *baseSQLDB) First(out any, where ...any) core.BaseSQLDB {
 
 func (this *baseSQLDB) FirstOrCreate(out any, where ...any) core.BaseSQLDB {
 	return &baseSQLDB{this.DB.FirstOrCreate(out, where...)}
-}
-
-func (this *baseSQLDB) InsertAdmin(hashedPwd string) {
-	admin := models.User{Username: "admin", Password: hashedPwd, Role: models.AdminRole}
-	logs.WarnIfErr(this.DB.FirstOrCreate(&admin).Error, errs.FailedToInsertDBAdmin)
 }
 
 func (this *baseSQLDB) Joins(qry string, args ...any) core.BaseSQLDB {

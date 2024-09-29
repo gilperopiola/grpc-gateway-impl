@@ -6,6 +6,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
@@ -36,19 +37,19 @@ var (
 	_ = core.Routes
 
 	// Auth-Level required per route
-	_ = models.RouteAuthPublic
-	_ = models.RouteAuthUser
-	_ = models.RouteAuthSelf
-	_ = models.RouteAuthAdmin
+	_ = shared.RouteAuthPublic
+	_ = shared.RouteAuthUser
+	_ = shared.RouteAuthSelf
+	_ = shared.RouteAuthAdmin
 
 	// Roles
-	_ = models.DefaultRole
-	_ = models.AdminRole
+	_ = shared.DefaultRole
+	_ = shared.AdminRole
 )
 
 // -> SQL Database Models.
 // Used to migrate the DB.
-var _ = models.AllDBModels
+var _ = models.AllModels
 
 // -> Each one of our Services defined in the protofiles.
 var (

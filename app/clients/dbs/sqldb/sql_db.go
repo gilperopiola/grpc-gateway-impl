@@ -48,17 +48,17 @@ func NewSQLDBConnection(cfg *core.DBCfg) core.DB {
 	// We try to connect to the DB directly.
 	// If it fails, we try to connect without DB, then creating it.
 	// Then we retry.
-	dbConn, err := utils.Retry(connectToDB, cfg.Retries, utils.Fallback(createDB))
+	dbConn, err := utils.Retry(connectToDB, utils.BasicRetryCfg(cfg.Retries, createDB))
 	logs.LogFatalIfErr(err, errs.FailedDBConn)
 
 	db := &DB{dbConn.(*baseSQLDB)}
 
 	if cfg.EraseAllData {
-		db.DB.Unscoped().Delete(models.AllDBModels, nil)
+		db.DB.Unscoped().Delete(models.AllModels, nil)
 	}
 
 	if cfg.MigrateModels {
-		db.DB.AutoMigrate(models.AllDBModels...)
+		db.DB.AutoMigrate(models.AllModels...)
 	}
 
 	if cfg.InsertAdmin && cfg.InsertAdminPwd != "" {

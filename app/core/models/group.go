@@ -19,4 +19,8 @@ type Group struct {
 	Deleted   bool      `bson:"deleted"`
 }
 
+func (Group) TableName() string {
+	return "groups"
+}
+
 type Groups []*Group

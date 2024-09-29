@@ -9,7 +9,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"
@@ -38,7 +38,7 @@ func NewJWTValidator(ctxTool core.CtxTool, secret string) core.TokenValidator {
 
 // Validates a JWT Token. Returns the Claims if valid, or a GRPC error if not.
 // Errors returned can be Unauthenticated, PermissionDenied or Unknown.
-func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) (models.TokenClaims, error) {
+func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) (shared.Claims, error) {
 	bearer, err := v.getBearer(ctx)
 	if err != nil {
 		return nil, err
@@ -73,12 +73,12 @@ func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
 	return strings.TrimPrefix(bearer, "Bearer "), nil
 }
 
-// Parses the token string into a *models.Claims.
+// Parses the token string into a *shared.Claims.
 // Returns an error if claims are not valid.
-func (v jwtValidator) getClaims(bearer string) (*models.Claims, error) {
-	token, err := jwt.ParseWithClaims(bearer, &models.Claims{}, v.keyFn)
+func (v jwtValidator) getClaims(bearer string) (*shared.JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(bearer, &shared.JWTClaims{}, v.keyFn)
 	if err == nil && token != nil && token.Valid {
-		if claims, ok := token.Claims.(*models.Claims); ok && claims.Valid() == nil {
+		if claims, ok := token.Claims.(*shared.JWTClaims); ok && claims.Valid() == nil {
 			return claims, nil
 		}
 	}
@@ -86,11 +86,11 @@ func (v jwtValidator) getClaims(bearer string) (*models.Claims, error) {
 }
 
 // Determines if a set of Claims can access certain route with certain request.
-func (v jwtValidator) canAccessRoute(route string, claims *models.Claims, req any) error {
+func (v jwtValidator) canAccessRoute(route string, claims *shared.JWTClaims, req any) error {
 	switch core.AuthForRoute(route) {
 
 	// These routes only allow the user with the same ID as the one specified on the request to go through.
-	case models.RouteAuthSelf:
+	case shared.RouteAuthSelf:
 
 		// Requests for routes with this Auth type must have an int32 UserID field.
 		type PBReqWithUserID interface {
@@ -100,20 +100,20 @@ func (v jwtValidator) canAccessRoute(route string, claims *models.Claims, req an
 		// Compare the UserID from the request with the one from the claims.
 		// They should match.
 		reqUserID := int(req.(PBReqWithUserID).GetUserId())
-		if strconv.Itoa(reqUserID) != claims.ID {
+		if strconv.Itoa(reqUserID) != claims.Subject {
 			return status.Errorf(codes.PermissionDenied, errs.AuthUserIDInvalid)
 		}
 
 	// These routes only allow admin users to go through.
-	case models.RouteAuthAdmin:
-		if claims.Role != models.AdminRole {
-			logs.LogThreat("User " + claims.ID + " tried to access admin route " + route)
+	case shared.RouteAuthAdmin:
+		if claims.Role != shared.AdminRole {
+			logs.LogThreat("User " + claims.Subject + " tried to access admin route " + route)
 			return status.Errorf(codes.PermissionDenied, errs.AuthRoleInvalid)
 		}
 
 	// Everyone can access these routes.
 	// This is the last option because the GRPC Token Validation Interceptor already checks for it.
-	case models.RouteAuthPublic:
+	case shared.RouteAuthPublic:
 		return nil
 
 	default:

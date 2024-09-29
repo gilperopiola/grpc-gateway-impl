@@ -7,7 +7,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"
@@ -35,7 +35,7 @@ func NewJWTGenerator(secret string, sessionDays int) core.TokenGenerator {
 }
 
 // GenerateToken returns a JWT token with the given user id, username and role.
-func (g *jwtGenerator) GenerateToken(id int, username string, role models.Role) (string, error) {
+func (g *jwtGenerator) GenerateToken(id int, username string, role shared.Role) (string, error) {
 	claims := g.newClaims(id, username, role)
 
 	token, err := jwt.NewWithClaims(g.signingMethod, claims).SignedString([]byte(g.secret))
@@ -47,13 +47,13 @@ func (g *jwtGenerator) GenerateToken(id int, username string, role models.Role) 
 	return token, nil
 }
 
-func (g *jwtGenerator) newClaims(id int, username string, role models.Role) *models.Claims {
+func (g *jwtGenerator) newClaims(id int, username string, role shared.Role) *shared.JWTClaims {
 	now := time.Now()
-	return &models.Claims{
+	return &shared.JWTClaims{
 		Username: username,
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        strconv.Itoa(id),
+			Subject:   strconv.Itoa(id),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(g.sessionDuration)),
 		},

@@ -1,8 +1,6 @@
 package core
 
-import (
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-)
+import "github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 
 // Our Routes need manual updating when a .proto route changes.
 // TODO - Generate this based on the proto.
@@ -19,7 +17,16 @@ import (
 // This is the place to code behaviour that operates based on each route, like the auth level.
 // We could have rate-limiting per route, a pool of connections, etc.
 type Route struct {
-	Auth models.RouteAuth
+	Auth shared.RouteAuth
+}
+
+// This doesn't return any error on a not-found route, it just
+// defaults to AuthAdmin.
+func AuthForRoute(routeName string) shared.RouteAuth {
+	if route, ok := Routes[routeName]; ok {
+		return route.Auth
+	}
+	return shared.RouteAuthAdmin
 }
 
 // And this is the map of all the routes in our app.
@@ -33,35 +40,26 @@ type Route struct {
 var Routes = map[string]Route{
 
 	// Health Service
-	"CheckHealth": {models.RouteAuthPublic},
+	"CheckHealth": {shared.RouteAuthPublic},
 
 	// Auth Service
-	"Signup": {models.RouteAuthPublic},
-	"Login":  {models.RouteAuthPublic},
+	"Signup": {shared.RouteAuthPublic},
+	"Login":  {shared.RouteAuthPublic},
 
 	// Users Service
-	"GetUser":     {models.RouteAuthSelf},
-	"UpdateUser":  {models.RouteAuthSelf},
-	"DeleteUser":  {models.RouteAuthSelf},
-	"GetMyGroups": {models.RouteAuthSelf},
-	"GetUsers":    {models.RouteAuthAdmin},
+	"GetUser":     {shared.RouteAuthSelf},
+	"UpdateUser":  {shared.RouteAuthSelf},
+	"DeleteUser":  {shared.RouteAuthSelf},
+	"GetMyGroups": {shared.RouteAuthSelf},
+	"GetUsers":    {shared.RouteAuthAdmin},
 
 	// Groups Service
-	"GetGroup":          {models.RouteAuthUser},
-	"CreateGroup":       {models.RouteAuthSelf},
-	"InviteToGroup":     {models.RouteAuthSelf},
-	"AnswerGroupInvite": {models.RouteAuthSelf},
+	"GetGroup":          {shared.RouteAuthUser},
+	"CreateGroup":       {shared.RouteAuthSelf},
+	"InviteToGroup":     {shared.RouteAuthSelf},
+	"AnswerGroupInvite": {shared.RouteAuthSelf},
 
 	// GPT Service
-	"NewGPTChat":     {models.RouteAuthPublic},
-	"ReplyToGPTChat": {models.RouteAuthPublic},
-}
-
-// This doesn't return any error on a not-found route, it just
-// defaults to AuthAdmin.
-func AuthForRoute(routeName string) models.RouteAuth {
-	if route, ok := Routes[routeName]; ok {
-		return route.Auth
-	}
-	return models.RouteAuthAdmin
+	"NewGPTChat":     {shared.RouteAuthPublic},
+	"ReplyToGPTChat": {shared.RouteAuthPublic},
 }

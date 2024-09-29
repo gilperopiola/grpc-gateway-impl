@@ -9,6 +9,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"google.golang.org/grpc/credentials"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -64,13 +65,13 @@ type (
 	// Generates authorization tokens.
 	// Current implementation uses JWT.
 	TokenGenerator interface {
-		GenerateToken(id int, username string, role models.Role) (string, error)
+		GenerateToken(id int, username string, role shared.Role) (string, error)
 	}
 
 	// Validates authorization tokens.
 	// Current implementation uses JWT.
 	TokenValidator interface {
-		ValidateToken(ctx god.Ctx, req any, route string) (models.TokenClaims, error)
+		ValidateToken(ctx god.Ctx, req any, route string) (shared.Claims, error)
 	}
 
 	/* -~-~-~- Tools: Other -~-~-~- */

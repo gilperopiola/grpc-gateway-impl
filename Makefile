@@ -64,6 +64,7 @@ test:
 #
 # - This example was shortened, and every "./app/core/" was replaced by just "./" for brevity.
 generate:
+	go generate ./...
 	@'$(MAKE)' generate-pbs generate-swagger
 
 #-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#

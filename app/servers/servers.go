@@ -50,7 +50,6 @@ func (s *Servers) Run() {
 		time.Sleep(100 * time.Millisecond)
 		logEndpointsPerService(s.GRPC)
 		time.Sleep(1 * time.Second)
-		log.Println("")
 		logs.Step(3, "Enjoy")
 	}()
 
@@ -84,7 +83,7 @@ func setupHTTP(service *service.Service, muxOpts []runtime.ServeMuxOption, mw mi
 /* -~-~-~-~-~ Run -~-~-~-~-~- */
 
 func (s *Servers) runGRPC() {
-	result, err := utils.Retry(listenGRPC, 5)
+	result, err := utils.Retry(listenGRPC, utils.BasicRetryCfg(5, nil))
 	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)
@@ -92,7 +91,7 @@ func (s *Servers) runGRPC() {
 }
 
 func (s *Servers) runHTTP() {
-	result, err := utils.Retry(listenHTTP, 5)
+	result, err := utils.Retry(listenHTTP, utils.BasicRetryCfg(5, nil))
 	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)

@@ -8,7 +8,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
@@ -57,7 +57,7 @@ func newTokenValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor
 
 		// Public routes skip token validation.
 		// That means the context will not have the user's info.
-		if core.AuthForRoute(route) != models.RouteAuthPublic {
+		if core.AuthForRoute(route) != shared.RouteAuthPublic {
 			claims, err := tools.ValidateToken(c, req, route)
 			if err != nil {
 				return nil, err
