@@ -1,12 +1,6 @@
-##\ GRPC
-####\ Gateway
-######\ Implementation 
-##### 
-##### with love - @gilperopiola
+# 🔻 GRPC Gateway Implementation 🔻
 
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
-#        - Make Setup -        #
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
+# 🔽 Make Setup 🔽
 
 # Current git tag (or commit)
 VERSION := $(shell git describe --tags --always --dirty)
@@ -16,7 +10,7 @@ version:
 	@echo $(VERSION)
 
 # Path where the auto-generated swagger files will go.
-DOCS_OUT_DIR := ./etc/docs
+DOCS_OUT_DIR := ./docs
 
 # Path where the auto-generated .pb.go files will go.
 PBS_OUT_DIR := ./app/core/pbs
@@ -31,9 +25,7 @@ PROTO_FILES := $(wildcard $(PROTOS_DIR)/*.proto)
 # Don't print unnecessary output.
 MAKEFLAGS += --no-print-directory 
 
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
-#       - Main Commands -      #
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
+# 🔻 Main Commands 🔻
 
 # On 'make all --fast', auto-generates code + runs program.
 # On 'make all', cleans the project + auto-generates code + runs tests + runs program.

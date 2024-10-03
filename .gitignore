@@ -31,3 +31,7 @@ coverage.txt
 .DS_Store
 .vscode/
 .idea/
+
+## Keep all 'data' folders but not their contents
+data/*/**
+!data/*/

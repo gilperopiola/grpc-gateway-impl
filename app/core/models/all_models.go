@@ -11,6 +11,7 @@ type Model interface {
 	TableName() string
 }
 
+// —
 // DO NOT EDIT this slice manually, just run go generate ./...
 // and any model defined in this package should be added automatically.
 var AllModels = []any{
