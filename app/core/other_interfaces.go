@@ -71,7 +71,11 @@ type (
 	// Validates authorization tokens.
 	// Current implementation uses JWT.
 	TokenValidator interface {
-		ValidateToken(ctx god.Ctx, req any, route string) (shared.Claims, error)
+		ValidateToken(ctx god.Ctx, req any, route string) (Claims, error)
+	}
+
+	Claims interface {
+		GetUserInfo() (id, username string)
 	}
 
 	/* -~-~-~- Tools: Other -~-~-~- */

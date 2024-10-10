@@ -7,6 +7,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 )
 
@@ -58,7 +59,7 @@ var (
 	errUserNotFound      = func(id int) error { return errs.GRPCNotFound("user", id) }
 	errUserAlreadyExists = func() error { return errs.GRPCAlreadyExists("user") }
 	errCallingUsersDB    = func(ctx god.Ctx, err error) error {
-		route := utils.RouteNameFromCtx(ctx)
+		route := shared.RouteNameFromCtx(ctx)
 		logs.LogUnexpected(err)
 		return errs.GRPCFromDB(err, route)
 	}

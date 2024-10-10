@@ -1,37 +1,35 @@
-name: Deploy or PR to Master
+name: Push to Master 🔥
 
 on:
   push:
-    branches: [ master ] # ---------------------------------------------------------- Triggers on push to master
+    branches: [master] # — Triggers on push to master
   pull_request:
-    branches: [ master ] # ---------------------------------------------------------- Triggers on PR to master
+    branches: [master] # — Triggers on PR to master
 
 jobs:
-  deploy-or-pr-to-master:
+  push-to-master:
     runs-on: ubuntu-latest
-
     steps:
-    - name: "[ - Checkout GitHub Repository - ]" # ---------------------------------- Checkout the repository 
-      uses: actions/checkout@v4   
-    
-    - name: "[ - Setup Go - ]" # ---------------------------------------------------- Setup Go v1.20
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.20'
+      - name: "[ 1️⃣ — Checkout GitHub Repository]"
+        uses: actions/checkout@v4
 
-    - name: "[ - Download and Cache Go Modules - ]" # ------------------------------- Cache Go mods download
-      uses: actions/cache@v4
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: "[ 2️⃣ — Setup Go v1.23]"
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23"
 
-    - name: "[ - Run Tests -> Create Coverage File - ]" # --------------------------- Run tests, create coverage.txt
-      run: go test ./... -race -coverprofile=coverage.txt
+      - name: "[ 3️⃣ — Download & Cache Go Modules]"
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
 
-    - name: "[ - Upload Coverage File to Codecov - ]" # ----------------------------- Upload coverage to codecov
-      uses: codecov/codecov-action@v4.0.1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        slug: gilperopiola/grpc-gateway-impl
-        file: ./coverage.txt
+      - name: "[ 4️⃣ — Run Tests with Coverage]"
+        run: go test ./... -race -coverprofile=coverage.txt
 
+      - name: "[ 5️⃣ — Upload Coverage File to Codecov]"
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: gilperopiola/grpc-gateway-impl
+          file: ./coverage.txt

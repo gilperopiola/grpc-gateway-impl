@@ -47,9 +47,9 @@ func (g *jwtGenerator) GenerateToken(id int, username string, role shared.Role) 
 	return token, nil
 }
 
-func (g *jwtGenerator) newClaims(id int, username string, role shared.Role) *shared.JWTClaims {
+func (g *jwtGenerator) newClaims(id int, username string, role shared.Role) *JWTClaims {
 	now := time.Now()
-	return &shared.JWTClaims{
+	return &JWTClaims{
 		Username: username,
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{

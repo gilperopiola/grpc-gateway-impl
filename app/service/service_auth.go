@@ -10,6 +10,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
@@ -65,7 +66,7 @@ func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginRe
 		return nil, errs.GRPCNotFound("user", req.Username)
 	}
 	if err != nil || user == nil {
-		return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
 	}
 
 	if !s.Tools.PasswordsMatch(req.Password, user.Password) {

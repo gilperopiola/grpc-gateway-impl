@@ -16,6 +16,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// These are the claims that live encrypted on our JWT Tokens.
+// A JWT Token String, when decoded, returns one of this. And we
+// create a new one each time we generate a token.
+type JWTClaims struct {
+	jwt.RegisteredClaims
+	Username string      `json:"username"`
+	Role     shared.Role `json:"role"`
+}
+
+func (c *JWTClaims) GetUserInfo() (string, string) {
+	return c.Subject, c.Username
+}
+
+/* - */
+
 var _ core.TokenValidator = &jwtValidator{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -38,7 +53,7 @@ func NewJWTValidator(ctxTool core.CtxTool, secret string) core.TokenValidator {
 
 // Validates a JWT Token. Returns the Claims if valid, or a GRPC error if not.
 // Errors returned can be Unauthenticated, PermissionDenied or Unknown.
-func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) (shared.Claims, error) {
+func (v jwtValidator) ValidateToken(ctx context.Context, req any, route string) (core.Claims, error) {
 	bearer, err := v.getBearer(ctx)
 	if err != nil {
 		return nil, err
@@ -79,10 +94,10 @@ func (v jwtValidator) getBearer(ctx god.Ctx) (string, error) {
 
 // Parses the token string into a *shared.Claims.
 // Returns an error if claims are not valid.
-func (v jwtValidator) getClaims(bearer string) (*shared.JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(bearer, &shared.JWTClaims{}, v.keyFn)
+func (v jwtValidator) getClaims(bearer string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(bearer, &JWTClaims{}, v.keyFn)
 	if err == nil && token != nil && token.Valid {
-		if claims, ok := token.Claims.(*shared.JWTClaims); ok && claims.Valid() == nil {
+		if claims, ok := token.Claims.(*JWTClaims); ok && claims.Valid() == nil {
 			return claims, nil
 		}
 	}
@@ -90,8 +105,8 @@ func (v jwtValidator) getClaims(bearer string) (*shared.JWTClaims, error) {
 }
 
 // Determines if a set of Claims can access certain route with certain request.
-func (v jwtValidator) canAccessRoute(route string, claims *shared.JWTClaims, req any) error {
-	switch core.AuthForRoute(route) {
+func (v jwtValidator) canAccessRoute(route string, claims *JWTClaims, req any) error {
+	switch shared.AuthForRoute(route) {
 
 	// These routes only allow the user with the same ID as the one specified on the request to go through.
 	case shared.RouteAuthSelf:

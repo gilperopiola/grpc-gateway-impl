@@ -3,12 +3,8 @@ package utils
 import (
 	"errors"
 	"io/fs"
-	"strings"
-
-	"github.com/gilperopiola/god"
 
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
 
 // Oh no, a utils package! We're all gonna die!
@@ -25,29 +21,6 @@ func FirstOrDefault(slice []string, fallback string) string {
 		return slice[0]
 	}
 	return fallback
-}
-
-/* -~-~-~-~-~ Route Utils -~-~-~-~-~- */
-
-// Our Routes are named by the last part of their GRPC Method.
-// It's everything after the last slash.
-//
-//	Method = /pbs.Service/Signup
-//	Route  = Signup
-func RouteNameFromGRPC(method string) string {
-	i := strings.LastIndex(method, "/")
-	if i == -1 {
-		return ""
-	}
-	return method[i+1:]
-}
-
-// Returns the route name from the context's data.
-func RouteNameFromCtx(ctx god.Ctx) string {
-	if method, ok := grpc.Method(ctx); ok {
-		return RouteNameFromGRPC(method)
-	}
-	return ""
 }
 
 /* -~-~-~-~-~ Logger Utils -~-~-~-~-~- */

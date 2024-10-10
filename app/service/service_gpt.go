@@ -10,6 +10,7 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 )
 
@@ -30,7 +31,7 @@ func (svc *GPTSubService) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatReq
 	// Create a new GPTChat in the database
 	gptChat, err := svc.Clients.DBCreateGPTChat(ctx, req.Message)
 	if err != nil {
-		return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
 	}
 
 	// Define the initial messages
@@ -43,7 +44,7 @@ func (svc *GPTSubService) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatReq
 	// Add all messages to the database
 	for _, msg := range messages {
 		if _, err := svc.Clients.DBCreateGPTMessage(ctx, msg); err != nil {
-			return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))
+			return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
 		}
 	}
 
@@ -64,7 +65,7 @@ func (svc *GPTSubService) ReplyToGPTChat(ctx context.Context, req *pbs.ReplyToGP
 		if utils.IsNotFound(err) {
 			return nil, errs.GRPCNotFound("GPT Chat", int(req.ChatId))
 		}
-		return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
 	}
 
 	// Prepare the previous messages for the GPT API call
@@ -91,7 +92,7 @@ func (svc *GPTSubService) ReplyToGPTChat(ctx context.Context, req *pbs.ReplyToGP
 	// Store all messages in the database
 	for _, msg := range messages {
 		if _, err := svc.Clients.DBCreateGPTMessage(ctx, msg); err != nil {
-			return nil, errs.GRPCFromDB(err, utils.RouteNameFromCtx(ctx))
+			return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
 		}
 	}
 

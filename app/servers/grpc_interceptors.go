@@ -9,7 +9,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -29,7 +28,7 @@ func getInterceptors(tools core.Tools) []grpc.UnaryServerInterceptor {
 		newRateLimitingInterceptor(tools),
 		newPanicRecovererInterceptor(),
 		newLoggingInterceptor(),
-		newTokenValidationInterceptor(tools),
+		newAuthValidationInterceptor(tools),
 		newRequestValidationInterceptor(tools),
 		newCtxCancelledInterceptor(),
 	}
@@ -49,15 +48,25 @@ func newRequestValidationInterceptor(tools core.Tools) grpc.UnaryServerIntercept
 	}
 }
 
-// Returns a GRPC Interceptor that validates JWT tokens.
+// Returns a GRPC Interceptor that validates the auth to access the desired Route is OK.
+// Public Routes need no authorization.
+// JWT
 // It adds the UserID and Username to the request's context.
-func newTokenValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
+func newAuthValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		route := utils.RouteNameFromGRPC(i.FullMethod)
+
+		route := shared.RouteNameFromGRPCMethod(i.FullMethod)
+		authForRoute := shared.AuthForRoute(route)
+
+		// If it's a public endpoint, just go ahead.
+		// Note that the user's info is not added to the context.
+		if authForRoute == shared.RouteAuthPublic {
+			return next(c, req)
+		}
 
 		// Public routes skip token validation.
 		// That means the context will not have the user's info.
-		if core.AuthForRoute(route) != shared.RouteAuthPublic {
+		if shared.AuthForRoute(route) != shared.RouteAuthPublic {
 			claims, err := tools.ValidateToken(c, req, route)
 			if err != nil {
 				return nil, err

@@ -64,9 +64,7 @@ generate:
 	go generate ./...
 	@'$(MAKE)' generate-pbs generate-swagger
 
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
-#        Other Commands        #
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
+# 🔻 Other Commands 🔻
 
 # On 'make clean', cleans the project.
 clean:
@@ -119,9 +117,7 @@ update-deps:
 proinhanssr: 
 	go run etc/tools/proinhanssr/proinhanssr.go
 
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
-#           Resources          #
-#-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~#
+# 🔻 Resources 🔻
 
 # Besides installing protoc and adding it to the PATH,
 # to use the code auto-generation you'll also need to run:

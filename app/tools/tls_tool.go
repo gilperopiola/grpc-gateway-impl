@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-var _ core.TLSTool = (*tlsTool)(nil)
+var _ core.TLSTool = &tlsTool{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - TLS Tool -             */
@@ -30,54 +30,58 @@ type tlsTool struct {
 }
 
 func NewTLSTool(cfg *core.TLSCfg) core.TLSTool {
-	tlsTool := &tlsTool{}
-	tlsTool.ServerCertPool = newTLSCertPool(cfg.CertPath)
-	tlsTool.ServerCreds = newServerTransportCreds(cfg.CertPath, cfg.KeyPath)
-	tlsTool.ClientCreds = newClientTransportCreds(tlsTool.ServerCertPool)
-	return tlsTool
+	tlsTool := tlsTool{}
+
+	// Loads the server's certificate from a .crt file into a *x509.CertPool.
+	// It holds 1 TLS cert, used to secure all communications with the GRPC Server.
+	tlsTool.ServerCertPool = func(certPath string) *x509.CertPool {
+		if !core.G.TLSEnabled {
+			return nil
+		}
+
+		cert, err := os.ReadFile(certPath)
+		logs.LogFatalIfErr(err, errs.FailedToReadTLSCert)
+
+		certPool := x509.NewCertPool()
+		if !certPool.AppendCertsFromPEM(cert) {
+			logs.LogFatal(errors.New(errs.FailedToAppendTLSCert))
+		}
+
+		return certPool
+	}(cfg.CertPath)
+
+	// Returns the Server's transport credentials. Only called if TLS is enabled.
+	tlsTool.ServerCreds = func(certPath, keyPath string) credentials.TransportCredentials {
+		if !core.G.TLSEnabled {
+			return nil
+		}
+
+		creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
+		logs.LogFatalIfErr(err, errs.FailedToLoadTLSCreds)
+		return creds
+	}(cfg.CertPath, cfg.KeyPath)
+
+	// Returns the client's transport credentials, either secure or insecure.
+	tlsTool.ClientCreds = func(serverCertPool *x509.CertPool) credentials.TransportCredentials {
+		if !core.G.TLSEnabled {
+			return insecure.NewCredentials()
+		}
+		return credentials.NewClientTLSFromCert(serverCertPool, "")
+	}(tlsTool.ServerCertPool)
+
+	return &tlsTool
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (t *tlsTool) GetServerCertificate() *x509.CertPool             { return t.ServerCertPool }
-func (t *tlsTool) GetServerCreds() credentials.TransportCredentials { return t.ServerCreds }
-func (t *tlsTool) GetClientCreds() credentials.TransportCredentials { return t.ClientCreds }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// Loads the server's certificate from a file and returns a *x509.CertPool.
-// It's only holds 1 TLS certficate, used to secure all communications with the GRPC Server.
-// It must be in a .crt file.
-func newTLSCertPool(certPath string) *x509.CertPool {
-	if !core.G.TLSEnabled {
-		return nil
-	}
-
-	cert, err := os.ReadFile(certPath)
-	logs.LogFatalIfErr(err, errs.FailedToReadTLSCert)
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(cert) {
-		logs.LogFatal(errors.New(errs.FailedToAppendTLSCert))
-	}
-
-	return certPool
+func (t *tlsTool) GetServerCertificate() *x509.CertPool {
+	return t.ServerCertPool
 }
 
-// Returns the Server's transport credentials. Only called if TLS is enabled.
-func newServerTransportCreds(certPath, keyPath string) credentials.TransportCredentials {
-	if !core.G.TLSEnabled {
-		return nil
-	}
-	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
-	logs.LogFatalIfErr(err, errs.FailedToLoadTLSCreds)
-	return creds
+func (t *tlsTool) GetServerCreds() credentials.TransportCredentials {
+	return t.ServerCreds
 }
 
-// Returns the client's transport credentials, either secure or insecure.
-func newClientTransportCreds(serverCertPool *x509.CertPool) credentials.TransportCredentials {
-	if !core.G.TLSEnabled {
-		return insecure.NewCredentials()
-	}
-	return credentials.NewClientTLSFromCert(serverCertPool, "")
+func (t *tlsTool) GetClientCreds() credentials.TransportCredentials {
+	return t.ClientCreds
 }
