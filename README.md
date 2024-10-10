@@ -1,25 +1,25 @@
-# 🐉 GRPC Gateway Implementation 🐉
+###### (This README needs updating 🐉)
+
+# 🟢 GRPC Gateway Implementation
 
 ### **If an HTTP API is worth a dollar, its GRPC counterpart is like 20 cents more**.
 <div style="text-align: right; margin-top: -4px">- Lionel Messi. </div>
 
 ---
-(This README needs updating)
 
-**And now** with _`GRPC Gateway`_ we get both of them for only... _**$0.75!!!**_ 😱 With extra fries and a refreshing _Monster Mango Loco™_ free of charge. 🍟🥤 
+▷ **And now** with _`GRPC Gateway`_ we get both of them for only... _**$0.75!!!**_ 😱 — With extra fries and a sizzling _Monster Mango Loco™_ — **FREE OF CHARGE** 🍟🥤 
 
-... _**What?**_ 🤨 You're not making any sense, why do you use emojis on a _**readme**_ ❗❓ 
+▷ ... _**What?**_ 🤨 You're not making any sense. Why use emojis on a _**readme**_ dude ❓ 
 
-**Let's say** we define a `UsersService` in a `.proto` file, with some endpoints. We can _leverage_ `GRPC Gateway` to auto-generate a **GRPC Server** with handlers mapping each endpoint on our previously defined `UsersService`. It also auto-generates a**n** **HTTP Gateway** that points to the server and translates _HTTP_ to _gRPC_ and viceversa. 🤯 _**For free!**_
+▷ 🙃🔪 — **Let's say** we define a `UsersService` in a `.proto` file with 2 endpoints. We can use [GRPC Gateway](https://github.com/grpc-ecosystem/grpc-gateway) to not also **auto-generate a GRPC Server** from our predefined `UsersService` — It also **auto-generates an HTTP one**, translating _HTTP_ to _GRPC_ and viceversa — 🤯 _**FOR FREE!!!**_
 
-... ... ... But wasn't it... _$0.75_? 🤔
+... 🕓 ... 🧠 ... **B**ut wasn't it **_$0.75_**? 🤔
 
-**Yes, _BUUUT_** if you buy _~now~_ we'll throw in the **BEAUTIFUL. CHARMING. BREATHTAKING.........** **`HTTP Swagger Spec`** for your API. And I think I don't even need to say this, but I'll say it anyways... Th-The Swagger... The Swagger Spec. The Swagger Spec... is... au-tO-**GE-nE-RRA-ttTTTEDD** from annotations on the `.proto`. 🎉 Even request validations are configured on the protofile, so there is practically _no Transport Lyo ayer~_.
+▷ **YESOFCOURSEHONEY** — **_BUUUUUT_** — ifyoubuy **_RAIGHTO NAW_** wellthrowinthe — **G-G-Gorgeous. C-C-Charming. B-B-B-B-BreathTAKING** *.... 🥁 ....* — **`HTTP Swagger Spec`** for your API. And I don't think I even have to mention it, but I'll say it anyways... **Th-The Swagger...** The Swagger S-Spec. The Swagger Spec... is... au-tO-**GE-nE-RRA-ttTTTEDD** 🤪 from annotations on the `.proto` 🎉 Even request validations are configured there, so there is practically **no transport layer**.
 
-  ️️👁️_👁️  **...** 🤔 **...** OK **...** 👁️🤔 ... That's actually... cool? ... Take my money.
+... ️️👁️_👁️ — **...** 🤔 **...** — OK — 👁️🤔👁️ — ... *That's actually cool?* ... Shut up and take my money.
 
-
-# So what's in here? 👀
+# So... What's in here? 👀
 
 _**~I'm glad you ask!**_ - We have **`two simple APIs: 1 GRPC & 1 HTTP`**, each of them with **4** endpoints --> **Signup**, **Login**, **GetUser** and **GetUsers**.
 
