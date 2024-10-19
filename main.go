@@ -8,9 +8,9 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app"
 )
 
-/* ▶ ~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ */
-/* -~-~-~-~- - GRPC Gateway Implementation - -~-~-~-~ */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- ▶ */
+// 🔻 - --------------------------------------- - 🔻
+// 🔻 - --- - GRPC Gateway Implementation - --- - 🔻
+// 🔻 - --------------------------------------- - 🔻
 
 func main() {
 	runApp, cleanUp := app.Setup()
@@ -19,9 +19,11 @@ func main() {
 	runApp()
 
 	waitForSignal := make(chan os.Signal, 1)
-	signal.Notify(waitForSignal, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(waitForSignal, stopSignals...)
 	<-waitForSignal
 }
+
+var stopSignals = []os.Signal{os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM}
 
 // ---             ╭───────────────╮                         ╭───────────╮
 // GRPC Request -> │  GRPC Server  │ -> Interceptor Chain -> │  Service  │ -> DB/API Calls ~ Tools ~ Etc ╮

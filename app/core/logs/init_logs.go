@@ -1,13 +1,17 @@
 package logs
 
 import (
+	"errors"
+	"fmt"
+	"io/fs"
 	"log"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"go.uber.org/zap"
 )
 
-func Step(n int, name string) {
-	log.Printf("%s  ────────── %s\n", numbersToEmojis[n], name)
+func Step(step int) {
+	log.Printf("%s\n", numbersToEmojis[step])
 }
 
 func SubstepOK(name, emoji string) {
@@ -36,4 +40,14 @@ var numbersToEmojis = map[int]string{
 	8:  "8️⃣",
 	9:  "9️⃣",
 	10: "🔟",
+}
+
+// On Windows I get a *fs.PathError calling zap.L().Sync() to flush logger on shutdown.
+// This just calls zap.L().Sync() and ignores that specific error. See https://github.com/uber-go/zap/issues/991
+func SyncLogger() error {
+	var pathErr *fs.PathError
+	if err := zap.L().Sync(); err != nil && !errors.As(err, &pathErr) {
+		return fmt.Errorf("error syncing logger: %w", err)
+	}
+	return nil
 }

@@ -6,20 +6,23 @@ import (
 	"github.com/gilperopiola/god"
 	sql "github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
-
-	"go.uber.org/zap"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 )
 
 type AuthSubService struct {
 	pbs.UnimplementedAuthServiceServer
 	Clients core.Clients
 	Tools   core.Tools
+}
+
+type EmbeddedSubService struct {
+	Name       string
+	Code       string
+	InstanceID string
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -41,7 +44,9 @@ func (s *AuthSubService) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.Signu
 		return nil, errCallingUsersDB(ctx, err)
 	}
 
-	go s.doAfterSignup(ctx, user)
+	defer func() {
+		go s.doAfterSignup(ctx, user)
+	}()
 
 	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
 }
@@ -49,10 +54,6 @@ func (s *AuthSubService) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.Signu
 func (s *AuthSubService) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Tools.CreateFolder("users/user_" + strconv.Itoa(user.ID))
 	s.Clients.DBCreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
-
-	w, err := s.Clients.GetCurrentWeather(ctx, 44.34, 10.99)
-	logs.LogIfErr(err)
-	zap.S().Info("Weather", w)
 }
 
 // Login first tries to get the user with the given username.

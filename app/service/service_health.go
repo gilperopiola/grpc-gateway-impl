@@ -6,7 +6,7 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 	"go.uber.org/zap"
 
 	"google.golang.org/grpc/codes"
@@ -26,7 +26,7 @@ func (h *HealthSubService) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRe
 	msg := core.G.AppName + " " + core.G.Version
 
 	// Get the DB or return unhealthy.
-	if _, err := utils.RetryV2(h.Clients.GetDB, utils.BasicRetryCfg(2, nil)); err != nil {
+	if _, err := utils.RetryFuncNoError(h.Clients.GetDB); err != nil {
 		return nil, status.Error(codes.Unavailable, msg+" unhealthy: database connection not working")
 	}
 

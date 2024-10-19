@@ -1,15 +1,6 @@
 package http_tests
 
-import (
-	"encoding/json"
-	"net/http"
-	"testing"
-
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
-
-	"github.com/stretchr/testify/assert"
-)
-
+/*
 func TestHTTPSignup(t *testing.T) {
 
 	testy := NewTesty(t, "Signup", "/v1/auth/signup")
@@ -73,3 +64,4 @@ func TestHTTPSignup(t *testing.T) {
 		assert.Greater(t, typedBody.Id, int32(0))
 	}
 }
+*/

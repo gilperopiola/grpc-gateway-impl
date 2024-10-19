@@ -1,11 +1,19 @@
 package core
 
+// ➤ Am I sure this is the best way to go about stitching together the whole
+// project here as interfaces? — Not sure, however this allowed me to decouple
+// the tools/service/servers/clients packages, each of one importing core instead.
+//
+// ➤ If you don't wanna import core, just copy n paste the interfaces.
+
 import (
 	"net/http"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+
+	"google.golang.org/grpc"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -16,6 +24,10 @@ import (
 
 // Each service is defined on a .proto file
 type (
+	ServiceLayer interface {
+		RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar)
+		RegisterHTTPEndpoints(mux any, opts ...grpc.DialOption)
+	}
 	AuthSvc   = pbs.AuthServiceServer
 	UsersSvc  = pbs.UsersServiceServer
 	GroupsSvc = pbs.GroupsServiceServer
@@ -46,7 +58,7 @@ type (
 	DBActions interface {
 		DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error)
 		DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error)
-		DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error)
+		DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error)
 
 		DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error)
 		DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error)

@@ -25,8 +25,6 @@ func (User) TableName() string {
 	return "users"
 }
 
-type Users []*User
-
 type UsersInGroup struct {
 	UserID    int       `gorm:"primaryKey;column:user_id;index;" bson:"user_id"`
 	GroupID   int       `gorm:"primaryKey;column:group_id;index;" bson:"group_id"`

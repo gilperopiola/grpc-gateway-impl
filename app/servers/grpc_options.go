@@ -11,9 +11,8 @@ import (
 /*            - GRPC Stuff -           */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// Returns the GRPC Server Options:
-// For now it's only TLS + Interceptors.
-func getGRPCInterceptors(tools core.Tools, tls bool) []grpc.ServerOption {
+// Basically TLS + Interceptors.
+func getGRPCServerOpts(tools core.Tools, tls bool) []grpc.ServerOption {
 	serverOpts := []grpc.ServerOption{}
 
 	if tls {
@@ -28,7 +27,7 @@ func getGRPCInterceptors(tools core.Tools, tls bool) []grpc.ServerOption {
 
 // Dial Options are used by the HTTP Gateway when connecting to the GRPC Server.
 func getGRPCDialOpts(tlsClientCreds credentials.TransportCredentials) []grpc.DialOption {
-	const userAgent = "@gilperopiola"
+	const userAgent = "gilperopiola"
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(tlsClientCreds),
 		grpc.WithUserAgent(userAgent),

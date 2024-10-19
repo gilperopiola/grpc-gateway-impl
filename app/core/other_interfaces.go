@@ -7,13 +7,13 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"google.golang.org/grpc/credentials"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc/credentials"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -107,10 +107,10 @@ type (
 	// Encode and decode models.
 	ModelConverter interface {
 		UserToUserInfoPB(*models.User) *pbs.UserInfo
-		UsersToUsersInfoPB(models.Users) []*pbs.UserInfo
+		UsersToUsersInfoPB([]*models.User) []*pbs.UserInfo
 
 		GroupToGroupInfoPB(*models.Group) *pbs.GroupInfo
-		GroupsToGroupsInfoPB(models.Groups) []*pbs.GroupInfo
+		GroupsToGroupsInfoPB([]*models.Group) []*pbs.GroupInfo
 	}
 
 	// Hashes and compares passwords.

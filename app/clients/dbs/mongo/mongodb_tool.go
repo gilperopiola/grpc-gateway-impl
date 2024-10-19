@@ -6,8 +6,8 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -119,7 +119,7 @@ func (dbt *mongoDBConn) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error
 	return &user, nil
 }
 
-func (dbt *mongoDBConn) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error) {
+func (dbt *mongoDBConn) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error) {
 	filter := &bson.D{}
 	for _, opt := range opts {
 		opt.(core.MongoDBOpt)(filter)
@@ -138,7 +138,7 @@ func (dbt *mongoDBConn) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any)
 		return nil, 0, errs.DBErr{mongo.ErrNoDocuments, fmt.Sprintf("error finding users: %v", err)}
 	}
 
-	var users models.Users
+	var users []*models.User
 	if err := result.Decode(&users); err != nil {
 		return nil, 0, errs.DBErr{err, fmt.Sprintf("error decoding users: %v", err)}
 	}

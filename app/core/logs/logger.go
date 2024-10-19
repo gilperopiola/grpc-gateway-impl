@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

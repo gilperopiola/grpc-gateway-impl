@@ -3,8 +3,8 @@ package sqldb
 import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

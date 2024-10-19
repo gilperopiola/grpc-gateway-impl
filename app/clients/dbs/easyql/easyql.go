@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 )
 
 // Type constraint including all models

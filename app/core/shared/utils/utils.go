@@ -1,12 +1,5 @@
 package utils
 
-import (
-	"errors"
-	"io/fs"
-
-	"go.uber.org/zap"
-)
-
 // Oh no, a utils package! We're all gonna die!
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -24,15 +17,3 @@ func FirstOrDefault(slice []string, fallback string) string {
 }
 
 /* -~-~-~-~-~ Logger Utils -~-~-~-~-~- */
-
-// On Windows, I'm getting a *fs.PathError when calling zap.L().Sync() to flush
-// the Logger on shutdown.
-// This just calls zap.L().Sync() and ignores that specific error.
-// See https://github.com/uber-go/zap/issues/991
-func SyncLogger() error {
-	var pathErr *fs.PathError
-	if err := zap.L().Sync(); err != nil && !errors.As(err, &pathErr) {
-		return err
-	}
-	return nil
-}

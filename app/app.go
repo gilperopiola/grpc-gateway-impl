@@ -4,7 +4,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/clients"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
@@ -46,19 +45,19 @@ func Setup() (runAppFunc, cleanUpFunc) {
 	app := App{
 		Config:  new(core.Config),     // The Heavens
 		Servers: new(servers.Servers), // The Earth
-		Service: new(service.Service), // The Factories
-		Clients: new(clients.Clients), // The Travellers
+		Service: new(service.Service), // The Nobles
+		Clients: new(clients.Clients), // The Merchants
 		Tools:   new(tools.Tools),     // The Working Class
 	}
 
-	logs.Step(0, "Starting up")
+	logs.Step(0)
 	func() {
 		app.Config = core.LoadConfig()
 		logs.EnvVars()
 		logs.SetupLogger(&app.Config.LoggerCfg)
 	}()
 
-	logs.Step(1, "Setup")
+	logs.Step(1)
 	func() {
 		app.Tools = tools.Setup(app.Config)
 		logs.SubstepOK("Tools", "🛠️ ")
@@ -76,10 +75,11 @@ func Setup() (runAppFunc, cleanUpFunc) {
 	func() {
 		app.Tools.AddCleanupFunc(app.Clients.CloseDB)
 		app.Tools.AddCleanupFunc(app.Servers.Shutdown)
-		app.Tools.AddCleanupFuncWithErr(utils.SyncLogger)
+		app.Tools.AddCleanupFuncWithErr(logs.SyncLogger)
 		logs.SubstepOK("Cleanup", "🧽")
 	}()
 
+	logs.Step(2)
 	return app.Servers.Run, app.Tools.Cleanup
 }
 

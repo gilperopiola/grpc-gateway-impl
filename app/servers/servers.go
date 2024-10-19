@@ -9,7 +9,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -28,7 +28,7 @@ type Servers struct {
 func Setup(services *service.Service, tools core.Tools) *Servers {
 	var (
 		// GRPC Interceptors.
-		grpcServerOpts = getGRPCInterceptors(tools, core.G.TLSEnabled)
+		grpcServerOpts = getGRPCServerOpts(tools, core.G.TLSEnabled)
 
 		// Used by HTTP to connect to GRPC.
 		grpcDialOpts = getGRPCDialOpts(tools.GetClientCreds())
@@ -45,12 +45,9 @@ func Setup(services *service.Service, tools core.Tools) *Servers {
 }
 
 func (s *Servers) Run() {
-	logs.Step(2, "Run")
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		logEndpointsPerService(s.GRPC)
-		time.Sleep(1 * time.Second)
-		logs.Step(3, "Enjoy")
 	}()
 
 	go s.runGRPC()
@@ -83,7 +80,7 @@ func setupHTTP(service *service.Service, muxOpts []runtime.ServeMuxOption, mw mi
 /* -~-~-~-~-~ Run -~-~-~-~-~- */
 
 func (s *Servers) runGRPC() {
-	result, err := utils.Retry(listenGRPC, utils.BasicRetryCfg(5, nil))
+	result, err := utils.RetryFunc(listenGRPC)
 	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)
@@ -91,7 +88,7 @@ func (s *Servers) runGRPC() {
 }
 
 func (s *Servers) runHTTP() {
-	result, err := utils.Retry(listenHTTP, utils.BasicRetryCfg(5, nil))
+	result, err := utils.RetryFunc(listenHTTP)
 	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)
@@ -125,7 +122,7 @@ func listenHTTP() (any, error) {
 }
 
 func logEndpointsPerService(server *grpc.Server) {
-	// Loop over all services.
+	// Loop over all service.
 	for serviceName, serviceInfo := range server.GetServiceInfo() {
 		log.Printf("\t 🟢 %s ▶ [%s]", serviceName, serviceInfo.Metadata)
 

@@ -4,26 +4,27 @@ import (
 	"fmt"
 	"go/ast"
 	"go/format"
-	"go/parser"
 	"go/token"
 	"io/fs"
 	"log"
 	"os"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
-// This script generates the AllModels slice in all_models.go by parsing the models package
+// This script generates the AllModels slice in /app/core/shared/models/all_models.go by parsing the models package
 // and extracting the names of all model structs. It then writes the updated AllModels slice
 // back to all_models.go. This script should be run whenever a new model is added to the models
 // package or an existing model is removed.
 
 func main() {
 
-	modelsFolder := "."
-	allModelsFile := modelsFolder + "/all_models.go"
+	modelsDir := "."
+	allModelsFile := modelsDir + "/all_models.go"
 
 	// Step 1️⃣ - Parse the models package and get all model names
-	allModelNames, err := getModelStructNames(modelsFolder)
+	allModelNames, err := getModelStructNames(modelsDir)
 	if err != nil {
 		log.Fatalf("Failed to get model names: %v", err)
 	}
@@ -44,13 +45,13 @@ func main() {
 func getModelStructNames(modelsFolder string) ([]string, error) {
 	var out []string
 
-	pkg, err := getPackage(modelsFolder)
+	pkg, err := getPackage(modelsFolder, "models")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get package: %w", err)
 	}
 
 	// For each file
-	for _, file := range pkg.Files {
+	for _, file := range pkg.Syntax {
 
 		// get all things declared in the top-level scope,
 		for _, decl := range file.Decls {
@@ -130,17 +131,25 @@ func updateAllModelsFile(allModelsFile string, allModelsCode string) error {
 	return nil
 }
 
-// Helper. Parses a go pkg and returns it as an *ast.Package
-func getPackage(modelsFolder string) (*ast.Package, error) {
-	packages, err := parser.ParseDir(token.NewFileSet(), modelsFolder, nil, 0)
+// Helper. Parses a go pkg and returns it as a *packages.Package
+func getPackage(dir, pkgName string) (*packages.Package, error) {
+	cfg := packages.Config{
+		Mode: packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedDeps,
+		Dir:  dir,
+	}
+
+	pkgs, err := packages.Load(&cfg, ".")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse dir: %w", err)
+		return nil, fmt.Errorf("failed to load packages: %w", err)
 	}
 
-	pkg, ok := packages["models"]
-	if !ok {
-		return nil, fmt.Errorf("package 'models' not found in %v", packages)
+	if len(pkgs) == 0 {
+		return nil, fmt.Errorf("no packages found in directory %s", dir)
 	}
 
-	return pkg, nil
+	if pkgs[0].Name != pkgName {
+		return nil, fmt.Errorf("package '%s' not found", pkgName)
+	}
+
+	return pkgs[0], nil
 }

@@ -5,10 +5,10 @@ import (
 	"github.com/gilperopiola/god/etc"
 	"github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 )
 
 type GroupsSubService struct {

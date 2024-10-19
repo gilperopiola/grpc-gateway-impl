@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

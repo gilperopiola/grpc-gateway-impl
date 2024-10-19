@@ -3,8 +3,8 @@ package sqldb
 import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 )
 
 var (
@@ -51,7 +51,7 @@ func (sdbt *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 }
 
 // DBGetUsers returns a list of users from the database.
-func (sdbt *DB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models.Users, int, error) {
+func (sdbt *DB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error) {
 	query := sdbt.DB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
@@ -66,12 +66,10 @@ func (sdbt *DB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) (models
 		return nil, 0, nil
 	}
 
-	var users models.Users
+	var users []*models.User
 	if err := query.Offset(page * pageSize).Limit(pageSize).Find(&users).Error(); err != nil {
 		return nil, 0, &errs.DBErr{err, GetUsersErr}
 	}
 
 	return users, int(matchingUsers), nil
 }
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */

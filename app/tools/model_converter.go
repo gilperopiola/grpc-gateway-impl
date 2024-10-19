@@ -4,22 +4,23 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 )
 
-var _ core.ModelConverter = (*modelConverter)(nil)
+// Would this be better off inside of utils/converter or something like that?
 
-type modelConverter struct {
-}
+var _ core.ModelConverter = &modelConverter{}
+
+type modelConverter struct{}
 
 func NewModelConverter() core.ModelConverter {
 	return &modelConverter{}
 }
 
-/* Users */
+// 🔻 Users 🔻
 
-func (mc modelConverter) UserToUserInfoPB(user *models.User) *pbs.UserInfo {
+func (this modelConverter) UserToUserInfoPB(user *models.User) *pbs.UserInfo {
 	return &pbs.UserInfo{
 		Id:        int32(user.ID),
 		Username:  user.Username,
@@ -28,17 +29,17 @@ func (mc modelConverter) UserToUserInfoPB(user *models.User) *pbs.UserInfo {
 	}
 }
 
-func (mc modelConverter) UsersToUsersInfoPB(users models.Users) []*pbs.UserInfo {
+func (this modelConverter) UsersToUsersInfoPB(users []*models.User) []*pbs.UserInfo {
 	usersInfo := make([]*pbs.UserInfo, 0, len(users))
 	for _, u := range users {
-		usersInfo = append(usersInfo, mc.UserToUserInfoPB(u))
+		usersInfo = append(usersInfo, this.UserToUserInfoPB(u))
 	}
 	return usersInfo
 }
 
-/* Groups */
+// 🔻 Groups 🔻
 
-func (mc modelConverter) GroupToGroupInfoPB(group *models.Group) *pbs.GroupInfo {
+func (this modelConverter) GroupToGroupInfoPB(group *models.Group) *pbs.GroupInfo {
 	return &pbs.GroupInfo{
 		Id:        int32(group.ID),
 		Name:      group.Name,
@@ -48,10 +49,10 @@ func (mc modelConverter) GroupToGroupInfoPB(group *models.Group) *pbs.GroupInfo 
 	}
 }
 
-func (mc modelConverter) GroupsToGroupsInfoPB(groups models.Groups) []*pbs.GroupInfo {
+func (this modelConverter) GroupsToGroupsInfoPB(groups []*models.Group) []*pbs.GroupInfo {
 	groupsInfo := make([]*pbs.GroupInfo, 0, len(groups))
-	for _, g := range groups {
-		groupsInfo = append(groupsInfo, mc.GroupToGroupInfoPB(g))
+	for _, group := range groups {
+		groupsInfo = append(groupsInfo, this.GroupToGroupInfoPB(group))
 	}
 	return groupsInfo
 }

@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 	"go.uber.org/zap"
 
 	"gorm.io/driver/mysql"
@@ -48,7 +48,7 @@ func NewSQLDBConnection(cfg *core.DBCfg) core.DB {
 	// We try to connect to the DB directly.
 	// If it fails, we try to connect without DB, then creating it.
 	// Then we retry.
-	dbConn, err := utils.Retry(connectToDB, utils.BasicRetryCfg(cfg.Retries, createDB))
+	dbConn, err := utils.RetryFunc(connectToDB, utils.NewRetryCfg(cfg.Retries, false, createDB))
 	logs.LogFatalIfErr(err, errs.FailedDBConn)
 
 	db := &DB{dbConn.(*baseSQLDB)}
