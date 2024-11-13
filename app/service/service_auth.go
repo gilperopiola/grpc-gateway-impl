@@ -13,25 +13,22 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 )
 
-type AuthSubService struct {
+type AuthSvc struct {
 	pbs.UnimplementedAuthServiceServer
 	Clients core.Clients
 	Tools   core.Tools
-}
-
-type EmbeddedSubService struct {
-	Name       string
-	Code       string
-	InstanceID string
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*           - Auth Service -          */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (s *AuthSubService) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
+//  1. We try to get a user with the username that we want to create.
+//     a. If we don't get any error, that means the user already exists.
+//     b. If we get an error but it's not a DBNotFound, we return an unknown error.
+func (s *AuthSvc) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
 	user, err := s.Clients.DBGetUser(ctx, sql.WithUsername(req.Username))
-	if err == nil && user != nil {
+	if err == nil || user != nil {
 		return nil, errUserAlreadyExists()
 	}
 
@@ -51,7 +48,7 @@ func (s *AuthSubService) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.Signu
 	return &pbs.SignupResponse{Id: int32(user.ID)}, nil
 }
 
-func (s *AuthSubService) doAfterSignup(ctx god.Ctx, user *models.User) {
+func (s *AuthSvc) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Tools.CreateFolder("users/user_" + strconv.Itoa(user.ID))
 	s.Clients.DBCreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 }
@@ -61,13 +58,13 @@ func (s *AuthSubService) doAfterSignup(ctx god.Ctx, user *models.User) {
 // If the query fails (for some other reason), then we return an unknown error.
 // Then we PasswordsMatch both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
-func (s *AuthSubService) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
+func (s *AuthSvc) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
 	user, err := s.Clients.DBGetUser(ctx, sql.WithUsername(req.Username))
 	if utils.IsNotFound(err) {
 		return nil, errs.GRPCNotFound("user", req.Username)
 	}
 	if err != nil || user == nil {
-		return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
 	}
 
 	if !s.Tools.PasswordsMatch(req.Password, user.Password) {

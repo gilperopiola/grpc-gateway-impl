@@ -18,13 +18,12 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// UsersServiceClient is the client API for UsersService service.
+// UsersSvcClient is the client API for UsersSvc service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type UsersServiceClient interface {
-	// Gets a list of users, with optional pagination and filtering. Admin only.
+type UsersSvcClient interface {
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error)
-	// Gets a user by ID. Returns the user's information.
+	// Returns the information of a user with a given ID.
 	// Requires a JWT Token with a matching user's ID.
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
@@ -32,222 +31,221 @@ type UsersServiceClient interface {
 	GetMyGroups(ctx context.Context, in *GetMyGroupsRequest, opts ...grpc.CallOption) (*GetMyGroupsResponse, error)
 }
 
-type usersServiceClient struct {
+type usersSvcClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewUsersServiceClient(cc grpc.ClientConnInterface) UsersServiceClient {
-	return &usersServiceClient{cc}
+func NewUsersSvcClient(cc grpc.ClientConnInterface) UsersSvcClient {
+	return &usersSvcClient{cc}
 }
 
-func (c *usersServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error) {
+func (c *usersSvcClient) GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error) {
 	out := new(GetUsersResponse)
-	err := c.cc.Invoke(ctx, "/pbs.UsersService/GetUsers", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pbs.UsersSvc/GetUsers", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *usersServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error) {
+func (c *usersSvcClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error) {
 	out := new(GetUserResponse)
-	err := c.cc.Invoke(ctx, "/pbs.UsersService/GetUser", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pbs.UsersSvc/GetUser", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *usersServiceClient) UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error) {
+func (c *usersSvcClient) UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error) {
 	out := new(UpdateUserResponse)
-	err := c.cc.Invoke(ctx, "/pbs.UsersService/UpdateUser", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pbs.UsersSvc/UpdateUser", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *usersServiceClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error) {
+func (c *usersSvcClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error) {
 	out := new(DeleteUserResponse)
-	err := c.cc.Invoke(ctx, "/pbs.UsersService/DeleteUser", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pbs.UsersSvc/DeleteUser", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *usersServiceClient) GetMyGroups(ctx context.Context, in *GetMyGroupsRequest, opts ...grpc.CallOption) (*GetMyGroupsResponse, error) {
+func (c *usersSvcClient) GetMyGroups(ctx context.Context, in *GetMyGroupsRequest, opts ...grpc.CallOption) (*GetMyGroupsResponse, error) {
 	out := new(GetMyGroupsResponse)
-	err := c.cc.Invoke(ctx, "/pbs.UsersService/GetMyGroups", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pbs.UsersSvc/GetMyGroups", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// UsersServiceServer is the server API for UsersService service.
-// All implementations must embed UnimplementedUsersServiceServer
+// UsersSvcServer is the server API for UsersSvc service.
+// All implementations must embed UnimplementedUsersSvcServer
 // for forward compatibility
-type UsersServiceServer interface {
-	// Gets a list of users, with optional pagination and filtering. Admin only.
+type UsersSvcServer interface {
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error)
-	// Gets a user by ID. Returns the user's information.
+	// Returns the information of a user with a given ID.
 	// Requires a JWT Token with a matching user's ID.
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	GetMyGroups(context.Context, *GetMyGroupsRequest) (*GetMyGroupsResponse, error)
-	mustEmbedUnimplementedUsersServiceServer()
+	mustEmbedUnimplementedUsersSvcServer()
 }
 
-// UnimplementedUsersServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedUsersServiceServer struct {
+// UnimplementedUsersSvcServer must be embedded to have forward compatible implementations.
+type UnimplementedUsersSvcServer struct {
 }
 
-func (UnimplementedUsersServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error) {
+func (UnimplementedUsersSvcServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
 }
-func (UnimplementedUsersServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
+func (UnimplementedUsersSvcServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
 }
-func (UnimplementedUsersServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
+func (UnimplementedUsersSvcServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUser not implemented")
 }
-func (UnimplementedUsersServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error) {
+func (UnimplementedUsersSvcServer) DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
 }
-func (UnimplementedUsersServiceServer) GetMyGroups(context.Context, *GetMyGroupsRequest) (*GetMyGroupsResponse, error) {
+func (UnimplementedUsersSvcServer) GetMyGroups(context.Context, *GetMyGroupsRequest) (*GetMyGroupsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMyGroups not implemented")
 }
-func (UnimplementedUsersServiceServer) mustEmbedUnimplementedUsersServiceServer() {}
+func (UnimplementedUsersSvcServer) mustEmbedUnimplementedUsersSvcServer() {}
 
-// UnsafeUsersServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to UsersServiceServer will
+// UnsafeUsersSvcServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to UsersSvcServer will
 // result in compilation errors.
-type UnsafeUsersServiceServer interface {
-	mustEmbedUnimplementedUsersServiceServer()
+type UnsafeUsersSvcServer interface {
+	mustEmbedUnimplementedUsersSvcServer()
 }
 
-func RegisterUsersServiceServer(s grpc.ServiceRegistrar, srv UsersServiceServer) {
-	s.RegisterService(&UsersService_ServiceDesc, srv)
+func RegisterUsersSvcServer(s grpc.ServiceRegistrar, srv UsersSvcServer) {
+	s.RegisterService(&UsersSvc_ServiceDesc, srv)
 }
 
-func _UsersService_GetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UsersSvc_GetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetUsersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UsersServiceServer).GetUsers(ctx, in)
+		return srv.(UsersSvcServer).GetUsers(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pbs.UsersService/GetUsers",
+		FullMethod: "/pbs.UsersSvc/GetUsers",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UsersServiceServer).GetUsers(ctx, req.(*GetUsersRequest))
+		return srv.(UsersSvcServer).GetUsers(ctx, req.(*GetUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UsersService_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UsersSvc_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UsersServiceServer).GetUser(ctx, in)
+		return srv.(UsersSvcServer).GetUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pbs.UsersService/GetUser",
+		FullMethod: "/pbs.UsersSvc/GetUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UsersServiceServer).GetUser(ctx, req.(*GetUserRequest))
+		return srv.(UsersSvcServer).GetUser(ctx, req.(*GetUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UsersService_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UsersSvc_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UsersServiceServer).UpdateUser(ctx, in)
+		return srv.(UsersSvcServer).UpdateUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pbs.UsersService/UpdateUser",
+		FullMethod: "/pbs.UsersSvc/UpdateUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UsersServiceServer).UpdateUser(ctx, req.(*UpdateUserRequest))
+		return srv.(UsersSvcServer).UpdateUser(ctx, req.(*UpdateUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UsersService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UsersSvc_DeleteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UsersServiceServer).DeleteUser(ctx, in)
+		return srv.(UsersSvcServer).DeleteUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pbs.UsersService/DeleteUser",
+		FullMethod: "/pbs.UsersSvc/DeleteUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UsersServiceServer).DeleteUser(ctx, req.(*DeleteUserRequest))
+		return srv.(UsersSvcServer).DeleteUser(ctx, req.(*DeleteUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UsersService_GetMyGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UsersSvc_GetMyGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMyGroupsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UsersServiceServer).GetMyGroups(ctx, in)
+		return srv.(UsersSvcServer).GetMyGroups(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pbs.UsersService/GetMyGroups",
+		FullMethod: "/pbs.UsersSvc/GetMyGroups",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UsersServiceServer).GetMyGroups(ctx, req.(*GetMyGroupsRequest))
+		return srv.(UsersSvcServer).GetMyGroups(ctx, req.(*GetMyGroupsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// UsersService_ServiceDesc is the grpc.ServiceDesc for UsersService service.
+// UsersSvc_ServiceDesc is the grpc.ServiceDesc for UsersSvc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var UsersService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "pbs.UsersService",
-	HandlerType: (*UsersServiceServer)(nil),
+var UsersSvc_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "pbs.UsersSvc",
+	HandlerType: (*UsersSvcServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetUsers",
-			Handler:    _UsersService_GetUsers_Handler,
+			Handler:    _UsersSvc_GetUsers_Handler,
 		},
 		{
 			MethodName: "GetUser",
-			Handler:    _UsersService_GetUser_Handler,
+			Handler:    _UsersSvc_GetUser_Handler,
 		},
 		{
 			MethodName: "UpdateUser",
-			Handler:    _UsersService_UpdateUser_Handler,
+			Handler:    _UsersSvc_UpdateUser_Handler,
 		},
 		{
 			MethodName: "DeleteUser",
-			Handler:    _UsersService_DeleteUser_Handler,
+			Handler:    _UsersSvc_DeleteUser_Handler,
 		},
 		{
 			MethodName: "GetMyGroups",
-			Handler:    _UsersService_GetMyGroups_Handler,
+			Handler:    _UsersSvc_GetMyGroups_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

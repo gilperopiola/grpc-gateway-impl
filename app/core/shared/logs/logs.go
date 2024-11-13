@@ -3,6 +3,7 @@ package logs
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"time"
@@ -19,9 +20,9 @@ import (
 // We use zap. It's fast and easy.
 // Set it up and then just use it with zap.L() or zap.S().
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*             - Logger -              */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* ———————————————————————————————— — — — LOGGER — — — ———————————————————————————————— */
+
+type logger zap.Logger
 
 var (
 	L = zap.L
@@ -32,22 +33,16 @@ const LogsTimeLayout = "02/01/06 15:04:05"
 
 // Replaces the global Logger in the zap package with a new one.
 // It uses a default zap.Config and allows for additional options to be passed.
-func SetupLogger(cfg *core.LoggerCfg, opts ...zap.Option) *zap.Logger {
-
-	// Default options: Add stacktrace and use the default clock.
-	opts = append([]zap.Option{
-		zap.AddStacktrace(zapcore.Level(cfg.LevelStackT)),
-		zap.WithClock(zapcore.DefaultClock),
-	}, opts...)
-
-	logger, err := newZapConfig(cfg).Build(opts...)
+func SetupLogger(cfg *core.LoggerCfg, opts ...zap.Option) *logger {
+	opts = append([]zap.Option{zap.AddStacktrace(zapcore.Level(cfg.LevelStackT))}, opts...)
+	zapLogger, err := newZapConfig(cfg).Build(opts...)
 	if err != nil {
 		log.Fatalf(errs.FailedToCreateLogger, err) // Std log, don't use zap.
 	}
 
-	zap.ReplaceGlobals(logger)
+	zap.ReplaceGlobals(zapLogger)
 
-	return logger
+	return (*logger)(zapLogger)
 }
 
 func LogGRPC(route string, duration time.Duration, err error) {
@@ -78,15 +73,82 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 	})
 }
 
-// Prefix used when Infof or Infoln are called.
-var ServerLogPrefix = "Server | "
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func ServerLog(s string) {
-	zap.L().Info(ServerLogPrefix + s)
+func (l *logger) Info(msg string, fields ...zap.Field) {
+	l.Info(msg, fields...)
 }
 
-func ServerLogf(s string, args ...any) {
-	zap.S().Infof(ServerLogPrefix+s, args...)
+func (l *logger) Debug(msg string, fields ...zap.Field) {
+	l.Debug(msg, fields...)
+}
+
+func (l *logger) Warn(msg string, fields ...zap.Field) {
+	l.Warn(msg, fields...)
+}
+
+func (l *logger) Error(msg string, fields ...zap.Field) {
+	l.Error(msg, fields...)
+}
+
+func (l *logger) Fatal(msg string, fields ...zap.Field) {
+	l.Fatal(msg, fields...)
+}
+
+func (l *logger) LogGRPC(route string, duration time.Duration, err error) {
+	LogGRPC(route, duration, err)
+}
+
+func (l *logger) LogHTTPRequest(handler http.Handler) http.Handler {
+	return LogHTTPRequest(handler)
+}
+
+func (l *logger) LogDebug(msg string) {
+	LogDebug(msg)
+}
+
+func (l *logger) LogUnexpected(err error) error {
+	return LogUnexpected(err)
+}
+
+func (l *logger) LogIfErr(err error, optionalFmt ...string) {
+	LogIfErr(err, optionalFmt...)
+}
+
+func (l *logger) LogFatal(err error) {
+	LogFatal(err)
+}
+
+func (l *logger) LogFatalIfErr(err error, optionalFmt ...string) {
+	LogFatalIfErr(err, optionalFmt...)
+}
+
+func (l *logger) WarnIfErr(err error, optionalFmt ...string) {
+	WarnIfErr(err, optionalFmt...)
+}
+
+func (l *logger) LogImportant(msg string) {
+	LogImportant(msg)
+}
+
+func (l *logger) LogStrange(msg string, info ...any) {
+	LogStrange(msg, info...)
+}
+
+func (l *logger) LogThreat(msg string) {
+	LogThreat(msg)
+}
+
+func (l *logger) LogResult(ofWhat string, err error) {
+	LogResult(ofWhat, err)
+}
+
+func (l *logger) LogAPICall(url string, status int, body []byte) {
+	LogAPICall(url, status, body)
+}
+
+func (l *logger) Sync() error {
+	return SyncLogger()
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -117,7 +179,7 @@ func LogIfErr(err error, optionalFmt ...string) {
 
 // Used to log unexpected errors that also should trigger a panic.
 func LogFatal(err error) {
-	prepareLog(wErr(err), wStack()).Fatal("🛑 Fatal Error")
+	prepareLog(withError(err), withStacktrace()).Fatal("🛑 Fatal Error")
 }
 
 // Helps keeping code clean and readable, lets you omit the error check on the caller.
@@ -213,16 +275,6 @@ func newZapConfig(cfg *core.LoggerCfg) *zap.Config {
 
 type logOpt func(*zap.Logger)
 
-// Shorthand versions of each logOpt.
-var (
-	wMsg   = withMsg
-	wErr   = withError
-	wDurat = withDuration
-	wStack = withStacktrace
-	wGRPC  = withGRPC
-	wHTTP  = withHTTP
-)
-
 // Prepares a new child Logger, with fields defined by the given logOpts.
 func prepareLog(opts ...logOpt) *zap.Logger {
 	childLogger := *zap.L()
@@ -275,12 +327,12 @@ var withStacktrace = func() logOpt {
 
 // Routes apply to both GRPC and HTTP.
 //
-//	-> In GRPC, it's the last part of the Method -> '/users.UsersService/GetUsers'.
+//	-> In GRPC, it's the last part of the Method -> '/users.UsersSvc/GetUsers' -> 'GetUsers'.
 //
 // See routes.go for more info.
 var withGRPC = func(method string) logOpt {
 	return func(logger *zap.Logger) {
-		*logger = *logger.With(zap.String("route", shared.RouteNameFromGRPCMethod(method)))
+		*logger = *logger.With(zap.String("route", shared.GetRouteFromGRPCMethod(method).Name))
 	}
 }
 
@@ -289,4 +341,22 @@ var withHTTP = func(req *http.Request) logOpt {
 	return func(logger *zap.Logger) {
 		*logger = *logger.With(zap.String("route", req.Method+" "+req.URL.Path))
 	}
+}
+
+func InitStep(step int) {
+	log.Printf("📍 Step %d\n", step)
+}
+
+func InitModuleOK(name, emoji string) {
+	log.Printf("\t %s %s OK\n", emoji, name)
+}
+
+// On Windows I get a *fs.PathError calling zap.L().Sync() to flush logger on shutdown.
+// This just calls zap.L().Sync() and ignores that specific error. See https://github.com/uber-go/zap/issues/991
+func SyncLogger() error {
+	var pathErr *fs.PathError
+	if err := zap.L().Sync(); err != nil && !errors.As(err, &pathErr) {
+		return fmt.Errorf("error syncing logger: %w", err)
+	}
+	return nil
 }

@@ -15,7 +15,7 @@ type RetryableFnNoErr func() any
 
 // Executes a given function. If it fails, it logs the error, falls back to another function,
 // waits with exponential backoff and then retries the initial operation again.
-func RetryFunc(fn RetryableFn, optionalCfg ...retryCfg) (any, error) {
+func RetryFunc(fn RetryableFn, optionalCfg ...RetryCfg) (any, error) {
 
 	// Try.
 	out, err := fn()
@@ -30,15 +30,15 @@ func RetryFunc(fn RetryableFn, optionalCfg ...retryCfg) (any, error) {
 		cfg = overrideRetryCfg(cfg, optionalCfg[0])
 	}
 
-	if !cfg.skipLog {
-		zap.S().Errorf("operation failed, will retry up to %d times: %v", cfg.retries, err)
+	if !cfg.SkipLog {
+		zap.S().Errorf("operation failed, will retry up to %d times: %v", cfg.Times, err)
 	}
 
-	for nRetry := 0; nRetry <= cfg.retries; nRetry++ {
+	for nRetry := 0; nRetry <= cfg.Times; nRetry++ {
 
 		// Fallback.
-		if cfg.fallbackFn != nil {
-			cfg.fallbackFn()
+		if cfg.OnFailure != nil {
+			cfg.OnFailure()
 		}
 
 		// Wait.
@@ -51,8 +51,8 @@ func RetryFunc(fn RetryableFn, optionalCfg ...retryCfg) (any, error) {
 			return out, nil
 		}
 
-		if !cfg.skipLog {
-			zap.S().Errorf("retry %d of %d failed: %v", nRetry+1, cfg.retries, err)
+		if !cfg.SkipLog {
+			zap.S().Errorf("retry %d of %d failed: %v", nRetry+1, cfg.Times, err)
 		}
 	}
 
@@ -63,7 +63,7 @@ func RetryFunc(fn RetryableFn, optionalCfg ...retryCfg) (any, error) {
 // If the result gotten is nil, it will be treated as an error and will be retried.
 //
 // This is just a wrapper around RetryFunc.
-func RetryFuncNoError(fn RetryableFnNoErr, optionalCfg ...retryCfg) (any, error) {
+func RetryFuncNoErr(fn RetryableFnNoErr, optionalCfg ...RetryCfg) (any, error) {
 	return RetryFunc(func() (any, error) {
 		if got := fn(); got != nil {
 			return got, nil

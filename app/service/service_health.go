@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type HealthSubService struct {
+type HealthSvc struct {
 	pbs.UnimplementedHealthServiceServer
 	Clients core.Clients
 	Tools   core.Tools
@@ -21,12 +21,12 @@ type HealthSubService struct {
 
 // Checks the DB connection and makes an HTTP call.
 // If both succeed, returns OK and sends the app version.
-func (h *HealthSubService) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRequest) (*pbs.CheckHealthResponse, error) {
+func (h *HealthSvc) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRequest) (*pbs.CheckHealthResponse, error) {
 
 	msg := core.G.AppName + " " + core.G.Version
 
 	// Get the DB or return unhealthy.
-	if _, err := utils.RetryFuncNoError(h.Clients.GetDB); err != nil {
+	if _, err := utils.RetryFuncNoErr(h.Clients.GetDB); err != nil {
 		return nil, status.Error(codes.Unavailable, msg+" unhealthy: database connection not working")
 	}
 
@@ -42,7 +42,5 @@ func (h *HealthSubService) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRe
 		}
 	}
 
-	msg += " healthy"
-
-	return &pbs.CheckHealthResponse{Info: msg}, nil
+	return &pbs.CheckHealthResponse{Info: msg + " healthy"}, nil
 }

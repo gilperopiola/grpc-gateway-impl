@@ -14,7 +14,7 @@ type AllModels interface {
 }
 
 // Creates a new record on the DB
-func Create[T AllModels](ctx context.Context, record T, db core.BaseSQLDB) (*T, error) {
+func Create[T AllModels](ctx context.Context, record T, db core.InnerSQLDB) (*T, error) {
 	if err := db.WithContext(ctx).Create(&record).Error(); err != nil {
 		return nil, fmt.Errorf("error in easyql.Create: %w", err)
 	}
@@ -22,7 +22,7 @@ func Create[T AllModels](ctx context.Context, record T, db core.BaseSQLDB) (*T, 
 }
 
 // Gets a record on the DB by ID
-func Get[T AllModels](ctx context.Context, id any, record *T, db core.BaseSQLDB) (*T, error) {
+func Get[T AllModels](ctx context.Context, id any, record *T, db core.InnerSQLDB) (*T, error) {
 	if err := db.WithContext(ctx).First(record, id).Error(); err != nil {
 		return nil, fmt.Errorf("error in easyql.Get: %w", err)
 	}
@@ -30,7 +30,7 @@ func Get[T AllModels](ctx context.Context, id any, record *T, db core.BaseSQLDB)
 }
 
 // Updates a record on the DB by ID
-func Update[T AllModels](ctx context.Context, record *T, db core.BaseSQLDB) (*T, error) {
+func Update[T AllModels](ctx context.Context, record *T, db core.InnerSQLDB) (*T, error) {
 	if err := db.WithContext(ctx).Save(record).Error(); err != nil {
 		return nil, fmt.Errorf("error in easyql.Update: %w", err)
 	}
@@ -38,7 +38,7 @@ func Update[T AllModels](ctx context.Context, record *T, db core.BaseSQLDB) (*T,
 }
 
 // Deletes a record on the DB by ID
-func Delete[T AllModels](ctx context.Context, id any, db core.BaseSQLDB) error {
+func Delete[T AllModels](ctx context.Context, id any, db core.InnerSQLDB) error {
 	if err := db.WithContext(ctx).Delete(new(T), id).Error(); err != nil {
 		return fmt.Errorf("error in easyql.Delete: %w", err)
 	}

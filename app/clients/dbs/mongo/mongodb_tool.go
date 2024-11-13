@@ -20,7 +20,7 @@ var _ core.DB = &mongoDBConn{}
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type mongoDBConn struct {
-	DB core.BaseMongoDB
+	DB core.InnerMongoDB
 }
 
 type Collections string
@@ -31,7 +31,7 @@ const (
 	GPTChatsCollection Collections = "gpt_chats"
 )
 
-func SetupDBConn(db core.BaseMongoDB) *mongoDBConn {
+func SetupDBConn(db core.InnerMongoDB) *mongoDBConn {
 	return &mongoDBConn{db}
 }
 

@@ -1,6 +1,6 @@
 package models
 
-//go:generate go run ../../../scripts/generate_all_models.go
+//go:generate go run ../../../../scripts/generate_all_models.go
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - DB Models -            */

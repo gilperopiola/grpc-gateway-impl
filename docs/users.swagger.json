@@ -7,7 +7,7 @@
   },
   "tags": [
     {
-      "name": "UsersService"
+      "name": "UsersSvc"
     }
   ],
   "host": "localhost:8083",
@@ -321,7 +321,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UsersServiceUpdateUserBody"
+              "$ref": "#/definitions/UsersSvcUpdateUserBody"
             }
           }
         ],
@@ -428,7 +428,7 @@
     }
   },
   "definitions": {
-    "UsersServiceUpdateUserBody": {
+    "UsersSvcUpdateUserBody": {
       "type": "object",
       "properties": {
         "username": {

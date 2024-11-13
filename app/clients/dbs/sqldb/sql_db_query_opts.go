@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 )
 
 type Operation string
@@ -36,10 +36,10 @@ func WithUsername(username string) core.SqlDBOpt {
 func WithCondition(operation Operation, field, value string) core.SqlDBOpt {
 	if field == "" {
 		logs.LogStrange("Empty field in SQL condition -> value = " + value)
-		return func(db core.BaseSQLDB) {} // No-op
+		return func(db core.InnerSQLDB) {} // No-op
 	}
 
-	return func(db core.BaseSQLDB) {
+	return func(db core.InnerSQLDB) {
 		if operation == Where || operation == And { // Where / And
 			db.Where(fmt.Sprintf("%s = ?", field), value)
 			return

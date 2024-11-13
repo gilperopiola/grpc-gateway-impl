@@ -17,7 +17,7 @@ import (
 var _ gormLogger.Interface = &sqlDBLogger{}
 
 // Adapter for the gormLogger.Interface.
-// It wraps our *zap.Logger.
+// It wraps a *zap.Logger.
 type sqlDBLogger struct {
 	*zap.Logger
 	gormLogger.LogLevel
@@ -108,13 +108,13 @@ func (l *sqlDBLogger) InfoWarnOrError(currLogLevel gormLogger.LogLevel, logsAt g
 // [25.14ms] [row:1] INSERT INTO `table` (`field1`,`field2`) VALUES ('gorm','sucks')
 func newQueryInfoLog(nsElapsed, rowsAffected int64, query string) string {
 	msElapsed := float64(nsElapsed) / 1e6
-	rowOrRows := "row" + plural(rowsAffected)
+	rowOrRows := "row" + sIfPlural(rowsAffected)
 
 	return fmt.Sprintf("[%v %s in %0.fms] -> %s", rowsAffected, rowOrRows, msElapsed, query)
 }
 
 // Returns the 's' necessary for changing 'row' into 'rows' based on the number of rows affected.
-func plural(rowsAffected int64) string {
+func sIfPlural(rowsAffected int64) string {
 	if rowsAffected == 1 {
 		return ""
 	}

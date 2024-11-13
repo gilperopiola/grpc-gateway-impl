@@ -15,5 +15,3 @@ func FirstOrDefault(slice []string, fallback string) string {
 	}
 	return fallback
 }
-
-/* -~-~-~-~-~ Logger Utils -~-~-~-~-~- */

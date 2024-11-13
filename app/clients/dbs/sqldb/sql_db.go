@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 	"go.uber.org/zap"
@@ -22,51 +22,57 @@ var _ core.DB = &DB{}
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type DB struct {
-	DB core.BaseSQLDB
+	InnerDB core.InnerSQLDB
 }
 
-func NewSQLDBConnection(cfg *core.DBCfg) core.DB {
+func NewSQLDBConn(cfg *core.DBCfg) core.DB {
 
 	// We use our Logger wrapped inside of a gorm adapter
-	gormCfg := &gorm.Config{
-		Logger:         newDBLogger(zap.L(), cfg.LogLevel),
-		TranslateError: true,
-	}
+	dbLogger := newDBLogger(zap.L(), cfg.LogLevel)
+	gormCfg := &gorm.Config{Logger: dbLogger, TranslateError: true}
 
+	// We wrap this to match the signature of [utils.RetryFunc]
 	var connectToDB = func() (any, error) {
-		gormDB, err := gorm.Open(mysql.Open(cfg.GetSQLConnectionString()), gormCfg)
+		gormDB, err := gorm.Open(mysql.Open(cfg.GetSQLConnString()), gormCfg)
 		return &baseSQLDB{gormDB}, err
 	}
 
+	// We wrap this to match the signature of [utils.RetryFuncNoErr]
 	var createDB = func() {
-		if db, err := sql.Open("mysql", cfg.GetSQLConnectionStringNoDB()); err == nil {
-			defer db.Close()
-			db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", cfg.Database))
+		db, err := sql.Open("mysql", cfg.GetSQLConnStringNoDB())
+		if err != nil {
+			logs.LogResult("Error trying to connect to SQL instance ", err)
+			return
+		}
+		defer db.Close()
+		if _, err := db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", cfg.Database)); err != nil {
+			logs.LogResult("Error trying to create SQL DB", err)
 		}
 	}
 
 	// We try to connect to the DB directly.
-	// If it fails, we try to connect without DB, then creating it.
-	// Then we retry.
-	dbConn, err := utils.RetryFunc(connectToDB, utils.NewRetryCfg(cfg.Retries, false, createDB))
+	// If it fails, we try to connect without specifying the DB and then creating it.
+	// If it fails, we retry this process a number of times.
+	retryCfg := utils.RetryCfg{Times: cfg.Retries, OnFailure: createDB}
+	dbConn, err := utils.RetryFunc(connectToDB, retryCfg)
 	logs.LogFatalIfErr(err, errs.FailedDBConn)
 
-	db := &DB{dbConn.(*baseSQLDB)}
+	return &DB{dbConn.(*baseSQLDB)}
+}
 
+func postDBConnActions(db *DB, cfg *core.DBCfg) {
 	if cfg.EraseAllData {
-		db.DB.Unscoped().Delete(models.AllModels, nil)
+		db.InnerDB.Unscoped().Delete(models.AllModels, nil)
 	}
 
 	if cfg.MigrateModels {
-		db.DB.AutoMigrate(models.AllModels...)
+		db.InnerDB.AutoMigrate(models.AllModels...)
 	}
 
 	if cfg.InsertAdmin && cfg.InsertAdminPwd != "" {
-		db.DB.InsertAdmin(cfg.InsertAdminPwd)
+		db.InnerDB.InsertAdmin(cfg.InsertAdminPwd)
 	}
-
-	return db
 }
 
-func (this DB) GetDB() any { return this.DB }
-func (this DB) CloseDB()   { this.DB.Close() }
+func (this DB) GetDB() any { return this.InnerDB }
+func (this DB) CloseDB()   { this.InnerDB.Close() }

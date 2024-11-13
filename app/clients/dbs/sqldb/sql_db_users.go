@@ -23,7 +23,7 @@ var (
 func (sdbt *DB) DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
 	user := models.User{Username: username, Password: hashedPwd}
 
-	if err := sdbt.DB.WithContext(ctx).Create(&user).Error(); err != nil {
+	if err := sdbt.InnerDB.WithContext(ctx).Create(&user).Error(); err != nil {
 		return nil, &errs.DBErr{err, CreateUserErr}
 	}
 
@@ -37,7 +37,7 @@ func (sdbt *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 		return nil, &errs.DBErr{nil, NoOptionsErr}
 	}
 
-	query := sdbt.DB.Model(&models.User{}).WithContext(ctx)
+	query := sdbt.InnerDB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
 	}
@@ -52,7 +52,7 @@ func (sdbt *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 
 // DBGetUsers returns a list of users from the database.
 func (sdbt *DB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error) {
-	query := sdbt.DB.Model(&models.User{}).WithContext(ctx)
+	query := sdbt.InnerDB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
 	}

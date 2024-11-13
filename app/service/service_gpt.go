@@ -14,13 +14,13 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 )
 
-type GPTSubService struct {
+type GPTSvc struct {
 	pbs.UnimplementedGPTServiceServer
 	Clients core.Clients
 	Tools   core.Tools
 }
 
-func (svc *GPTSubService) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatRequest) (*pbs.NewGPTChatResponse, error) {
+func (svc *GPTSvc) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatRequest) (*pbs.NewGPTChatResponse, error) {
 
 	// Call the GPT API.
 	gptResponse, err := svc.Clients.SendToGPT(ctx, req.Message)
@@ -31,7 +31,7 @@ func (svc *GPTSubService) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatReq
 	// Create a new GPTChat in the database
 	gptChat, err := svc.Clients.DBCreateGPTChat(ctx, req.Message)
 	if err != nil {
-		return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
 	}
 
 	// Define the initial messages
@@ -44,7 +44,7 @@ func (svc *GPTSubService) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatReq
 	// Add all messages to the database
 	for _, msg := range messages {
 		if _, err := svc.Clients.DBCreateGPTMessage(ctx, msg); err != nil {
-			return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
+			return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
 		}
 	}
 
@@ -57,7 +57,7 @@ func (svc *GPTSubService) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatReq
 	}, nil
 }
 
-func (svc *GPTSubService) ReplyToGPTChat(ctx context.Context, req *pbs.ReplyToGPTChatRequest) (*pbs.ReplyToGPTChatResponse, error) {
+func (svc *GPTSvc) ReplyToGPTChat(ctx context.Context, req *pbs.ReplyToGPTChatRequest) (*pbs.ReplyToGPTChatResponse, error) {
 
 	// Get existing chat from DB.
 	chat, err := svc.Clients.DBGetGPTChat(ctx, sqldb.WithID(req.ChatId))
@@ -65,7 +65,7 @@ func (svc *GPTSubService) ReplyToGPTChat(ctx context.Context, req *pbs.ReplyToGP
 		if utils.IsNotFound(err) {
 			return nil, errs.GRPCNotFound("GPT Chat", int(req.ChatId))
 		}
-		return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
+		return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
 	}
 
 	// Prepare the previous messages for the GPT API call
@@ -92,7 +92,7 @@ func (svc *GPTSubService) ReplyToGPTChat(ctx context.Context, req *pbs.ReplyToGP
 	// Store all messages in the database
 	for _, msg := range messages {
 		if _, err := svc.Clients.DBCreateGPTMessage(ctx, msg); err != nil {
-			return nil, errs.GRPCFromDB(err, shared.RouteNameFromCtx(ctx))
+			return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
 		}
 	}
 

@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+// Lmao I'm seeing this after like a year of writing it and now I wonder why
+// didn't I just use the testing package.
+
 func Kumpare(fnsToBenchmork []func(int) string, runs int) {
 	fmt.Printf("\n\n ~ [BENCHMORKAR] ~ \n")
 

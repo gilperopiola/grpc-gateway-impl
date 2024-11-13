@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"
@@ -16,14 +17,12 @@ import (
 
 var _ core.TokenGenerator = &jwtGenerator{}
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*       - JWT Token Generator -       */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* ———————————————————————————————— — — — JWT TOKEN GENERATOR — — — ———————————————————————————————— */
 
 type jwtGenerator struct {
 	secret          string
-	sessionDuration time.Duration
 	signingMethod   jwt.SigningMethod
+	sessionDuration time.Duration
 }
 
 func NewJWTGenerator(secret string, sessionDays int) core.TokenGenerator {
@@ -35,7 +34,7 @@ func NewJWTGenerator(secret string, sessionDays int) core.TokenGenerator {
 }
 
 // GenerateToken returns a JWT token with the given user id, username and role.
-func (g *jwtGenerator) GenerateToken(id int, username string, role shared.Role) (string, error) {
+func (g *jwtGenerator) GenerateToken(id int, username string, role models.UserRole) (string, error) {
 	claims := g.newClaims(id, username, role)
 
 	token, err := jwt.NewWithClaims(g.signingMethod, claims).SignedString([]byte(g.secret))
@@ -47,9 +46,9 @@ func (g *jwtGenerator) GenerateToken(id int, username string, role shared.Role) 
 	return token, nil
 }
 
-func (g *jwtGenerator) newClaims(id int, username string, role shared.Role) *JWTClaims {
+func (g *jwtGenerator) newClaims(id int, username string, role models.UserRole) *shared.JWTClaims {
 	now := time.Now()
-	return &JWTClaims{
+	return &shared.JWTClaims{
 		Username: username,
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{

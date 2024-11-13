@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/clients"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
@@ -22,17 +22,6 @@ type App struct {
 	Tools   *tools.Tools
 }
 
-// ╭───────────────────┬───────────────────┬────────────┬──────────────────────────────────────────────╮
-// │ App Field         │ Field Type        │ Interface  │ Contains                                     │
-// ├───────────────────┼───────────────────┼────────────┼──────────────────────────────────────────────┤
-// │ Configuration     │ *core.Config      │     ~      │ All settings.                                │
-// │ GRPC-HTTP Servers │ *servers.Servers  │     ~      │ Our GRPC and HTTP Servers.                   │
-// │ Main Service      │ *service.Services │     ~      │ Endpoints and business logic.                │
-// │ Clients           │ *clients.Clients  │     ~      │ DBs, APIs, Caches.                           │
-// │ Tools             │ *tools.Tools      │ core.Tools │ Specific actions mainly used by the Service. │
-// ╰───────────────────┴───────────────────┴────────────┴──────────────────────────────────────────────╯
-// * We use a global Logger, so we don't store it anywhere.
-
 // ⭐️ Sets up a new App - Loads the Config, Logger,
 // then the Tools, Service and Servers.
 //
@@ -50,39 +39,42 @@ func Setup() (runAppFunc, cleanUpFunc) {
 		Tools:   new(tools.Tools),     // The Working Class
 	}
 
-	logs.Step(0)
+	logs.InitStep(0)
 	func() {
 		app.Config = core.LoadConfig()
-		logs.EnvVars()
 		logs.SetupLogger(&app.Config.LoggerCfg)
 	}()
 
-	logs.Step(1)
+	logs.InitStep(1)
 	func() {
 		app.Tools = tools.Setup(app.Config)
-		logs.SubstepOK("Tools", "🛠️ ")
-
 		app.Clients = clients.Setup(app.Config)
-		logs.SubstepOK("Clients", "🔱")
-
 		app.Service = service.Setup(app.Clients, app.Tools)
-		logs.SubstepOK("Service", "⚡")
-
 		app.Servers = servers.Setup(app.Service, app.Tools)
-		logs.SubstepOK("Servers", "📡")
 	}()
 
+	logs.InitStep(2)
 	func() {
 		app.Tools.AddCleanupFunc(app.Clients.CloseDB)
 		app.Tools.AddCleanupFunc(app.Servers.Shutdown)
 		app.Tools.AddCleanupFuncWithErr(logs.SyncLogger)
-		logs.SubstepOK("Cleanup", "🧽")
 	}()
 
-	logs.Step(2)
+	logs.InitStep(3)
 	return app.Servers.Run, app.Tools.Cleanup
 }
 
 // Returning these instead of just func() for clarity's sake.
 type runAppFunc func()
 type cleanUpFunc func()
+
+// ╭───────────────────┬───────────────────┬────────────┬──────────────────────────────────────────────╮
+// │ App Field         │ Field Type        │ Interface  │ Contains                                     │
+// ├───────────────────┼───────────────────┼────────────┼──────────────────────────────────────────────┤
+// │ Configuration     │ *core.Config      │     ~      │ All settings.                                │
+// │ GRPC-HTTP Servers │ *servers.Servers  │     ~      │ Our GRPC and HTTP Servers.                   │
+// │ Main Service      │ *service.Services │     ~      │ Endpoints and business logic.                │
+// │ Clients           │ *clients.Clients  │     ~      │ DBs, APIs, Caches.                           │
+// │ Tools             │ *tools.Tools      │ core.Tools │ Specific actions mainly used by the Service. │
+// ╰───────────────────┴───────────────────┴────────────┴──────────────────────────────────────────────╯
+// * We use a global Logger, so we don't store it anywhere. Access through the logs package.

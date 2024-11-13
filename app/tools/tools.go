@@ -2,6 +2,7 @@ package tools
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 )
 
 var _ core.Tools = &Tools{}
@@ -44,7 +45,7 @@ func Setup(cfg *core.Config) *Tools {
 
 	// Auth -> JWT Tokens
 	tools.TokenGenerator = NewJWTGenerator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
-	tools.TokenValidator = NewJWTValidator(tools.CtxTool, cfg.JWTCfg.Secret)
+	tools.TokenValidator = NewJWTValidator(tools.CtxTool, cfg.JWTCfg.Secret, "TODOimproveapikey")
 
 	// Other utilities
 	tools.FileManager = NewFileManager("etc/data/")
@@ -54,5 +55,6 @@ func Setup(cfg *core.Config) *Tools {
 	tools.ModelConverter = NewModelConverter()
 	tools.ShutdownJanitor = NewShutdownJanitor()
 
+	logs.InitModuleOK("Tools", "🛠️ ")
 	return &tools
 }

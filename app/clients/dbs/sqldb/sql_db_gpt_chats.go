@@ -16,7 +16,7 @@ var _ = &models.GPTMessage{}
 
 func (db *DB) DBCreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error) {
 	gptChat := models.GPTChat{Title: title}
-	if err := db.DB.WithContext(ctx).Create(&gptChat).Error(); err != nil {
+	if err := db.InnerDB.WithContext(ctx).Create(&gptChat).Error(); err != nil {
 		return nil, &errs.DBErr{err, "db error -> creating gpt chat"}
 	}
 	return &gptChat, nil
@@ -27,7 +27,7 @@ func (db *DB) DBGetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error) {
 		return nil, &errs.DBErr{nil, NoOptionsErr}
 	}
 
-	query := db.DB.Model(&models.GPTChat{}).WithContext(ctx)
+	query := db.InnerDB.Model(&models.GPTChat{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
 	}
@@ -42,7 +42,7 @@ func (db *DB) DBGetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error) {
 /* -~-~-~-~-~- GPT Messages -~-~-~-~-~- */
 
 func (db *DB) DBCreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error) {
-	if err := db.DB.WithContext(ctx).Create(&message).Error(); err != nil {
+	if err := db.InnerDB.WithContext(ctx).Create(&message).Error(); err != nil {
 		return nil, &errs.DBErr{err, "db error -> creating gpt message"}
 	}
 	return message, nil

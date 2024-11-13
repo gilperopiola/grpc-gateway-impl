@@ -44,12 +44,14 @@ const (
 	ValidatingRequestUnexpected = "unexpected validation error -> %v."
 
 	// JWT Validation
-	AuthTokenMalformed = "auth error -> token malformed."
 	AuthTokenNotFound  = "auth error -> token not found."
+	AuthTokenMalformed = "auth error -> token malformed."
 	AuthTokenInvalid   = "auth error -> token invalid."
 	AuthRoleInvalid    = "auth error -> role invalid."
 	AuthRouteInvalid   = "auth error -> route invalid."
 	AuthUserIDInvalid  = "auth error -> user id invalid."
+	AuthAPIKeyNotFound = "auth error -> api key not found."
+	AuthAPIKeyInvalid  = "auth error -> api key invalid."
 
 	// JWT Generation
 	AuthGeneratingToken = "error generating token -> %v."

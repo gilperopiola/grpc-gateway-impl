@@ -8,36 +8,34 @@ import (
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 )
 
-var _ core.ChatGPTAPI = &ChatGptAPI{}
+/* ———————————————————————————————— — — — GPT API — — — ———————————————————————————————— */
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*              - GPT API -            */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+var _ core.ChatGPTAPI = &ChatGPTAPI{}
 
-type ChatGptAPI struct {
+type ChatGPTAPI struct {
 	httpClient *http.Client
 	baseURL    string
 	key        string
 }
 
 func NewAPI(httpClient *http.Client, apiKey string) core.ChatGPTAPI {
-	return &ChatGptAPI{
+	return &ChatGPTAPI{
 		httpClient: httpClient,
 		baseURL:    "https://api.openai.com/v1",
 		key:        apiKey,
 	}
 }
 
-/* -~-~-~- Chat Completion Endpoint -~-~-~- */
+/* -~-~-~- Chat Completions Endpoint -~-~-~- */
 
 const endpoint = "/chat/completions"
 
 // Get a text completion from the OpenAI API.
-func (api *ChatGptAPI) SendToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTMessage) (string, error) {
+func (api *ChatGPTAPI) SendToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTMessage) (string, error) {
 
 	// We have 1 API Endpoint for both new conversations
 	// and existing ones. If no previous messages are

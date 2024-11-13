@@ -8,7 +8,7 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 
@@ -27,31 +27,26 @@ type Servers struct {
 
 func Setup(services *service.Service, tools core.Tools) *Servers {
 	var (
-		// GRPC Interceptors.
-		grpcServerOpts = getGRPCServerOpts(tools, core.G.TLSEnabled)
+		grpcServerOpts = getGRPCServerOpts(tools, core.G.TLSEnabled) // Interceptors
+		grpcDialOpts   = getGRPCDialOpts(tools.GetClientCreds())     // Used by HTTP to connect to GRPC
 
-		// Used by HTTP to connect to GRPC.
-		grpcDialOpts = getGRPCDialOpts(tools.GetClientCreds())
-
-		// HTTP Middleware.
-		httpMiddleware   = getHTTPMiddlewareChain()
-		httpServeMuxOpts = getHTTPMuxOpts()
+		httpMiddleware   = getHTTPMiddlewareChain() // HTTP Middleware
+		httpServeMuxOpts = getHTTPMuxOpts()         // HTTP Middleware
 	)
 
-	return &Servers{
+	servers := Servers{
 		GRPC: setupGRPC(services, grpcServerOpts),
 		HTTP: setupHTTP(services, httpServeMuxOpts, httpMiddleware, grpcDialOpts...),
 	}
+
+	logs.InitModuleOK("Servers", "📡")
+	return &servers
 }
 
 func (s *Servers) Run() {
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		logEndpointsPerService(s.GRPC)
-	}()
-
 	go s.runGRPC()
 	go s.runHTTP()
+	logGRPCRegisteredEndpoints(s.GRPC)
 }
 
 // Stops the GRPC & HTTP Servers.
@@ -64,13 +59,13 @@ func (s *Servers) Shutdown() {
 
 func setupGRPC(service *service.Service, serverOpts []grpc.ServerOption) *grpc.Server {
 	grpcServer := grpc.NewServer(serverOpts...)
-	service.RegisterGRPCEndpoints(grpcServer)
+	service.RegisterInGRPC(grpcServer)
 	return grpcServer
 }
 
 func setupHTTP(service *service.Service, muxOpts []runtime.ServeMuxOption, mw middlewareFunc, dialOpts ...grpc.DialOption) *http.Server {
 	mux := runtime.NewServeMux(muxOpts...)
-	service.RegisterHTTPEndpoints(mux, dialOpts...)
+	service.RegisterInHTTP(mux, dialOpts...)
 	return &http.Server{
 		Addr:    core.G.HTTPPort,
 		Handler: mw(mux),
@@ -80,6 +75,8 @@ func setupHTTP(service *service.Service, muxOpts []runtime.ServeMuxOption, mw mi
 /* -~-~-~-~-~ Run -~-~-~-~-~- */
 
 func (s *Servers) runGRPC() {
+	var listenGRPC = func() (any, error) { return net.Listen("tcp", core.G.GRPCPort) }
+
 	result, err := utils.RetryFunc(listenGRPC)
 	logs.LogFatalIfErr(err)
 
@@ -88,6 +85,8 @@ func (s *Servers) runGRPC() {
 }
 
 func (s *Servers) runHTTP() {
+	var listenHTTP = func() (any, error) { return net.Listen("tcp", core.G.HTTPPort) }
+
 	result, err := utils.RetryFunc(listenHTTP)
 	logs.LogFatalIfErr(err)
 
@@ -106,27 +105,15 @@ func (s *Servers) shutdownGRPC() {
 
 // Stops the HTTP Server.
 func (s *Servers) shutdownHTTP() {
-	ctx, cancelCtx := god.NewCtxWithTimeout(5 * time.Second)
-	defer cancelCtx()
+	ctx, _ := god.NewCtxWithTimeout(5 * time.Second)
 	s.HTTP.Shutdown(ctx)
 }
 
 /* -~-~-~-~-~ Helpers -~-~-~-~-~- */
 
-func listenGRPC() (any, error) {
-	return net.Listen("tcp", core.G.GRPCPort)
-}
-
-func listenHTTP() (any, error) {
-	return net.Listen("tcp", core.G.HTTPPort)
-}
-
-func logEndpointsPerService(server *grpc.Server) {
-	// Loop over all service.
+func logGRPCRegisteredEndpoints(server *grpc.Server) {
 	for serviceName, serviceInfo := range server.GetServiceInfo() {
 		log.Printf("\t 🟢 %s ▶ [%s]", serviceName, serviceInfo.Metadata)
-
-		// Loop over all methods.
 		for _, method := range serviceInfo.Methods {
 			log.Printf("\t\t · %s", method.Name)
 		}

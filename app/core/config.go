@@ -9,10 +9,15 @@ import (
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
-	gormLogger "gorm.io/gorm/logger"
 )
 
-// Read the .env file, setting env vars and globals.
+// —► A .env file on the root of the project is required to run the app.
+// —► —► —► PLEASE add any new configs to the .env.example file!!!
+
+/* ———————————————————————————————— — — — CORE: CONFIGURATION — — — ———————————————————————————————— */
+
+// init ⚡ reads the .env file located at the root folder.
+// Sets environment vars and globals.
 func init() {
 	if err := godotenv.Overload(); err != nil {
 		log.Printf("🚨 WARNING: No .env file found: %v", err)
@@ -20,29 +25,33 @@ func init() {
 	setGlobals()
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*                                   - Core: Configuration -                                 */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// -> A .env file on the root of the project is required to run the app.
-// -> Please add any new configs to the .env.example file.
-
-// ⭐️ Our App has a reference to one of this.
+// ⭐️ Our App holds a reference to one of this, which contains all the config values
+// to be passed from the App to the different services and tools.
 type Config struct {
-	APIsCfg      // -> API URLs, keys, etc
-	DBCfg        // -> DB Credentials and such
-	JWTCfg       // -> JWT Secret
-	TLSCfg       // -> TLS Certs paths
-	LoggerCfg    // -> Logger settings
-	PwdHasherCfg // -> Salt
-	RetrierCfg   // -> N° Retries
-	RLimiterCfg  // -> Rate settings
+	APIsCfg      // —► API URLs, keys, etc
+	DBCfg        // —► DB Credentials and such
+	JWTCfg       // —► JWT Secret
+	TLSCfg       // —► TLS Certs paths
+	LoggerCfg    // —► Logger settings
+	PwdHasherCfg // —► Salt
+	RetrierCfg   // —► N° Retries
+	RLimiterCfg  // —► Rate settings
 }
 
-// As on the init func we load the .env file, here we already
-// have available all the env vars.
+// As on the init func we load the .env file, in here we already
+// have available all of the env vars.
 func LoadConfig() *Config {
-	config := Config{
+	defer func() {
+		log.Println(" \t🎈 APP = " + G.AppName + " " + G.Version)
+		log.Println(" \t🌐 ENV = " + G.Env)
+		if G.TLSEnabled {
+			log.Println(" \t✅ TLS = on")
+		} else {
+			log.Println(" \t⚠️  TLS = off")
+		}
+	}()
+
+	return &Config{
 		APIsCfg:      loadAPIsConfig(),
 		DBCfg:        loadDBConfig(),
 		JWTCfg:       loadJWTConfig(),
@@ -52,8 +61,6 @@ func LoadConfig() *Config {
 		RetrierCfg:   loadRetrierConfig(),
 		RLimiterCfg:  loadRateLimiterConfig(),
 	}
-
-	return &config
 }
 
 /* -~-~-~-~ Global Config ~-~-~-~- */
@@ -150,7 +157,7 @@ func loadDBConfig() DBCfg {
 		MigrateModels:  envVar("DB_MIGRATE_MODELS", true),
 		InsertAdmin:    envVar("DB_INSERT_ADMIN", true),
 		InsertAdminPwd: envVar("DB_INSERT_ADMIN_PWD", ""),
-		LogLevel:       DBLogLevels[envVar("DB_LOG_LEVEL", "error")],
+		LogLevel:       int(DBLogLevels[envVar("DB_LOG_LEVEL", "error")]),
 	}
 }
 
@@ -186,7 +193,7 @@ func loadJWTConfig() JWTCfg {
 
 /* -~-~-~-~ TLS Config ~-~-~-~- */
 
-// For TLSEnabled, see the Globals struct.
+// For TLSEnabled, see [Globals].
 type TLSCfg struct {
 	CertPath string
 	KeyPath  string
@@ -258,12 +265,12 @@ func envVar[T string | bool | int](key string, fallback T) T {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // Used to connect to the DB.
-func (c *DBCfg) GetSQLConnectionString() string {
+func (c *DBCfg) GetSQLConnString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s", c.Username, c.Password, c.Hostname, c.Port, c.Database, c.Params)
 }
 
 // Used if the DB we need is not yet created.
-func (c *DBCfg) GetSQLConnectionStringNoDB() string {
+func (c *DBCfg) GetSQLConnStringNoDB() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", c.Username, c.Password, c.Hostname, c.Port, c.Params)
 }
 
@@ -292,13 +299,22 @@ var LogLevels = map[string]int{
 //	silent 	-> 	logs nothing
 //
 // We also added debug and fatal, but they just map to info and error.
-var DBLogLevels = map[string]int{
-	"debug":  int(gormLogger.Info),
-	"info":   int(gormLogger.Info),
-	"warn":   int(gormLogger.Warn),
-	"error":  int(gormLogger.Error),
-	"fatal":  int(gormLogger.Error),
-	"silent": int(gormLogger.Silent),
+var DBLogLevels = map[string]gormLogLevel{
+	"debug":  Info,
+	"info":   Info,
+	"warn":   Warn,
+	"error":  Error,
+	"fatal":  Error,
+	"silent": Silent,
 }
+
+type gormLogLevel int
+
+const (
+	Silent gormLogLevel = iota + 1 // This is copied from gorm's .io/gorm/logger pkg
+	Error
+	Warn
+	Info
+)
 
 // TODO -> Be able to change some of these config values at runtime.

@@ -11,7 +11,7 @@ PBS_OUT_DIR := ./app/core/pbs # Path where the auto-generated .pb.go files will 
 PROTOS_DIR := ./app/core/protos # Path where the .proto files are
 
 # All .proto files in the PROTOS_DIR. Just top-level, not subfolders
-PROTO_FILES := $(wildcard $(PROTOS_DIR)/*.proto)
+PROTO_FILES := $(shell find $(PROTOS_DIR) -maxdepth 1 -name "*.proto")
 
 # 🔻 Main Commands 🔻
 
@@ -48,6 +48,7 @@ push:
 	git push origin master
 
 generate-pbs:
+	@echo "Proto files: $(PROTO_FILES)"
 	protoc -I=$(PROTOS_DIR) --go_out=$(PBS_OUT_DIR) --go-grpc_out=$(PBS_OUT_DIR) --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative $(PROTO_FILES)
 	protoc -I=$(PROTOS_DIR) --grpc-gateway_out=$(PBS_OUT_DIR) --grpc-gateway_opt=paths=source_relative $(PROTO_FILES)
  

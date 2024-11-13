@@ -12,7 +12,7 @@ type mongoDB struct {
 	DB   *mongo.Client
 	Name string
 
-	core.BaseMongoDB
+	core.InnerMongoDB
 }
 
 func NewMongoDB(dbName string, mongoClient *mongo.Client) *mongoDB {

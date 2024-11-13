@@ -17,14 +17,14 @@ type APIs struct {
 	core.WeatherAPI
 }
 
-func NewAPIs(cfg core.APIsCfg) *APIs {
+func NewAPIs(cfg *core.APIsCfg) *APIs {
 
 	var (
-		gptAPIHTTPClient = newAPIHTTPClient()
-		gptAPI           = gpt.NewAPI(gptAPIHTTPClient, cfg.GPT.APIKey)
-
+		gptAPIHTTPClient     = newAPIHTTPClient()
 		weatherAPIHTTPClient = newAPIHTTPClient()
-		weatherAPI           = weather.NewAPI(weatherAPIHTTPClient)
+
+		gptAPI     = gpt.NewAPI(gptAPIHTTPClient, cfg.GPT.APIKey)
+		weatherAPI = weather.NewAPI(weatherAPIHTTPClient)
 	)
 
 	return &APIs{

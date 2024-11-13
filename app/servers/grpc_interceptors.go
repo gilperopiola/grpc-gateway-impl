@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -18,9 +18,7 @@ import (
 
 // Interceptors are a chain of handlers that wrap around our service's handler.
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*        - GRPC Interceptors -        */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* ———————————————————————————————— — — — GRPC INTERCEPTORS — — — ———————————————————————————————— */
 
 // RateLimiter + PanicRecoverer + GRPCLogger + TokenValidator + RequestValidator + CtxCancelled.
 func getInterceptors(tools core.Tools) []grpc.UnaryServerInterceptor {
@@ -34,79 +32,7 @@ func getInterceptors(tools core.Tools) []grpc.UnaryServerInterceptor {
 	}
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-// Returns a GRPC Interceptor that validates requests.
-func newRequestValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
-	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		if err := tools.ValidateRequest(req); err != nil {
-			return nil, err
-		}
-
-		// Call next handler.
-		return next(c, req)
-	}
-}
-
-// Returns a GRPC Interceptor that validates the auth to access the desired Route is OK.
-// Public Routes need no authorization.
-// JWT
-// It adds the UserID and Username to the request's context.
-func newAuthValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
-	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-
-		route := shared.RouteNameFromGRPCMethod(i.FullMethod)
-		authForRoute := shared.AuthForRoute(route)
-
-		// If it's a public endpoint, just go ahead.
-		// Note that the user's info is not added to the context.
-		if authForRoute == shared.RouteAuthPublic {
-			return next(c, req)
-		}
-
-		// Public routes skip token validation.
-		// That means the context will not have the user's info.
-		if shared.AuthForRoute(route) != shared.RouteAuthPublic {
-			claims, err := tools.ValidateToken(c, req, route)
-			if err != nil {
-				return nil, err
-			}
-
-			// Gets user info from claims and adds it to the request's context.
-			userID, username := claims.GetUserInfo()
-			c = tools.AddUserInfoToCtx(c, userID, username)
-		}
-
-		// Call next handler.
-		return next(c, req)
-	}
-}
-
-// Returns a GRPC Interceptor that logs GRPC requests.
-func newLoggingInterceptor() grpc.UnaryServerInterceptor {
-	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		start := time.Now()
-
-		// Call next handler.
-		resp, err := next(c, req)
-
-		duration := time.Since(start)
-		logs.LogGRPC(i.FullMethod, duration, err)
-		return resp, err
-	}
-}
-
-// Returns a GRPC Interceptor that checks if the context has been cancelled before processing the request.
-func newCtxCancelledInterceptor() grpc.UnaryServerInterceptor {
-	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		if err := c.Err(); err != nil {
-			return nil, status.Error(codes.Canceled, err.Error())
-		}
-
-		// Call next handler.
-		return next(c, req)
-	}
-}
+/* — — ———————————————————————— — — */
 
 // Returns a GRPC Interceptor that limits the request-processing-rate of the server.
 func newRateLimitingInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
@@ -144,5 +70,69 @@ func newPanicRecovererInterceptor() grpc.UnaryServerInterceptor {
 
 		handlerFinishedOK = true
 		return resp, err
+	}
+}
+
+// Returns a GRPC Interceptor that logs GRPC requests.
+func newLoggingInterceptor() grpc.UnaryServerInterceptor {
+	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
+		start := time.Now()
+
+		// Call next handler.
+		resp, err := next(c, req)
+
+		duration := time.Since(start)
+		logs.LogGRPC(i.FullMethod, duration, err)
+		return resp, err
+	}
+}
+
+// Returns a GRPC Interceptor that validates the auth to access the desired Route is OK.
+// It adds the UserID and Username to the request's context.
+func newAuthValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
+	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
+		route := shared.GetRouteFromGRPCMethod(i.FullMethod)
+
+		// If it's a public endpoint, just go ahead.
+		// Note that the user's info is not added to the context.
+		if route.Auth == shared.RouteAuthPublic {
+			return next(c, req)
+		}
+
+		claims, err := tools.ValidateToken(c, req, route)
+		if err != nil {
+			return nil, err
+		}
+
+		// Gets user info from claims and adds it to the request's context.
+		userID, username := claims.GetUserInfo()
+		c = tools.AddUserInfoToCtx(c, userID, username)
+
+		// Call next handler.
+		return next(c, req)
+	}
+}
+
+// Returns a GRPC Interceptor that validates requests.
+func newRequestValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
+	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
+		if err := tools.ValidateRequest(req); err != nil {
+			return nil, err
+		}
+
+		// Call next handler.
+		return next(c, req)
+	}
+}
+
+// Returns a GRPC Interceptor that checks if the context has been cancelled before processing the request.
+func newCtxCancelledInterceptor() grpc.UnaryServerInterceptor {
+	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
+		if err := c.Err(); err != nil {
+			return nil, status.Error(codes.Canceled, err.Error())
+		}
+
+		// Call next handler.
+		return next(c, req)
 	}
 }

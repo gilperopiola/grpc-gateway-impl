@@ -7,12 +7,13 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 )
 
-var _ core.PwdHasher = (*pwdHasher)(nil)
+var _ core.PwdHasher = &pwdHasher{}
 
 type pwdHasher struct {
 	salt string
 }
 
+// Returns a SHA256 hasher with a given salt.
 func NewPwdHasher(salt string) core.PwdHasher {
 	return &pwdHasher{salt}
 }

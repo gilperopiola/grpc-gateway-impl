@@ -14,12 +14,12 @@ import (
 func (sdbt *DB) DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
 	group := models.Group{Name: name, OwnerID: ownerID}
 
-	if err := sdbt.DB.WithContext(ctx).Create(&group).Error(); err != nil {
+	if err := sdbt.InnerDB.WithContext(ctx).Create(&group).Error(); err != nil {
 		return nil, &errs.DBErr{err, "T0D0"}
 	}
 
 	for _, invitedUserID := range invitedUserIDs {
-		if err := sdbt.DB.WithContext(ctx).Model(&group).Association("Invited").Append(&models.User{ID: invitedUserID}); err != nil {
+		if err := sdbt.InnerDB.WithContext(ctx).Model(&group).Association("Invited").Append(&models.User{ID: invitedUserID}); err != nil {
 			return nil, &errs.DBErr{err, "T0D0"}
 		}
 	}
@@ -32,7 +32,7 @@ func (sdbt *DB) DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
 		return nil, &errs.DBErr{nil, NoOptionsErr}
 	}
 
-	query := sdbt.DB.Model(&models.Group{}).WithContext(ctx)
+	query := sdbt.InnerDB.Model(&models.Group{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
 	}
