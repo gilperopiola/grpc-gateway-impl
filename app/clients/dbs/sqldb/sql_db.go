@@ -22,7 +22,7 @@ var _ core.DB = &DB{}
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 type DB struct {
-	InnerDB core.InnerSQLDB
+	InnerDB core.InnerSqlDB
 }
 
 func NewSQLDBConn(cfg *core.DBCfg) core.DB {

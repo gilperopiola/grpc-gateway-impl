@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-var _ core.TLSTool = &tlsTool{}
+var _ core.TLSManager = &tlsTool{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*            - TLS Tool -             */
@@ -29,7 +29,7 @@ type tlsTool struct {
 	ClientCreds    credentials.TransportCredentials
 }
 
-func NewTLSTool(cfg *core.TLSCfg) core.TLSTool {
+func NewTLSTool(cfg *core.TLSCfg) core.TLSManager {
 	tlsTool := tlsTool{}
 
 	// Loads the server's certificate from a .crt file into a *x509.CertPool.

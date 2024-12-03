@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 )

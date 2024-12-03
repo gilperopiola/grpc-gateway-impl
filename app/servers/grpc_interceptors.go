@@ -25,9 +25,9 @@ func getInterceptors(tools core.Tools) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
 		newRateLimitingInterceptor(tools),
 		newPanicRecovererInterceptor(),
-		newLoggingInterceptor(),
-		newAuthValidationInterceptor(tools),
-		newRequestValidationInterceptor(tools),
+		logRequestInterceptor(),
+		validateRouteAuthInterceptor(tools),
+		validateRequestInterceptor(tools),
 		newCtxCancelledInterceptor(),
 	}
 }
@@ -57,16 +57,18 @@ func newPanicRecovererInterceptor() grpc.UnaryServerInterceptor {
 		// And this gets executed when a panic happens or after this func finishes.
 		// Panics will recover, logging the error and returning to the user a standard panic response.
 		defer func() {
-			if err := recover(); err != nil || !handlerFinishedOK {
-				stackBuf := make([]byte, 2048)
-				stackBuf = stackBuf[:runtime.Stack(stackBuf, false)]
-				zap.L().Error("GRPC Panic", zap.Any("error", err), zap.Any("stack", stackBuf))
-				err = status.Error(codes.Internal, errs.PanicMsg)
+			if !handlerFinishedOK {
+				err := recover()
+				if err != nil {
+					stackBuf := make([]byte, 2048)
+					stackBuf = stackBuf[:runtime.Stack(stackBuf, false)]
+					zap.L().Error("GRPC Panic", zap.Any("error", err), zap.ByteString("stack", stackBuf))
+					err = status.Error(codes.Internal, errs.PanicMsg)
+				}
 			}
 		}()
 
-		// Call next handler.
-		resp, err = next(c, req) // <- Panics happen here.
+		resp, err = next(c, req) // <- Panics happen here
 
 		handlerFinishedOK = true
 		return resp, err
@@ -74,22 +76,18 @@ func newPanicRecovererInterceptor() grpc.UnaryServerInterceptor {
 }
 
 // Returns a GRPC Interceptor that logs GRPC requests.
-func newLoggingInterceptor() grpc.UnaryServerInterceptor {
+func logRequestInterceptor() grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		start := time.Now()
-
-		// Call next handler.
 		resp, err := next(c, req)
-
-		duration := time.Since(start)
-		logs.LogGRPC(i.FullMethod, duration, err)
+		logs.LogGRPC(i.FullMethod, time.Since(start), err)
 		return resp, err
 	}
 }
 
 // Returns a GRPC Interceptor that validates the auth to access the desired Route is OK.
 // It adds the UserID and Username to the request's context.
-func newAuthValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
+func validateRouteAuthInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		route := shared.GetRouteFromGRPCMethod(i.FullMethod)
 
@@ -108,19 +106,16 @@ func newAuthValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor 
 		userID, username := claims.GetUserInfo()
 		c = tools.AddUserInfoToCtx(c, userID, username)
 
-		// Call next handler.
 		return next(c, req)
 	}
 }
 
 // Returns a GRPC Interceptor that validates requests.
-func newRequestValidationInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
+func validateRequestInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
 		if err := tools.ValidateRequest(req); err != nil {
 			return nil, err
 		}
-
-		// Call next handler.
 		return next(c, req)
 	}
 }
@@ -131,8 +126,6 @@ func newCtxCancelledInterceptor() grpc.UnaryServerInterceptor {
 		if err := c.Err(); err != nil {
 			return nil, status.Error(codes.Canceled, err.Error())
 		}
-
-		// Call next handler.
 		return next(c, req)
 	}
 }

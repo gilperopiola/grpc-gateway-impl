@@ -1,9 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "grpc-gateway-impl",
-    "version": "1.0",
-    "contact": {}
+    "title": "grpc-gateway-impl-users-svc",
+    "description": "User Management Service",
+    "version": "1.0"
   },
   "tags": [
     {
@@ -24,8 +24,8 @@
   "paths": {
     "/v1/users": {
       "get": {
-        "summary": "Gets a list of users, with optional pagination and filtering. Admin only.",
-        "operationId": "get_users",
+        "summary": "Gets a list of users, optionally paginated and filtered by username. Admin only.",
+        "operationId": "GetUsers",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -108,14 +108,16 @@
           }
         ],
         "tags": [
-          "Users"
+          "Users",
+          "GetMany",
+          "AdminOnly"
         ]
       }
     },
     "/v1/users/{userId}": {
       "get": {
-        "summary": "Gets a user by ID. Returns the user's information.\nRequires a JWT Token with a matching user's ID.",
-        "operationId": "get_user",
+        "summary": "Returns the information of a user with a given ID. Requires a JWT Token with a matching user's ID.",
+        "operationId": "GetUser",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -180,11 +182,14 @@
           }
         ],
         "tags": [
-          "Users"
+          "Users",
+          "GetOne",
+          "SelfOnly"
         ]
       },
       "delete": {
-        "operationId": "delete_user",
+        "summary": "Soft-Deletes a user.",
+        "operationId": "DeleteUser",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -249,11 +254,14 @@
           }
         ],
         "tags": [
-          "Users"
+          "Users",
+          "DeleteOne",
+          "SelfOnly"
         ]
       },
       "put": {
-        "operationId": "update_user",
+        "summary": "Updates a user's information.",
+        "operationId": "UpdateUser",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -326,13 +334,16 @@
           }
         ],
         "tags": [
-          "Users"
+          "Users",
+          "UpdateOne",
+          "SelfOnly"
         ]
       }
     },
     "/v1/users/{userId}/groups": {
       "get": {
-        "operationId": "get_my_groups",
+        "summary": "Retrieves the groups of the user.",
+        "operationId": "GetMyGroups",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -422,7 +433,9 @@
           }
         ],
         "tags": [
-          "Groups"
+          "Groups",
+          "GetMany",
+          "SelfOnly"
         ]
       }
     }
@@ -435,8 +448,7 @@
           "type": "string",
           "description": "Username of the user to update."
         }
-      },
-      "title": "UpdateUserRequest"
+      }
     },
     "pbsDeleteUserResponse": {
       "type": "object",

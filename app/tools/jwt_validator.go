@@ -19,12 +19,12 @@ var _ core.TokenValidator = &jwtValidator{}
 /* ———————————————————————————————— — — — JWT TOKEN VALIDATOR — — — ———————————————————————————————— */
 
 type jwtValidator struct {
-	ctxTool core.CtxTool
+	ctxTool core.ContextManager
 	keyFn   func(*jwt.Token) (any, error)
 	apiKey  string
 }
 
-func NewJWTValidator(ctxTool core.CtxTool, secret, apiKey string) core.TokenValidator {
+func NewJWTValidator(ctxTool core.ContextManager, secret, apiKey string) core.TokenValidator {
 	return &jwtValidator{
 		ctxTool: ctxTool,
 		keyFn: func(*jwt.Token) (any, error) {

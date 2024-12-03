@@ -1,15 +1,13 @@
 package core
 
 import (
-	"context"
 	"crypto/x509"
 	"image"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis/apimodels"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,19 +16,7 @@ import (
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*      - Interfaces | Clients -       */
-/* -~-~-~-~-~-~-~-~-~-~ DBs and APIs - */
-
-type (
-	// Completions API
-	ChatGPTAPI interface {
-		SendToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTMessage) (string, error)
-	}
-
-	// WeatherMap API client
-	WeatherAPI interface {
-		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimodels.GetWeatherResponse, error)
-	}
-)
+/* -~-~-~-~-~-~-~-~-~-~ APIs and DBs - */
 
 // With this you can avoid importing the tools pkg.
 type (
@@ -38,7 +24,7 @@ type (
 	/* -~-~-~- Tools: Security -~-~-~- */
 
 	// Used to manage TLS certificates and credentials.
-	TLSTool interface {
+	TLSManager interface {
 		GetServerCertificate() *x509.CertPool
 		GetServerCreds() credentials.TransportCredentials
 		GetClientCreds() credentials.TransportCredentials
@@ -94,7 +80,7 @@ type (
 	/* -~-~-~- Tools: Other -~-~-~- */
 
 	// Used to add and get values from a request's context or headers.
-	CtxTool interface {
+	ContextManager interface {
 		AddToCtx(ctx god.Ctx, key, value string) god.Ctx
 		GetFromCtx(ctx god.Ctx, key string) (string, error)
 		GetFromCtxMD(ctx god.Ctx, key string) (string, error)
@@ -147,41 +133,41 @@ type (
 )
 
 type (
-	// Low-level InnerSQLDB DB interface
+	// Low-level InnerSqlDB DB interface
 	// It's an adapter for Gorm
-	InnerSQLDB interface {
+	InnerSqlDB interface {
 		Close()
 		AddError(err error) error
 		AutoMigrate(dst ...any) error
 		Association(column string) SqlDBAssoc
-		Count(value *int64) InnerSQLDB
-		Create(value any) InnerSQLDB
-		Debug() InnerSQLDB
-		Delete(value any, where ...any) InnerSQLDB
+		Count(value *int64) InnerSqlDB
+		Create(value any) InnerSqlDB
+		Debug() InnerSqlDB
+		Delete(value any, where ...any) InnerSqlDB
 		Error() error
-		Find(out any, where ...any) InnerSQLDB
-		First(out any, where ...any) InnerSQLDB
-		FirstOrCreate(out any, where ...any) InnerSQLDB
-		Group(query string) InnerSQLDB
+		Find(out any, where ...any) InnerSqlDB
+		First(out any, where ...any) InnerSqlDB
+		FirstOrCreate(out any, where ...any) InnerSqlDB
+		Group(query string) InnerSqlDB
 		InsertAdmin(hashedPwd string)
-		Joins(query string, args ...any) InnerSQLDB
-		Limit(value int) InnerSQLDB
-		Model(value any) InnerSQLDB
-		Offset(value int) InnerSQLDB
-		Or(query any, args ...any) InnerSQLDB
-		Order(value string) InnerSQLDB
-		Pluck(column string, value any) InnerSQLDB
-		Preload(query string, args ...any) InnerSQLDB
-		Raw(sql string, values ...any) InnerSQLDB
+		Joins(query string, args ...any) InnerSqlDB
+		Limit(value int) InnerSqlDB
+		Model(value any) InnerSqlDB
+		Offset(value int) InnerSqlDB
+		Or(query any, args ...any) InnerSqlDB
+		Order(value string) InnerSqlDB
+		Pluck(column string, value any) InnerSqlDB
+		Preload(query string, args ...any) InnerSqlDB
+		Raw(sql string, values ...any) InnerSqlDB
 		Row() SqlRow
 		Rows() (SqlRows, error)
 		RowsAffected() int64
-		Save(value any) InnerSQLDB
-		Scan(dest any) InnerSQLDB
-		Scopes(funcs ...func(InnerSQLDB) InnerSQLDB) InnerSQLDB
-		Unscoped() InnerSQLDB
-		WithContext(ctx god.Ctx) InnerSQLDB
-		Where(query any, args ...any) InnerSQLDB
+		Save(value any) InnerSqlDB
+		Scan(dest any) InnerSqlDB
+		Scopes(funcs ...func(InnerSqlDB) InnerSqlDB) InnerSqlDB
+		Unscoped() InnerSqlDB
+		WithContext(ctx god.Ctx) InnerSqlDB
+		Where(query any, args ...any) InnerSqlDB
 	}
 
 	// Low-level InnerMongoDB DB interface
@@ -196,7 +182,7 @@ type (
 )
 
 type (
-	SqlDBOpt   func(InnerSQLDB) // Optional functions to apply to a query.
+	SqlDBOpt   func(InnerSqlDB) // Optional functions to apply to a query.
 	MongoDBOpt func(*bson.D)    // Optional functions to apply to a query.
 	SqlRow     interface{ Scan(dest ...any) error }
 	SqlRows    interface {
@@ -222,7 +208,7 @@ type (
 	// Then we can write functions that accept a KVTool and works for any implementation.
 	CtxKVTool interface {
 		KVTool
-		CtxTool
+		ContextManager
 	}
 
 	// Unimplemented.

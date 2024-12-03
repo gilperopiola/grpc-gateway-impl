@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package pbs;
-option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs";
 
 import "external/google/api/field_behavior.proto";
 

@@ -18,8 +18,8 @@ var _ core.Tools = &Tools{}
 //
 // Well defined Tools make the business logic easier to read and understand.
 type Tools struct {
-	core.TLSTool          // -> Holds and retrieves data for TLS communication.
-	core.CtxTool          // -> Manages context.
+	core.TLSManager       // -> Holds and retrieves data for TLS communication.
+	core.ContextManager   // -> Manages context.
 	core.FileManager      // -> Creates folders and files.
 	core.ImageLoader      // -> Loads images from different sources.
 	core.ModelConverter   // -> Converts between models and PBs.
@@ -36,16 +36,16 @@ func Setup(cfg *core.Config) *Tools {
 	tools := Tools{}
 
 	// Security
-	tools.TLSTool = NewTLSTool(&cfg.TLSCfg)
+	tools.TLSManager = NewTLSTool(&cfg.TLSCfg)
 
 	// Request handling
-	tools.CtxTool = NewCtxTool()
+	tools.ContextManager = NewCtxTool()
 	tools.RequestPaginator = NewRequestsPaginator(1, 10) // TODO - Config
 	tools.RequestValidator = NewProtoRequestValidator()
 
 	// Auth -> JWT Tokens
 	tools.TokenGenerator = NewJWTGenerator(cfg.JWTCfg.Secret, cfg.JWTCfg.SessionDays)
-	tools.TokenValidator = NewJWTValidator(tools.CtxTool, cfg.JWTCfg.Secret, "TODOimproveapikey")
+	tools.TokenValidator = NewJWTValidator(tools.ContextManager, cfg.JWTCfg.Secret, "TODOimproveapikey")
 
 	// Other utilities
 	tools.FileManager = NewFileManager("etc/data/")

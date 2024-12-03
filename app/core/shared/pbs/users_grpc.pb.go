@@ -22,12 +22,15 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UsersSvcClient interface {
+	// Gets a list of users, optionally paginated and filtered by username. Admin only.
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error)
-	// Returns the information of a user with a given ID.
-	// Requires a JWT Token with a matching user's ID.
+	// Returns the information of a user with a given ID. Requires a JWT Token with a matching user's ID.
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	// Updates a user's information.
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
+	// Soft-Deletes a user.
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
+	// Retrieves the groups of the user.
 	GetMyGroups(ctx context.Context, in *GetMyGroupsRequest, opts ...grpc.CallOption) (*GetMyGroupsResponse, error)
 }
 
@@ -88,12 +91,15 @@ func (c *usersSvcClient) GetMyGroups(ctx context.Context, in *GetMyGroupsRequest
 // All implementations must embed UnimplementedUsersSvcServer
 // for forward compatibility
 type UsersSvcServer interface {
+	// Gets a list of users, optionally paginated and filtered by username. Admin only.
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error)
-	// Returns the information of a user with a given ID.
-	// Requires a JWT Token with a matching user's ID.
+	// Returns the information of a user with a given ID. Requires a JWT Token with a matching user's ID.
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	// Updates a user's information.
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
+	// Soft-Deletes a user.
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
+	// Retrieves the groups of the user.
 	GetMyGroups(context.Context, *GetMyGroupsRequest) (*GetMyGroupsResponse, error)
 	mustEmbedUnimplementedUsersSvcServer()
 }

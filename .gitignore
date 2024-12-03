@@ -36,6 +36,6 @@ coverage.txt
 etc/data/*/**
 !etc/data/*/
 
-## Ignore the docs/dependencies_external files as they're quite large
-docs/dependencies_external.dot
-docs/dependencies_external.png
+## Ignore the docs/deps_external files as they're quite large
+docs/deps_external.dot
+docs/deps_external.png

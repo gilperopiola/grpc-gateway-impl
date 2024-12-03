@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
 )
 
 // Would this be better off inside of utils/converter or something like that?

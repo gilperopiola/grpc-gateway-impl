@@ -7,7 +7,7 @@ version:
 	@echo $(VERSION)
 
 DOCS_OUT_DIR := ./docs # Path where the auto-generated swagger files will go
-PBS_OUT_DIR := ./app/core/pbs # Path where the auto-generated .pb.go files will go
+PBS_OUT_DIR := ./app/core/shared/pbs # Path where the auto-generated .pb.go files will go
 PROTOS_DIR := ./app/core/protos # Path where the .proto files are
 
 # All .proto files in the PROTOS_DIR. Just top-level, not subfolders

@@ -6,10 +6,10 @@ import (
 	"github.com/gilperopiola/god"
 	sql "github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 )
 

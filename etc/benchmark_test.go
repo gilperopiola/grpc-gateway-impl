@@ -177,3 +177,74 @@ func BenchmarkFloatToString(b *testing.B) {
 		}
 	})
 }
+
+type A struct {
+	Str1    string
+	Str2    string
+	Int     int
+	Int2    string
+	Int3    string
+	Int4    string
+	Int5    string
+	Int6    string
+	Int7    string
+	Int8    string
+	Int9    string
+	Int10   string
+	String3 string
+	String4 string
+	String5 string
+	String6 string
+	String7 string
+	String8 string
+}
+
+func (a *A) GetFieldsPtrReceiver() (string, string, int) {
+	return a.Str1, a.Str2, a.Int
+}
+
+func (a A) GetFieldsValueReceiver() (string, string, int) {
+	return a.Str1, a.Str2, a.Int
+}
+
+type B struct {
+	Str1 string
+	Str2 string
+	Int  int
+}
+
+func (a *B) GetFieldsPtrReceiver() (string, string, int) {
+	return a.Str1, a.Str2, a.Int
+}
+
+func (a B) GetFieldsValueReceiver() (string, string, int) {
+	return a.Str1, a.Str2, a.Int
+}
+
+func BenchmarkPointerVsValueReceiver(b *testing.B) {
+	var ptr *A = &A{"A", "B ", 1, "D", "E", "F", "G", "H", "I", "J", "K", "K", "K", "K", "K", "K", "K", "K"}
+	var val A = A{"A", "B ", 1, "D", "E", "F", "G", "H", "I", "J", "K", "K", "K", "K", "K", "K", "K", "K"}
+	var ptrB *B = &B{"A", "B ", 1}
+	var valB B = B{"A", "B ", 1}
+
+	b.Run("PointerReceiver", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _, _ = ptr.GetFieldsPtrReceiver()
+		}
+	})
+	b.Run("ValueReceiver", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _, _ = val.GetFieldsValueReceiver()
+		}
+	})
+	b.Run("PointerReceiverB", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _, _ = ptrB.GetFieldsPtrReceiver()
+		}
+	})
+	b.Run("ValueReceiverB", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _, _ = valB.GetFieldsValueReceiver()
+		}
+	})
+}

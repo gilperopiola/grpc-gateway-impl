@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
 	"go.uber.org/zap"
 

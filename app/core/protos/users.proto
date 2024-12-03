@@ -1,6 +1,6 @@
 syntax = "proto3";
 package pbs;
-option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs";
 
 import "common.proto";
 import "external/buf/validate/validate.proto";
@@ -12,67 +12,67 @@ import "external/protoc-gen-openapiv2/options/annotations.proto";
 
 service UsersSvc {
 
-  rpc GetUsers (GetUsersRequest) returns (GetUsersResponse) {
-    // Gets a list of users, optionally paginated and filtered by username. 
-    // Admin only.
+   // Gets a list of users, optionally paginated and filtered by username. Admin only.
+   rpc GetUsers (GetUsersRequest) returns (GetUsersResponse) {
     option (google.api.http) = { get: "/v1/users"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "GetUsers";
       tags: ["Users", "GetMany", "AdminOnly"];
       responses: {
         key: "200";
-        value: { schema: { json_schema: {ref: ".users.GetUsersResponse"} } };
+        value: { schema: { json_schema: { ref: ".users.GetUsersResponse" } } };
       };
     };
-  };
+  }
 
-  // Returns the information of a user with a given ID.
-  // Requires a JWT Token with a matching user's ID.
+  // Returns the information of a user with a given ID. Requires a JWT Token with a matching user's ID.
   rpc GetUser (GetUserRequest) returns (GetUserResponse) {
     option (google.api.http) = { get: "/v1/users/{user_id}"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "GetUser";
-      tags: ["Users"];
+      tags: ["Users", "GetOne", "SelfOnly"];
       responses: {
         key: "200";
-        value: {schema: {json_schema: {ref: ".users.GetUserResponse"}}};
+        value: { schema: { json_schema: { ref: ".users.GetUserResponse" } } };
       };
     };
   }
 
-
+  // Updates a user's information.
   rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse) {
     option (google.api.http) = { put: "/v1/users/{user_id}"; body: "*"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "UpdateUser";
-      tags: ["Users"];
+      tags: ["Users", "UpdateOne", "SelfOnly"];
       responses: {
         key: "200";
-        value: { schema: { json_schema: {ref: ".users.UpdateUserResponse"} } };
+        value: { schema: { json_schema: { ref: ".users.UpdateUserResponse"} } };
       };
     };
   }
 
+  // Soft-Deletes a user.
   rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse) {
     option (google.api.http) = { delete: "/v1/users/{user_id}"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "DeleteUser";
-      tags: ["Users"];
+      tags: ["Users", "DeleteOne", "SelfOnly"];
       responses: {
         key: "200";
-        value: { schema: { json_schema: {ref: ".users.DeleteUserResponse"} } };
+        value: { schema: { json_schema: { ref: ".users.DeleteUserResponse"} } };
       };
     };
   }
 
+  // Retrieves the groups of the user.
   rpc GetMyGroups (GetMyGroupsRequest) returns (GetMyGroupsResponse) {
     option (google.api.http) = { get: "/v1/users/{user_id}/groups"; };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       operation_id: "GetMyGroups";
-      tags: ["Groups"];
+      tags: ["Groups", "GetMany", "SelfOnly"];
       responses: {
         key: "200";
-        value: {schema: {json_schema: {ref: ".users.GetMyGroupsResponse"}}};
+        value: { schema: { json_schema: { ref: ".users.GetMyGroupsResponse"} } };
       };
     };
   }
@@ -82,7 +82,7 @@ service UsersSvc {
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "grpc-gateway-impl";
+    title: "grpc-gateway-impl-users-svc";
     version: "1.0"; 
     description: "User Management Service";
   };
@@ -92,34 +92,32 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   produces: "application/json";
   responses: {
     key: "400";
-    value: { schema: { example: '{"error":"validation error: username value length must be at least 4 characters."}'; }};
+    value: { schema: { example: '{"error":"validation error: username value length must be at least 4 characters."}'}};
   }
   responses: {
     key: "401";
-    value: { schema: { example: '{"error":"unauthorized."}'; }};
+    value: { schema: { example: '{"error":"unauthorized."}'}};
   }
   responses: {
     key: "403";
-    value: { schema: { example: '{"error": "forbidden error."}'; }};
+    value: { schema: { example: '{"error": "forbidden error."}'}};
   }
   responses: {
     key: "404";
-    value: { schema: { example: '{"error": "not found: username not found."}'; }};
+    value: { schema: { example: '{"error": "not found: username not found."}'}};
   }
   responses: {
     key: "500";
-    value: { schema: { example: '{"error": "internal server error, something went wrong on our end."}'; }};
+    value: { schema: { example: '{"error": "internal server error, something went wrong on our end."}'}};
   }
 };
-
 
 /* ———————————————————————————————————————— REQUESTS & RESPONSES ———————————————————————————————————————— */
 
 message GetUserRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetUserRequest" } };
-
   int32 user_id = 1 [
-    (buf.validate.field).int32.gt = 0, (google.api.field_behavior) = REQUIRED
+    (buf.validate.field).int32.gt = 0, 
+    (google.api.field_behavior)   = REQUIRED
   ];
 }
 
@@ -127,18 +125,19 @@ message GetUserResponse {
   UserInfo user = 1 [ json_name = "user", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* ———————————————————————————————————————— */
 
 message GetUsersRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetUsersRequest" } };
-
   optional int32 page = 1 [
-    json_name = "page", (buf.validate.field).int32.gt = 0,
+    json_name = "page", 
+    (buf.validate.field).int32.gt = 0,
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Page number." default: "1" }
   ];
 
   optional int32 page_size = 3 [
-    json_name = "page_size", (buf.validate.field).int32.gt = 0, (buf.validate.field).int32.lte = 400,
+    json_name = "page_size", 
+    (buf.validate.field).int32.gt = 0, 
+    (buf.validate.field).int32.lte = 400,
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Users per page." default: "10" }
   ];
 
@@ -152,11 +151,9 @@ message GetUsersResponse {
   PaginationInfo pagination = 3 [ json_name = "pagination", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* ———————————————————————————————————————— */
 
 message UpdateUserRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "UpdateUserRequest" } };
-
   int32 user_id = 1 [
     (buf.validate.field).int32.gt = 0,
     (google.api.field_behavior) = REQUIRED
@@ -164,7 +161,7 @@ message UpdateUserRequest {
 
   string username = 3 [
     json_name = "username",
-    (buf.validate.field) = { string: {min_len: 4, max_len: 40, pattern: "^[a-zA-Z0-9_]+$"} },
+    (buf.validate.field) = { string: { min_len: 4, max_len: 40, pattern: "^[a-zA-Z0-9_]+$"} },
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Username of the user to update.", }
   ];
 }
@@ -173,23 +170,19 @@ message UpdateUserResponse {
   UserInfo user = 1 [ json_name = "user", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* ———————————————————————————————————————— */
 
 message DeleteUserRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "DeleteUserRequest" } };
-
-  int32 user_id = 1 [(buf.validate.field).int32.gt = 0, (google.api.field_behavior) = REQUIRED];
+  int32 user_id = 1 [ (buf.validate.field).int32.gt = 0, (google.api.field_behavior) = REQUIRED];
 }
 
 message DeleteUserResponse {
-  UserInfo deleted = 1 [ json_name = "deleted", (google.api.field_behavior) = OUTPUT_ONLY ];
+  UserInfo deleted = 1 [ json_name = "deleted", (google.api.field_behavior) = OUTPUT_ONLY];
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/* ———————————————————————————————————————— */
 
 message GetMyGroupsRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = { json_schema: { title: "GetMyGroupsRequest" } };
-
   int32 user_id = 1 [(buf.validate.field).int32.gt = 0, (google.api.field_behavior) = REQUIRED];
 
   optional int32 page = 3 [
@@ -205,12 +198,15 @@ message GetMyGroupsRequest {
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Groups per page." default: "10" }
   ];
 
-  optional string filter = 7 [json_name = "filter", (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { 
-    description: "Group name filter." 
-  }];
+  optional string filter = 7 [
+    json_name = "filter", 
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Group name filter." }
+  ];
 }
 
 message GetMyGroupsResponse {
-  repeated GroupInfo groups = 1     [ json_name = "groups",     (google.api.field_behavior) = OUTPUT_ONLY ];
-  PaginationInfo pagination = 3     [ json_name = "pagination", (google.api.field_behavior) = OUTPUT_ONLY ];
+  repeated GroupInfo groups = 1 [ json_name = "groups",     (google.api.field_behavior) = OUTPUT_ONLY ];
+  PaginationInfo pagination = 3 [ json_name = "pagination", (google.api.field_behavior) = OUTPUT_ONLY ];
 }
+
+/* ———————————————————————————————————————— */

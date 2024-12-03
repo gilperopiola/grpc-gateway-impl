@@ -7,12 +7,14 @@ package core
 // ➤ If you don't wanna import core, just copy n paste the interfaces.
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
 	"go.uber.org/zap"
 
 	"google.golang.org/grpc"
@@ -24,7 +26,7 @@ import (
 
 /* -~-~-~-~- Main Interfaces -~-~-~-~- */
 
-// Each service is defined on a .proto file
+// Each service is defined in a .proto file
 type (
 	ServiceLayer interface {
 		RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar)
@@ -36,6 +38,89 @@ type (
 	GPTSvc    = pbs.GPTServiceServer
 	HealthSvc = pbs.HealthServiceServer
 )
+
+/* -~-~-~-~- Clients -~-~-~-~- */
+
+type Clients interface {
+	DB
+	APIs
+}
+
+type (
+	DB interface {
+		DBActions
+		GetDB() any // *gorm.DB or *mongo.Client
+		CloseDB()
+	}
+
+	APIs interface {
+		ChatGPTAPI
+		WeatherAPI
+	}
+)
+
+type (
+	DBActions interface { // High-level DB operations
+		UsersDB
+		GroupsDB
+		GPTDB
+	}
+
+	UsersDB interface {
+		DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error)
+		DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error)
+		DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error)
+	}
+	GroupsDB interface {
+		DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error)
+		DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error)
+	}
+	GPTDB interface {
+		DBGetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error)
+		DBCreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error)
+		DBCreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error)
+	}
+)
+
+type (
+	ChatGPTAPI interface {
+		SendToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTMessage) (string, error)
+	}
+	WeatherAPI interface {
+		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimodels.GetWeatherResponse, error)
+	}
+)
+
+/* -~-~-~-~- Tools -~-~-~-~- */
+
+// These are the interfaces to all of our tools.
+// Each concrete tool lives on the tools pkg.
+type Tools interface {
+	TokenGenerator
+	TokenValidator
+	RequestPaginator
+	RequestValidator
+	ShutdownJanitor
+	RateLimiter
+	PwdHasher
+	TLSManager
+	FileManager
+	ContextManager
+	ModelConverter
+	ImageLoader
+}
+
+/* -~-~-~-~- Other -~-~-~-~- */
+
+// This isn't used like the other tools, as it's instantiated per request.
+// The implementation lives on the tools pkg.
+// Used to wrap the http.ResponseWriter and then Type Assert it to this to get the extra methods.
+type HTTPRespWriter interface {
+	http.ResponseWriter
+
+	GetWrittenBody() []byte
+	GetWrittenStatus() int
+}
 
 type Logger interface {
 	Info(msg string, fields ...zap.Field)
@@ -58,68 +143,4 @@ type Logger interface {
 	LogResult(ofWhat string, err error)
 	LogAPICall(url string, status int, body []byte)
 	Sync() error
-}
-
-/* -~-~-~-~- Clients -~-~-~-~- */
-
-type Clients interface {
-	APIs
-	DB
-}
-
-type (
-	APIs interface {
-		ChatGPTAPI
-		WeatherAPI
-	}
-
-	DB interface {
-		DBActions
-		GetDB() any // *gorm.DB or *mongo.Client
-		CloseDB()
-	}
-
-	// High-level DB operations
-	DBActions interface {
-		DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error)
-		DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error)
-		DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error)
-
-		DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error)
-		DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error)
-
-		DBGetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error)
-		DBCreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error)
-		DBCreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error)
-	}
-)
-
-/* -~-~-~-~- Tools -~-~-~-~- */
-
-// These are the interfaces to all of our tools.
-// Each concrete tool lives on the tools pkg.
-type Tools interface {
-	TLSTool
-	CtxTool
-	FileManager
-	ModelConverter
-	TokenGenerator
-	TokenValidator
-	RequestPaginator
-	RequestValidator
-	ShutdownJanitor
-	RateLimiter
-	PwdHasher
-}
-
-/* -~-~-~- Other types - GRPC and HTTP ~-~-~- */
-
-// This isn't used like the other Tools, as it's instantiated per request.
-// The implementation lives on the tools pkg.
-// Used to wrap the http.ResponseWriter and then Type Assert it to this to get the extra methods.
-type HTTPRespWriter interface {
-	http.ResponseWriter
-
-	GetWrittenBody() []byte
-	GetWrittenStatus() int
 }

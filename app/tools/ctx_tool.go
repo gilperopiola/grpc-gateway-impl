@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-var _ core.CtxTool = ctxTool{}
+var _ core.ContextManager = ctxTool{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /* 		    - Context Tool -           */
@@ -18,7 +18,7 @@ var _ core.CtxTool = ctxTool{}
 
 type ctxTool struct{}
 
-func NewCtxTool() core.CtxTool {
+func NewCtxTool() core.ContextManager {
 	return &ctxTool{}
 }
 
