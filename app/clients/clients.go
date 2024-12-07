@@ -2,9 +2,9 @@ package clients
 
 import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/clients/apis"
-	"github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
+	"github.com/gilperopiola/grpc-gateway-impl/app/clients/db/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 )
 
 var _ core.Clients = &Clients{}

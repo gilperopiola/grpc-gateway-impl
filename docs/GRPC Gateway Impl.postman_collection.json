@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "36b1cc57-9f4e-44f6-a383-7e4cfd2b5348",
-		"name": "🐿️ GRPC Gateway Impl.",
-		"description": "Pre-request Scripts and Tests are used across the Collection to set environment variables and other necessary stuff.\n\nThe BaseURL, for example, is configured on the Pre-Request Script of this Collection.\n\n🚀",
+		"name": "🐿️ GRPC Gateway Impl",
+		"description": "Pre-request Scripts and Tests are used across the Collection to set environment variables and other necessary stuff.\n\nThe BaseURL, for example, is configured on the Pre-Request Script of this Collection.\n\n🟢",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "5310198"
 	},
@@ -61,16 +61,9 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"username\": \"{{username}}\",\r\n    \"password\": \"p4ssw0rd\"\r\n}"
-						},
 						"url": {
 							"raw": "{{baseURL}}/v1/health/check",
 							"host": [
@@ -221,11 +214,15 @@
 								"type": "text/javascript",
 								"packages": {}
 							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"packages": {},
+								"type": "text/javascript"
+							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -234,10 +231,6 @@
 								"value": "Bearer {{token}}"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{baseURL}}/v1/users/{{user_id}}",
 							"host": [
@@ -317,9 +310,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -328,10 +318,6 @@
 								"value": "Bearer {{token_admin}}"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{baseURL}}/v1/users",
 							"host": [
@@ -876,6 +862,59 @@
 							{
 								"key": "Authorization",
 								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/users/{{user_id}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Malformed Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {\r",
+									"    pm.response.to.have.status(401);\r",
+									"});\r",
+									"\r",
+									"var responseData = pm.response.json();\r",
+									"pm.test(\"Response has a field 'error'\", function () {\r",
+									"    pm.expect(responseData).to.have.property(\"error\");\r",
+									"});\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Haha no",
 								"type": "text"
 							}
 						],

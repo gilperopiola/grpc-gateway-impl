@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package pbs;
-option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs";
+option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
 
 import "external/buf/validate/validate.proto";
 import "external/google/api/annotations.proto";

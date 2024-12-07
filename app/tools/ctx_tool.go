@@ -6,7 +6,7 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"google.golang.org/grpc/metadata"
 )
 

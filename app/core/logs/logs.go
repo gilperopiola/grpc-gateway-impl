@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -332,7 +331,7 @@ var withStacktrace = func() logOpt {
 // See routes.go for more info.
 var withGRPC = func(method string) logOpt {
 	return func(logger *zap.Logger) {
-		*logger = *logger.With(zap.String("route", shared.GetRouteFromGRPCMethod(method).Name))
+		*logger = *logger.With(zap.String("route", core.GetRouteFromGRPCMethod(method).Name))
 	}
 }
 

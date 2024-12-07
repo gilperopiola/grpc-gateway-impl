@@ -7,9 +7,9 @@ import (
 
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/apimodels"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/apimodels"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 )
 
 var _ core.WeatherAPI = &WeatherAPI{}

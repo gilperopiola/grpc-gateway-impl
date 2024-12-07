@@ -1,11 +1,8 @@
-package sqldb
+package core
 
 import (
 	"fmt"
 	"strconv"
-
-	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
 )
 
 type Operation string
@@ -21,11 +18,11 @@ const (
 /*      - High Level SQL Options -     */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func WithID(id int32) core.SqlDBOpt {
+func WithID(id int32) SqlDBOpt {
 	return WithCondition(Where, "id", strconv.Itoa(int(id)))
 }
 
-func WithUsername(username string) core.SqlDBOpt {
+func WithUsername(username string) SqlDBOpt {
 	return WithCondition(Where, "username", username)
 }
 
@@ -33,24 +30,23 @@ func WithUsername(username string) core.SqlDBOpt {
 /*      - Low Level SQL Options -      */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func WithCondition(operation Operation, field, value string) core.SqlDBOpt {
+func WithCondition(operation Operation, field, value string) SqlDBOpt {
 	if field == "" {
-		logs.LogStrange("Empty field in SQL condition -> value = " + value)
-		return func(db core.InnerSqlDB) {} // No-op
+		return func(db InnerSqlDB) {} // No-op
 	}
 
-	return func(db core.InnerSqlDB) {
-		if operation == Where || operation == And { // Where / And
+	return func(db InnerSqlDB) {
+		if operation == Where || operation == And {
 			db.Where(fmt.Sprintf("%s = ?", field), value)
 			return
 		}
 
-		if operation == Or { // Or
+		if operation == Or {
 			db.Or(fmt.Sprintf("%s = ?", field), value)
 			return
 		}
 
-		if operation == Like { // Like
+		if operation == Like {
 			db.Where(fmt.Sprintf("%s LIKE ?", field), "%"+value+"%")
 			return
 		}

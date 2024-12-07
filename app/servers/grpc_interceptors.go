@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -89,11 +88,11 @@ func logRequestInterceptor() grpc.UnaryServerInterceptor {
 // It adds the UserID and Username to the request's context.
 func validateRouteAuthInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
 	return func(c context.Context, req any, i *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
-		route := shared.GetRouteFromGRPCMethod(i.FullMethod)
+		route := core.GetRouteFromGRPCMethod(i.FullMethod)
 
 		// If it's a public endpoint, just go ahead.
 		// Note that the user's info is not added to the context.
-		if route.Auth == shared.RouteAuthPublic {
+		if route.Auth == core.RouteAuthPublic {
 			return next(c, req)
 		}
 

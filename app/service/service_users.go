@@ -2,13 +2,10 @@ package service
 
 import (
 	"github.com/gilperopiola/god"
-	sql "github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
 
 type UserSvc struct {
@@ -26,8 +23,8 @@ type UserSvc struct {
 // If the query fails (for some other reason), then it returns an unknown error.
 // If everything is OK, it returns the user info.
 func (s *UserSvc) GetUser(ctx god.Ctx, req *pbs.GetUserRequest) (*pbs.GetUserResponse, error) {
-	user, err := s.Clients.DBGetUser(ctx, sql.WithID(req.UserId))
-	if utils.IsNotFound(err) {
+	user, err := s.Clients.DBGetUser(ctx, core.WithID(req.UserId))
+	if errs.IsDBNotFound(err) {
 		return nil, errUserNotFound(int(req.UserId))
 	}
 
@@ -39,7 +36,7 @@ func (s *UserSvc) GetUser(ctx god.Ctx, req *pbs.GetUserRequest) (*pbs.GetUserRes
 // If everything is OK, it returns the users and the pagination info.
 func (s *UserSvc) GetUsers(ctx god.Ctx, req *pbs.GetUsersRequest) (*pbs.GetUsersResponse, error) {
 	page, pageSize := s.Tools.PaginatedRequest(req)
-	usernameFilter := sql.WithCondition(sql.Like, "username", req.GetFilter())
+	usernameFilter := core.WithCondition(core.Like, "username", req.GetFilter())
 
 	// While our page is 0-based, gorm offsets are 1-based. We subtract 1.
 	users, totalMatches, err := s.Clients.DBGetUsers(ctx, page-1, pageSize, usernameFilter)
@@ -59,7 +56,7 @@ var (
 	errUserNotFound      = func(id int) error { return errs.GRPCNotFound("user", id) }
 	errUserAlreadyExists = func() error { return errs.GRPCAlreadyExists("user") }
 	errCallingUsersDB    = func(ctx god.Ctx, err error) error {
-		route := shared.GetRouteFromCtx(ctx)
+		route := core.GetRouteFromCtx(ctx)
 		logs.LogUnexpected(err)
 		return errs.GRPCFromDB(err, route.Name)
 	}

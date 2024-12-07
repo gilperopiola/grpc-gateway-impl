@@ -5,10 +5,9 @@ import (
 	"time"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"
@@ -46,9 +45,9 @@ func (g *jwtGenerator) GenerateToken(id int, username string, role models.UserRo
 	return token, nil
 }
 
-func (g *jwtGenerator) newClaims(id int, username string, role models.UserRole) *shared.JWTClaims {
+func (g *jwtGenerator) newClaims(id int, username string, role models.UserRole) *core.JWTClaims {
 	now := time.Now()
-	return &shared.JWTClaims{
+	return &core.JWTClaims{
 		Username: username,
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{

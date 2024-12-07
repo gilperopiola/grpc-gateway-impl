@@ -3,9 +3,9 @@ package sqldb
 import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"gorm.io/gorm"
 )
@@ -52,10 +52,6 @@ func (this *baseSQLDB) Model(value any) core.InnerSqlDB { return &baseSQLDB{this
 func (this *baseSQLDB) Offset(value int) core.InnerSqlDB { return &baseSQLDB{this.DB.Offset(value)} }
 
 func (this *baseSQLDB) Order(value string) core.InnerSqlDB { return &baseSQLDB{this.DB.Order(value)} }
-
-func (this *baseSQLDB) Row() core.SqlRow { return this.DB.Row() }
-
-func (this *baseSQLDB) Rows() (core.SqlRows, error) { return this.DB.Rows() }
 
 func (this *baseSQLDB) RowsAffected() int64 { return this.DB.RowsAffected }
 

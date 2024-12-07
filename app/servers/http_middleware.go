@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/protobuf/reflect/protoreflect"

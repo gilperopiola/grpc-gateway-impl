@@ -5,9 +5,8 @@ import (
 	"image"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -70,7 +69,7 @@ type (
 	// Validates authorization tokens.
 	// Current implementation uses JWT.
 	TokenValidator interface {
-		ValidateToken(ctx god.Ctx, req any, route shared.Route) (Claims, error)
+		ValidateToken(ctx god.Ctx, req any, route Route) (Claims, error)
 	}
 
 	Claims interface {
@@ -159,8 +158,6 @@ type (
 		Pluck(column string, value any) InnerSqlDB
 		Preload(query string, args ...any) InnerSqlDB
 		Raw(sql string, values ...any) InnerSqlDB
-		Row() SqlRow
-		Rows() (SqlRows, error)
 		RowsAffected() int64
 		Save(value any) InnerSqlDB
 		Scan(dest any) InnerSqlDB
@@ -184,12 +181,6 @@ type (
 type (
 	SqlDBOpt   func(InnerSqlDB) // Optional functions to apply to a query.
 	MongoDBOpt func(*bson.D)    // Optional functions to apply to a query.
-	SqlRow     interface{ Scan(dest ...any) error }
-	SqlRows    interface {
-		Next() bool
-		Scan(...any) error
-		Close() error
-	}
 	SqlDBAssoc interface{ Append(...interface{}) error }
 )
 

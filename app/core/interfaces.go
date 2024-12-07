@@ -12,11 +12,10 @@ import (
 	"time"
 
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/apimodels"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
-	"go.uber.org/zap"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/apimodels"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -27,26 +26,19 @@ import (
 /* -~-~-~-~- Main Interfaces -~-~-~-~- */
 
 // Each service is defined in a .proto file
-type (
-	ServiceLayer interface {
-		RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar)
-		RegisterHTTPEndpoints(mux any, opts ...grpc.DialOption)
-	}
-	AuthSvc   = pbs.AuthServiceServer
-	UsersSvc  = pbs.UsersSvcServer
-	GroupsSvc = pbs.GroupsServiceServer
-	GPTSvc    = pbs.GPTServiceServer
-	HealthSvc = pbs.HealthServiceServer
-)
+type ServiceLayer interface {
+	RegisterGRPCEndpoints(grpcServer grpc.ServiceRegistrar)
+	RegisterHTTPEndpoints(mux any, opts ...grpc.DialOption)
+}
 
 /* -~-~-~-~- Clients -~-~-~-~- */
 
-type Clients interface {
-	DB
-	APIs
-}
-
 type (
+	Clients interface {
+		DB
+		APIs
+	}
+
 	DB interface {
 		DBActions
 		GetDB() any // *gorm.DB or *mongo.Client
@@ -65,7 +57,6 @@ type (
 		GroupsDB
 		GPTDB
 	}
-
 	UsersDB interface {
 		DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error)
 		DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error)

@@ -10,35 +10,44 @@ import (
 
 func GET(ctx context.Context, url string, urlParams map[string]string, bearer string, client *http.Client) (int, []byte, error) {
 
-	// Prepare request.
-	var err error
-	if url, err = AddQueryParamsToURL(url, urlParams); err != nil || url == "" {
-		return 0, nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	// Prepare request
+	req, err := prepareGET(ctx, url, urlParams, bearer)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error creating GET %s request: %w", url, err)
+		return 0, nil, fmt.Errorf("error preparing GET %s: %w", url, err)
 	}
 
-	if bearer != "" {
-		req.Header.Set("Authorization", "Bearer "+bearer)
-	}
-
-	// Send request.
+	// Send request
 	resp, err := client.Do(req)
 	if err != nil || resp == nil {
 		return 0, nil, fmt.Errorf("error sending GET %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 
-	// We got a response back, read it.
+	// Read response
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error reading successful GET %s response: %w", url, err)
+		return 0, nil, fmt.Errorf("error reading successful GET %s: %w", url, err)
 	}
 
 	return resp.StatusCode, respBody, nil
+}
+
+func prepareGET(ctx context.Context, url string, urlParams map[string]string, bearer string) (*http.Request, error) {
+	var err error
+	if url, err = AddQueryParamsToURL(url, urlParams); err != nil || url == "" {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error preparing GET %s: %w", url, err)
+	}
+
+	if bearer != "" {
+		req.Header.Set("Authorization", "Bearer "+bearer)
+	}
+
+	return req, nil
 }
 
 func AddQueryParamsToURL(baseURL string, queryParams map[string]string) (string, error) {

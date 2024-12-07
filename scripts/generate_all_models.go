@@ -13,7 +13,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// This script generates the AllModels slice in /app/core/shared/models/all_models.go by parsing the models package
+// This script generates the AllModels slice in /app/core/models/all_models.go by parsing the models package
 // and extracting the names of all model structs. It then writes the updated AllModels slice
 // back to all_models.go. This script should be run whenever a new model is added to the models
 // package or an existing model is removed.

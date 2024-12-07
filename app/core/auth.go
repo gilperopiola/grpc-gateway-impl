@@ -1,10 +1,10 @@
-package shared
+package core
 
 import (
 	"strconv"
 
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"

@@ -15,3 +15,15 @@ func FirstOrDefault(slice []string, fallback string) string {
 	}
 	return fallback
 }
+
+/* -~-~-~-~ Types & Conversions -~-~-~-~ */
+
+type Int32Slice []int32
+
+func (int32Slice Int32Slice) ToIntSlice() []int {
+	intSlice := make([]int, len(int32Slice))
+	for index, int32Val := range int32Slice {
+		intSlice[index] = int(int32Val)
+	}
+	return intSlice
+}

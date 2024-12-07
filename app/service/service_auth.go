@@ -4,13 +4,10 @@ import (
 	"strconv"
 
 	"github.com/gilperopiola/god"
-	sql "github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/models"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
 
 type AuthSvc struct {
@@ -27,12 +24,12 @@ type AuthSvc struct {
 //     a. If we don't get any error, that means the user already exists.
 //     b. If we get an error but it's not a DBNotFound, we return an unknown error.
 func (s *AuthSvc) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
-	user, err := s.Clients.DBGetUser(ctx, sql.WithUsername(req.Username))
+	user, err := s.Clients.DBGetUser(ctx, core.WithUsername(req.Username))
 	if err == nil || user != nil {
 		return nil, errUserAlreadyExists()
 	}
 
-	if !utils.IsNotFound(err) {
+	if !errs.IsDBNotFound(err) {
 		return nil, errCallingUsersDB(ctx, err)
 	}
 
@@ -59,12 +56,12 @@ func (s *AuthSvc) doAfterSignup(ctx god.Ctx, user *models.User) {
 // Then we PasswordsMatch both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
 func (s *AuthSvc) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
-	user, err := s.Clients.DBGetUser(ctx, sql.WithUsername(req.Username))
-	if utils.IsNotFound(err) {
+	user, err := s.Clients.DBGetUser(ctx, core.WithUsername(req.Username))
+	if errs.IsDBNotFound(err) {
 		return nil, errs.GRPCNotFound("user", req.Username)
 	}
 	if err != nil || user == nil {
-		return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
+		return nil, errs.GRPCFromDB(err, core.GetRouteFromCtx(ctx).Name)
 	}
 
 	if !s.Tools.PasswordsMatch(req.Password, user.Password) {

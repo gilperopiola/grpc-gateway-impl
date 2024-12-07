@@ -2,13 +2,10 @@ package service
 
 import (
 	"github.com/gilperopiola/god"
-	"github.com/gilperopiola/god/etc"
-	"github.com/gilperopiola/grpc-gateway-impl/app/clients/dbs/sqldb"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/pbs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/utils"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
 )
 
 type GroupSvc struct {
@@ -24,26 +21,25 @@ type GroupSvc struct {
 func (s *GroupSvc) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.CreateGroupResponse, error) {
 	groupOwnerID, err := god.ToIntAndErr(s.Tools.GetFromCtx(ctx, "user_id"))
 	if err != nil {
-		return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
+		return nil, errs.GRPCFromDB(err, core.GetRouteFromCtx(ctx).Name)
 	}
 
-	invitedUserIDs := etc.I32Slice(req.InvitedUserIds).ToIntSlice()
-
+	invitedUserIDs := utils.Int32Slice(req.InvitedUserIds).ToIntSlice()
 	group, err := s.Clients.DBCreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
 	if err != nil {
-		return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
+		return nil, errs.GRPCFromDB(err, core.GetRouteFromCtx(ctx).Name)
 	}
 
 	return &pbs.CreateGroupResponse{Group: s.Tools.GroupToGroupInfoPB(group)}, nil
 }
 
 func (s *GroupSvc) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGroupResponse, error) {
-	group, err := s.Clients.DBGetGroup(ctx, sqldb.WithID(req.GroupId))
+	group, err := s.Clients.DBGetGroup(ctx, core.WithID(req.GroupId))
 	if err != nil {
-		if utils.IsNotFound(err) {
+		if errs.IsDBNotFound(err) {
 			return nil, errs.GRPCNotFound("group", int(req.GroupId))
 		}
-		return nil, errs.GRPCFromDB(err, shared.GetRouteFromCtx(ctx).Name)
+		return nil, errs.GRPCFromDB(err, core.GetRouteFromCtx(ctx).Name)
 	}
 
 	return &pbs.GetGroupResponse{Group: s.Tools.GroupToGroupInfoPB(group)}, nil

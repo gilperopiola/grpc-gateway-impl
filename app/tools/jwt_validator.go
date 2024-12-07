@@ -5,9 +5,8 @@ import (
 	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/errs"
-	"github.com/gilperopiola/grpc-gateway-impl/app/core/shared/logs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 
 	"github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/codes"
@@ -37,15 +36,15 @@ func NewJWTValidator(ctxTool core.ContextManager, secret, apiKey string) core.To
 // Validates a JWT Token against the Route to be accessed. Returns the Claims if valid, or a GRPC error if not.
 // Errors returned can be Unauthenticated, PermissionDenied or NotFound.
 // TODO — Change how this all works, it's breaking SRP.
-func (v *jwtValidator) ValidateToken(ctx context.Context, req any, route shared.Route) (core.Claims, error) {
-	if route.Auth == shared.RouteAuthAPIKey {
+func (v *jwtValidator) ValidateToken(ctx context.Context, req any, route core.Route) (core.Claims, error) {
+	if route.Auth == core.RouteAuthAPIKey {
 		apiKey, err := v.getAPIKeyFromCtx(ctx)
 		if err != nil {
 			return nil, err
 		}
 
 		if apiKey == v.apiKey { // TODO — Improve, hash, etc.
-			return &shared.JWTClaims{}, nil
+			return &core.JWTClaims{}, nil
 		}
 
 		return nil, status.Errorf(codes.PermissionDenied, errs.AuthAPIKeyInvalid)
@@ -85,10 +84,10 @@ func (v *jwtValidator) getBearerFromCtx(ctx context.Context) (string, error) {
 
 // Extracts the JWT Claims from the JWT token string.
 // Returns an error if claims are not valid.
-func (v *jwtValidator) getClaimsFromBearer(bearer string) (*shared.JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(bearer, &shared.JWTClaims{}, v.keyFn)
+func (v *jwtValidator) getClaimsFromBearer(bearer string) (*core.JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(bearer, &core.JWTClaims{}, v.keyFn)
 	if err == nil && token != nil && token.Valid {
-		if claims, ok := token.Claims.(*shared.JWTClaims); ok && claims.Valid() == nil {
+		if claims, ok := token.Claims.(*core.JWTClaims); ok && claims.Valid() == nil {
 			return claims, nil
 		}
 	}
