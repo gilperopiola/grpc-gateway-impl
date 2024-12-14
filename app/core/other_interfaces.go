@@ -132,39 +132,39 @@ type (
 )
 
 type (
-	// Low-level InnerSqlDB DB interface
+	// Low-level InnerDB DB interface
 	// It's an adapter for Gorm
-	InnerSqlDB interface {
+	InnerDB interface {
 		Close()
 		AddError(err error) error
 		AutoMigrate(dst ...any) error
 		Association(column string) SqlDBAssoc
-		Count(value *int64) InnerSqlDB
-		Create(value any) InnerSqlDB
-		Debug() InnerSqlDB
-		Delete(value any, where ...any) InnerSqlDB
+		Count(value *int64) InnerDB
+		Create(value any) InnerDB
+		Debug() InnerDB
+		Delete(value any, where ...any) InnerDB
 		Error() error
-		Find(out any, where ...any) InnerSqlDB
-		First(out any, where ...any) InnerSqlDB
-		FirstOrCreate(out any, where ...any) InnerSqlDB
-		Group(query string) InnerSqlDB
+		Find(out any, where ...any) InnerDB
+		First(out any, where ...any) InnerDB
+		FirstOrCreate(out any, where ...any) InnerDB
+		Group(query string) InnerDB
 		InsertAdmin(hashedPwd string)
-		Joins(query string, args ...any) InnerSqlDB
-		Limit(value int) InnerSqlDB
-		Model(value any) InnerSqlDB
-		Offset(value int) InnerSqlDB
-		Or(query any, args ...any) InnerSqlDB
-		Order(value string) InnerSqlDB
-		Pluck(column string, value any) InnerSqlDB
-		Preload(query string, args ...any) InnerSqlDB
-		Raw(sql string, values ...any) InnerSqlDB
+		Joins(query string, args ...any) InnerDB
+		Limit(value int) InnerDB
+		Model(value any) InnerDB
+		Offset(value int) InnerDB
+		Or(query any, args ...any) InnerDB
+		Order(value string) InnerDB
+		Pluck(column string, value any) InnerDB
+		Preload(query string, args ...any) InnerDB
+		Raw(sql string, values ...any) InnerDB
 		RowsAffected() int64
-		Save(value any) InnerSqlDB
-		Scan(dest any) InnerSqlDB
-		Scopes(funcs ...func(InnerSqlDB) InnerSqlDB) InnerSqlDB
-		Unscoped() InnerSqlDB
-		WithContext(ctx god.Ctx) InnerSqlDB
-		Where(query any, args ...any) InnerSqlDB
+		Save(value any) InnerDB
+		Scan(dest any) InnerDB
+		Scopes(funcs ...func(InnerDB) InnerDB) InnerDB
+		Unscoped() InnerDB
+		WithContext(ctx god.Ctx) InnerDB
+		Where(query any, args ...any) InnerDB
 	}
 
 	// Low-level InnerMongoDB DB interface
@@ -179,8 +179,8 @@ type (
 )
 
 type (
-	SqlDBOpt   func(InnerSqlDB) // Optional functions to apply to a query.
-	MongoDBOpt func(*bson.D)    // Optional functions to apply to a query.
+	SqlDBOpt   func(InnerDB) // Optional functions to apply to a query.
+	MongoDBOpt func(*bson.D) // Optional functions to apply to a query.
 	SqlDBAssoc interface{ Append(...interface{}) error }
 )
 

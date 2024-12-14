@@ -1,4 +1,4 @@
-package sqldb
+package db
 
 import (
 	"errors"
@@ -11,34 +11,42 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
+	"gorm.io/gorm/logger"
 )
 
-var _ gormLogger.Interface = &sqlDBLogger{}
+type LogLevel = logger.LogLevel
+type GormLogger = logger.Interface
+
+var _ GormLogger = &sqlDBLogger{}
 
 // Adapter for the gormLogger.Interface.
 // It wraps a *zap.Logger.
 type sqlDBLogger struct {
 	*zap.Logger
-	gormLogger.LogLevel
+	LogLevel LogLevel
 }
 
 // Returns a new instance of *sqlDBLogger with the given log level.
 func newDBLogger(zapLogger *zap.Logger, level int) *sqlDBLogger {
 	return &sqlDBLogger{
 		zapLogger,
-		gormLogger.LogLevel(level),
+		LogLevel(level),
 	}
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
+func (l *sqlDBLogger) LogMode(level LogLevel) GormLogger {
+	l.LogLevel = level
+	return l
+}
+
 func (l *sqlDBLogger) Info(_ god.Ctx, msg string, data ...any) {
-	l.InfoWarnOrError(l.LogLevel, gormLogger.Info, "ℹ️ "+msg, zap.S().Infof, data...)
+	l.InfoWarnOrError(l.LogLevel, 4, "ℹ️ "+msg, zap.S().Infof, data...)
 }
 
 func (l *sqlDBLogger) Warn(_ god.Ctx, msg string, data ...any) {
-	l.InfoWarnOrError(l.LogLevel, gormLogger.Warn, "🚨 "+msg, zap.S().Warnf, data...)
+	l.InfoWarnOrError(l.LogLevel, 3, "🚨 "+msg, zap.S().Warnf, data...)
 }
 
 func (l *sqlDBLogger) Error(_ god.Ctx, msg string, data ...any) {
@@ -49,7 +57,7 @@ func (l *sqlDBLogger) Error(_ god.Ctx, msg string, data ...any) {
 		return
 	}
 
-	l.InfoWarnOrError(l.LogLevel, gormLogger.Error, "🛑 "+msg, zap.S().Errorf, data...)
+	l.InfoWarnOrError(l.LogLevel, 2, "🛑 "+msg, zap.S().Errorf, data...)
 }
 
 // -> This gets called after every query. -> It logs the query, the time it took to execute, and the number of rows affected.
@@ -60,7 +68,7 @@ func (l *sqlDBLogger) Trace(_ god.Ctx, begin time.Time, fnCall func() (string, i
 	query, rows := fnCall() // Execute query
 	elapsed := time.Since(begin)
 
-	if l.LogLevel <= gormLogger.Silent {
+	if l.LogLevel <= 1 {
 		return
 	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -82,20 +90,12 @@ func (l *sqlDBLogger) LogSQLError(err error, query string, rows int64, elapsed t
 func (l *sqlDBLogger) LogSQLQuery(query string, rows int64, elapsed time.Duration) {
 	queryWasSlow := elapsed > time.Second // T0D0 move to config
 
-	if l.LogLevel >= gormLogger.Info || queryWasSlow {
+	if l.LogLevel >= 4 || queryWasSlow {
 		zap.S().Infof("ℹ️ " + newQueryInfoLog(elapsed.Nanoseconds(), rows, query))
 	}
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
-func (l *sqlDBLogger) LogMode(level gormLogger.LogLevel) gormLogger.Interface {
-	copiedLogger := *l
-	copiedLogger.LogLevel = level
-	return &copiedLogger
-}
-
-func (l *sqlDBLogger) InfoWarnOrError(currLogLevel gormLogger.LogLevel, logsAt gormLogger.LogLevel, msg string, fn func(string, ...interface{}), data ...interface{}) {
+func (l *sqlDBLogger) InfoWarnOrError(currLogLevel LogLevel, logsAt LogLevel, msg string, fn func(string, ...interface{}), data ...interface{}) {
 	if currLogLevel >= logsAt {
 		fn(msg, data...)
 	}

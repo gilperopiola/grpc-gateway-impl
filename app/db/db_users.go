@@ -1,4 +1,4 @@
-package sqldb
+package db
 
 import (
 	"github.com/gilperopiola/god"
@@ -20,10 +20,10 @@ var (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // DBCreateUser creates a new user in the database.
-func (sdbt *DB) DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
+func (this *DB) DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
 	user := models.User{Username: username, Password: hashedPwd}
 
-	if err := sdbt.InnerDB.WithContext(ctx).Create(&user).Error(); err != nil {
+	if err := this.InnerDB.WithContext(ctx).Create(&user).Error(); err != nil {
 		return nil, &errs.DBErr{err, CreateUserErr}
 	}
 
@@ -32,12 +32,12 @@ func (sdbt *DB) DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.U
 
 // DBGetUser returns a user from the database.
 // At least one option must be provided, otherwise an error will be returned.
-func (sdbt *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
+func (this *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 	if len(opts) == 0 {
 		return nil, &errs.DBErr{nil, NoOptionsErr}
 	}
 
-	query := sdbt.InnerDB.Model(&models.User{}).WithContext(ctx)
+	query := this.InnerDB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
 	}
@@ -51,8 +51,8 @@ func (sdbt *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 }
 
 // DBGetUsers returns a list of users from the database.
-func (sdbt *DB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error) {
-	query := sdbt.InnerDB.Model(&models.User{}).WithContext(ctx)
+func (this *DB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error) {
+	query := this.InnerDB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
 	}

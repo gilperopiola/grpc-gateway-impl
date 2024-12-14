@@ -1,4 +1,4 @@
-package sqldb
+package db
 
 import (
 	"database/sql"
@@ -9,20 +9,16 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/utils"
-	"go.uber.org/zap"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 var _ core.DB = &DB{}
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*      - High Level SQL DB Conn -     */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
 type DB struct {
-	InnerDB core.InnerSqlDB
+	core.InnerDB
 }
 
 func NewSQLDBConn(cfg *core.DBCfg) core.DB {
@@ -34,7 +30,7 @@ func NewSQLDBConn(cfg *core.DBCfg) core.DB {
 	// We wrap this to match the signature of [utils.RetryFunc]
 	var connectToDB = func() (any, error) {
 		gormDB, err := gorm.Open(mysql.Open(cfg.GetSQLConnString()), gormCfg)
-		return &baseSQLDB{gormDB}, err
+		return &innerDB{gormDB}, err
 	}
 
 	// We wrap this to match the signature of [utils.RetryFuncNoErr]
@@ -57,22 +53,27 @@ func NewSQLDBConn(cfg *core.DBCfg) core.DB {
 	dbConn, err := utils.RetryFunc(connectToDB, retryCfg)
 	logs.LogFatalIfErr(err, errs.FailedDBConn)
 
-	return &DB{dbConn.(*baseSQLDB)}
+	innerDB := dbConn.(*innerDB)
+	postDBConnActions(innerDB, cfg)
+	return &DB{innerDB}
 }
 
-func postDBConnActions(db *DB, cfg *core.DBCfg) {
+func postDBConnActions(db *innerDB, cfg *core.DBCfg) {
 	if cfg.EraseAllData {
-		db.InnerDB.Unscoped().Delete(models.AllModels, nil)
+		db.Unscoped().Delete(models.AllModels, nil)
 	}
-
 	if cfg.MigrateModels {
-		db.InnerDB.AutoMigrate(models.AllModels...)
+		db.AutoMigrate(models.AllModels...)
+	}
+	if cfg.InsertAdmin && cfg.InsertAdminPwd != "" {
+		db.InsertAdmin(cfg.InsertAdminPwd)
 	}
 
-	if cfg.InsertAdmin && cfg.InsertAdminPwd != "" {
-		db.InnerDB.InsertAdmin(cfg.InsertAdminPwd)
-	}
+	sqlDB, err := db.DB.DB()
+	logs.LogFatalIfErr(err, errs.FailedToGetSQLDB)
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(50)
 }
 
-func (this DB) GetDB() any { return this.InnerDB }
-func (this DB) CloseDB()   { this.InnerDB.Close() }
+func (this *DB) GetDB() any { return this.InnerDB }
+func (this *DB) CloseDB()   { this.InnerDB.Close() }

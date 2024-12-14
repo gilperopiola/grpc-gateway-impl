@@ -299,22 +299,13 @@ var LogLevels = map[string]int{
 //	silent 	-> 	logs nothing
 //
 // We also added debug and fatal, but they just map to info and error.
-var DBLogLevels = map[string]gormLogLevel{
-	"debug":  Info,
-	"info":   Info,
-	"warn":   Warn,
-	"error":  Error,
-	"fatal":  Error,
-	"silent": Silent,
+var DBLogLevels = map[string]int{
+	"debug":  4, // Info
+	"info":   4, // Info
+	"warn":   3, // Warn
+	"error":  2, // Error
+	"fatal":  2, // Error
+	"silent": 1, // Silent
 }
-
-type gormLogLevel int
-
-const (
-	Silent gormLogLevel = iota + 1 // This is copied from gorm's .io/gorm/logger pkg
-	Error
-	Warn
-	Info
-)
 
 // TODO -> Be able to change some of these config values at runtime.

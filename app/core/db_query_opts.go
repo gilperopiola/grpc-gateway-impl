@@ -32,10 +32,10 @@ func WithUsername(username string) SqlDBOpt {
 
 func WithCondition(operation Operation, field, value string) SqlDBOpt {
 	if field == "" {
-		return func(db InnerSqlDB) {} // No-op
+		return func(db InnerDB) {} // No-op
 	}
 
-	return func(db InnerSqlDB) {
+	return func(db InnerDB) {
 		if operation == Where || operation == And {
 			db.Where(fmt.Sprintf("%s = ?", field), value)
 			return
