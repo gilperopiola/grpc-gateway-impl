@@ -14,6 +14,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -36,7 +37,7 @@ type ServiceLayer interface {
 type (
 	Clients interface {
 		DB
-		APIs
+		APIClients
 	}
 
 	DB interface {
@@ -45,8 +46,8 @@ type (
 		CloseDB()
 	}
 
-	APIs interface {
-		ChatGPTAPI
+	APIClients interface {
+		GPTAPI
 		WeatherAPI
 	}
 )
@@ -74,8 +75,9 @@ type (
 )
 
 type (
-	ChatGPTAPI interface {
-		SendToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTMessage) (string, error)
+	GPTAPI interface {
+		SendRequestToGPT(ctx context.Context, prompt string, prevMsgs ...apimodels.GPTChatMsg) (string, error)
+		SendRequestToDallE(ctx context.Context, prompt string, size pbs.GPTImageSize) (apimodels.GPTImageMsg, error)
 	}
 	WeatherAPI interface {
 		GetCurrentWeather(ctx god.Ctx, lat, lon float64) (*apimodels.GetWeatherResponse, error)

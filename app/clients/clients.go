@@ -14,14 +14,14 @@ var _ core.Clients = &Clients{}
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~ v1 */
 
 type Clients struct {
-	core.APIs // -> API Clients
-	core.DB   // -> High-level DB Client
+	core.APIClients // -> API Clients
+	core.DB         // -> High-level DB Client
 }
 
-func Setup(cfg *core.Config) *Clients {
+func Setup(cfg *core.Config, tools core.Tools) *Clients {
 	clients := Clients{
-		APIs: apis.NewAPIs(&cfg.APIsCfg),
-		DB:   db.NewSQLDBConn(&cfg.DBCfg),
+		APIClients: apis.NewAPIs(&cfg.APIsCfg),
+		DB:         db.NewSQLDBConn(&cfg.DBCfg, tools.HashPassword),
 	}
 	logs.InitModuleOK("Clients", "🔱")
 	return &clients

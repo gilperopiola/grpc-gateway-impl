@@ -48,7 +48,7 @@ func Setup() (runAppFunc, cleanUpFunc) {
 	logs.InitStep(1)
 	func() {
 		app.Tools = tools.Setup(app.Config)
-		app.Clients = clients.Setup(app.Config)
+		app.Clients = clients.Setup(app.Config, app.Tools)
 		app.Service = service.Setup(app.Clients, app.Tools)
 		app.Servers = servers.Setup(app.Service, app.Tools)
 	}()

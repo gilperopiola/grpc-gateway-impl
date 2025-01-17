@@ -4,7 +4,6 @@ package pbs;
 option go_package = "github.com/gilperopiola/grpc-gateway-impl/app/core/pbs";
 
 import "common.proto";
-
 import "external/buf/validate/validate.proto";
 import "external/google/api/annotations.proto";
 import "external/google/api/field_behavior.proto";

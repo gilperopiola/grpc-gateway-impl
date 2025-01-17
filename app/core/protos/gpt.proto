@@ -32,10 +32,22 @@ service GPTService {
       };
     };
   }
+
+  rpc NewGPTImage(NewGPTImageRequest) returns (NewGPTImageResponse) {
+    option (google.api.http) = { post: "/v1/dalle"; body: "*" };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "new_dalle_image";
+      tags: ["DALLE"];
+      responses: {
+        key: "200";
+        value: { schema: { json_schema: { ref: ".pbs.NewGPTImageResponse" }}};
+      };
+    };
+  }
 }
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*       - Requests & Responses -      */
+/*       - GPT Chat Completions -      */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 message NewGPTChatRequest {
@@ -47,8 +59,6 @@ message NewGPTChatResponse {
   string gpt_message = 2;
 }
 
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-
 message ReplyToGPTChatRequest {
   int32 chat_id = 1 [ (google.api.field_behavior) = REQUIRED ];
   string message = 2 [ (google.api.field_behavior) = REQUIRED ];
@@ -59,3 +69,25 @@ message ReplyToGPTChatResponse {
   string gpt_message = 2;
 }
 
+
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+/*     - DALL·E Image Generation -     */
+/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
+
+enum GPTImageSize {
+  GPT_IMAGE_SIZE_DEFAULT  = 0;
+  GPT_IMAGE_SIZE_WIDE     = 1;
+  GPT_IMAGE_SIZE_TALL     = 2;
+  GPT_IMAGE_SIZE_TINY     = 3;
+  GPT_IMAGE_SIZE_SMALL    = 4;
+}
+
+message NewGPTImageRequest {
+  string message = 1 [ (google.api.field_behavior) = REQUIRED ];
+  GPTImageSize size = 2;
+}
+
+message NewGPTImageResponse {
+  GPTChatInfo chat = 1;
+  string image_url = 2;
+}

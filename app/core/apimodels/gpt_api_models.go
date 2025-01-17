@@ -4,46 +4,65 @@ package apimodels
 /*      - OpenAI GPT API Models -      */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-type GPTModel string
+type GPTs string
 
 const (
-	GPT35Turbo GPTModel = "gpt-3.5-turbo"
-	GPT4       GPTModel = "gpt-4"
-	GPT4Turbo  GPTModel = "gpt-4-turbo"
-	GPT4o      GPTModel = "gpt-4o"
-	GPT4oMini  GPTModel = "gpt-4o-mini"
+	GPT_O1_PREVIEW GPTs = "o1-preview"
+	GPT_O1_MINI    GPTs = "o1-mini"
+	GPT_4O         GPTs = "gpt-4o"
+	GPT_4O_MINI    GPTs = "gpt-4o-mini"
 
-	DallE3 GPTModel = "dall-e-3"
+	DALL_E2 GPTs = "dall-e-2"
+	DALL_E3 GPTs = "dall-e-3"
 )
 
-/* OpenAI API - Request and Response Models */
-
+// Data Models for the Chat Completions API
 type (
-	GPTChatRequest struct {
-		Model    GPTModel     `json:"model"`
-		Messages []GPTMessage `json:"messages"`
+	GPTChatEndpointRequest struct {
+		Model    GPTs         `json:"model"`
+		Messages []GPTChatMsg `json:"messages"`
 	}
 
-	GPTChatResponse struct {
-		ID      string        `json:"id"`
-		Choices []GPTChoice   `json:"choices"`
-		Created int64         `json:"created"`
-		Usage   GPTTokenUsage `json:"usage"`
+	GPTChatEndpointResponse struct {
+		ID      string/*                */ `json:"id"`
+		Choices []struct {
+			Message      GPTChatMsg/*   */ `json:"message"`
+			FinishReason string/*       */ `json:"finish_reason"`
+		}/*                            	*/ `json:"choices"`
+		Usage struct {
+			InPrompt     int/*          */ `json:"prompt_tokens"`
+			InCompletion int/*          */ `json:"completion_tokens"`
+			InTotal      int/*          */ `json:"total_tokens"`
+		}/*                            	*/ `json:"usage"`
+		Created int64/*                 */ `json:"created"`
+	}
+
+	GPTChatMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
 	}
 )
 
-type GPTMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
+// Data Models for the Images API
+type (
+	GPTImageEndpointRequest struct {
+		Model  GPTs   `json:"model"`
+		Prompt string `json:"prompt"`
+		N      int    `json:"n"`
+		Size   string `json:"size"`
+	}
 
-type GPTChoice struct {
-	Message      GPTMessage `json:"message"`
-	FinishReason string     `json:"finish_reason"`
-}
+	GPTImageEndpointResponse struct {
+		Data    []GPTImageMsg `json:"data"`
+		Created int64         `json:"created"`
 
-type GPTTokenUsage struct {
-	InPrompt     int `json:"prompt_tokens"`
-	InCompletion int `json:"completion_tokens"`
-	InTotal      int `json:"total_tokens"`
-}
+		// Dall-E 2 has a different response format:
+		RevisedPrompt string   `json:"revised_prompt"`
+		ImageURLs     []string `json:"image_urls"`
+	}
+
+	GPTImageMsg struct {
+		URL           string `json:"url"`
+		RevisedPrompt string `json:"revised_prompt"`
+	}
+)

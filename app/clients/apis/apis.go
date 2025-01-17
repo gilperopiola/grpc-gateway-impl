@@ -10,25 +10,20 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 )
 
-var _ core.APIs = &APIs{}
+var _ core.APIClients = &APIClients{}
 
-type APIs struct {
-	core.ChatGPTAPI
+type APIClients struct {
+	core.GPTAPI
 	core.WeatherAPI
 }
 
-func NewAPIs(cfg *core.APIsCfg) *APIs {
+func NewAPIs(cfg *core.APIsCfg) *APIClients {
+	gptAPIHTTPClient := newAPIHTTPClient()
+	weatherAPIHTTPClient := newAPIHTTPClient()
 
-	var (
-		gptAPIHTTPClient     = newAPIHTTPClient()
-		weatherAPIHTTPClient = newAPIHTTPClient()
-
-		gptAPI     = gpt.NewAPI(gptAPIHTTPClient, cfg.GPT.APIKey)
-		weatherAPI = weather.NewAPI(weatherAPIHTTPClient)
-	)
-
-	return &APIs{
-		gptAPI, weatherAPI,
+	return &APIClients{
+		gpt.NewAPI(gptAPIHTTPClient, cfg.GPT.APIKey),
+		weather.NewAPI(weatherAPIHTTPClient),
 	}
 }
 

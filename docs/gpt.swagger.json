@@ -16,6 +16,38 @@
     "application/json"
   ],
   "paths": {
+    "/v1/dalle": {
+      "post": {
+        "operationId": "new_dalle_image",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbsNewGPTImageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbsNewGPTImageRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DALLE"
+        ]
+      }
+    },
     "/v1/gpt": {
       "post": {
         "operationId": "new_gpt_chat",
@@ -122,6 +154,17 @@
         }
       }
     },
+    "pbsGPTImageSize": {
+      "type": "string",
+      "enum": [
+        "GPT_IMAGE_SIZE_DEFAULT",
+        "GPT_IMAGE_SIZE_WIDE",
+        "GPT_IMAGE_SIZE_TALL",
+        "GPT_IMAGE_SIZE_TINY",
+        "GPT_IMAGE_SIZE_SMALL"
+      ],
+      "default": "GPT_IMAGE_SIZE_DEFAULT"
+    },
     "pbsNewGPTChatRequest": {
       "type": "object",
       "properties": {
@@ -140,6 +183,31 @@
           "$ref": "#/definitions/pbsGPTChatInfo"
         },
         "gptMessage": {
+          "type": "string"
+        }
+      }
+    },
+    "pbsNewGPTImageRequest": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "size": {
+          "$ref": "#/definitions/pbsGPTImageSize"
+        }
+      },
+      "required": [
+        "message"
+      ]
+    },
+    "pbsNewGPTImageResponse": {
+      "type": "object",
+      "properties": {
+        "chat": {
+          "$ref": "#/definitions/pbsGPTChatInfo"
+        },
+        "imageUrl": {
           "type": "string"
         }
       }

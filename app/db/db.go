@@ -21,7 +21,7 @@ type DB struct {
 	core.InnerDB
 }
 
-func NewSQLDBConn(cfg *core.DBCfg) core.DB {
+func NewSQLDBConn(cfg *core.DBCfg, hashPwdFn func(string) string) core.DB {
 
 	// We use our Logger wrapped inside of a gorm adapter
 	dbLogger := newDBLogger(zap.L(), cfg.LogLevel)
@@ -52,25 +52,31 @@ func NewSQLDBConn(cfg *core.DBCfg) core.DB {
 	retryCfg := utils.RetryCfg{Times: cfg.Retries, OnFailure: createDB}
 	dbConn, err := utils.RetryFunc(connectToDB, retryCfg)
 	logs.LogFatalIfErr(err, errs.FailedDBConn)
+	logs.LogResult("DB Connection for "+cfg.Database, nil)
 
 	innerDB := dbConn.(*innerDB)
-	postDBConnActions(innerDB, cfg)
+	postDBConnActions(innerDB, cfg, hashPwdFn)
 	return &DB{innerDB}
 }
 
-func postDBConnActions(db *innerDB, cfg *core.DBCfg) {
-	if cfg.EraseAllData {
-		db.Unscoped().Delete(models.AllModels, nil)
+func postDBConnActions(db *innerDB, cfg *core.DBCfg, hashPwdFn func(string) string) {
+	for _, model := range models.AllModels {
+		if cfg.EraseAllData {
+			logs.LogResult("Erasing DB table   "+model.(models.Model).TableName(), db.Unscoped().Delete(model, nil).Error())
+		}
+		if cfg.MigrateModels {
+			logs.LogResult("Migrating DB table "+model.(models.Model).TableName(), db.AutoMigrate(model))
+		}
 	}
-	if cfg.MigrateModels {
-		db.AutoMigrate(models.AllModels...)
-	}
+
 	if cfg.InsertAdmin && cfg.InsertAdminPwd != "" {
-		db.InsertAdmin(cfg.InsertAdminPwd)
+		db.InsertAdmin(hashPwdFn(cfg.InsertAdminPwd))
+		logs.LogResult("Inserting DB admin", nil)
 	}
 
 	sqlDB, err := db.DB.DB()
 	logs.LogFatalIfErr(err, errs.FailedToGetSQLDB)
+
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(50)
 }

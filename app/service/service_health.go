@@ -32,7 +32,7 @@ func (h *HealthSvc) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRequest) 
 
 	// Make HTTP call or return unhealthy.
 	if _, err := h.Clients.GetCurrentWeather(ctx, 50, 50); err != nil {
-		gptResponse, err := h.Clients.SendToGPT(ctx, "give a really short response, which includes the word 'healthy'.")
+		gptResponse, err := h.Clients.SendRequestToGPT(ctx, "give a really short response, which includes the word 'healthy'.")
 		if err != nil {
 			return nil, status.Error(codes.Unavailable, msg+" unhealthy: http calls not working")
 		}

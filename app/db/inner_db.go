@@ -21,11 +21,7 @@ type innerDB struct {
 func (this *innerDB) GetInnerDB() any { return this.DB }
 
 func (this *innerDB) InsertAdmin(hashedPwd string) {
-	admin := models.User{
-		Username: "admin",
-		Password: hashedPwd,
-		Role:     models.AdminRole,
-	}
+	admin := models.User{Username: "admin", Password: hashedPwd, Role: models.AdminRole}
 	logs.WarnIfErr(this.DB.FirstOrCreate(&admin).Error, errs.FailedToInsertDBAdmin)
 }
 
