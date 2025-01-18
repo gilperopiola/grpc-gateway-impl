@@ -38,9 +38,7 @@ etc/data/*/**
 
 ## Exclude everything under /etc/images
 etc/images/**
-
-## But do keep the /etc/images/ folder
-!etc/images/
+!etc/images/.gitkeep
 
 ## Ignore the docs/deps_external files as they're quite large
 docs/deps_external.dot
