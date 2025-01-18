@@ -1,0 +1,16 @@
+//kage:unit pixels
+
+package main
+
+var Time float
+var Resolution vec2
+
+func Fragment(dstPos vec4) vec4 {
+    uv := dstPos.xy / Resolution
+
+    r := 0.5 + 0.5 * sin(uv.x * 5.0 + Time)
+    g := 0.5 + 0.5 * cos(uv.y * 5.0 - Time)
+    b := 0.5 + 0.5 * sin((uv.x + uv.y) * 5.0 + Time * 0.5)
+
+    return vec4(r, g, b, 1.0)
+}

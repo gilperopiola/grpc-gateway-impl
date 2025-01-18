@@ -1,0 +1,98 @@
+//kage:unit pixels
+
+package main
+
+var Time float
+var Resolution vec2
+
+var OscSpeed float
+var OscThin float
+var OscRedFactor float
+var OscGreenFactor float
+var OscBlueFactor float
+var OscAlpha float
+
+var BorderOutPx float
+var BorderInPx float
+var BorderOutColor vec4
+var BorderInColor vec4
+
+var ConnectedSides vec4
+var XPlusYIsEven float
+const PI = 3.14159265
+
+// Doesn't use the uv.
+func osc(uv vec2, frequency float, sync float, invert bool) float {
+    if !invert {
+        sinVal := sin(frequency + Time * sync)
+        return (sinVal+1.0)/2.0
+    }
+    sinVal := sin(frequency + Time * sync + PI)
+    return (sinVal+1.0)/2.0
+}
+
+func clamp(value float, min float, max float) float {
+    if value < min {
+        return min
+    }
+    if value > max {
+        return max
+    }
+    return value
+}
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    uvX := srcPos.x / Resolution.x
+    uvY := srcPos.y / Resolution.y
+
+    if ConnectedSides.x == 0.0 {
+        if srcPos.y <= BorderOutPx {
+            return BorderOutColor
+        }
+    }
+
+    if ConnectedSides.y == 0.0 {
+        if srcPos.x >= Resolution.x - BorderOutPx {
+            return BorderOutColor
+        }
+    }
+
+    if ConnectedSides.z == 0.0 {
+        if srcPos.y >= Resolution.y - BorderOutPx {
+            return BorderOutColor
+        }
+    }
+
+    if ConnectedSides.a == 0.0 {
+        if srcPos.x <= BorderOutPx {
+            return BorderOutColor
+        }
+    }
+
+    if ConnectedSides.x == 0.0 {
+        if srcPos.y <= BorderInPx + BorderOutPx {
+            return BorderInColor
+        }
+    }
+    if ConnectedSides.y == 0.0 {
+        if srcPos.x >= Resolution.x - BorderInPx - BorderOutPx {
+            return BorderInColor
+        }
+    }
+    if ConnectedSides.z == 0.0 {
+        if srcPos.y >= Resolution.y - BorderInPx - BorderOutPx {
+            return BorderInColor
+        }
+    }
+    if ConnectedSides.a == 0.0 {
+        if srcPos.x <= BorderInPx + BorderOutPx {
+            return BorderInColor
+        }
+    }
+
+    oscValue := osc(vec2(uvX, uvY), OscThin, OscSpeed, XPlusYIsEven == 0.0)
+
+    color := vec4(oscValue * OscRedFactor , oscValue * OscGreenFactor, oscValue * OscBlueFactor, OscAlpha)
+
+    return color
+}

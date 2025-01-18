@@ -1,0 +1,11 @@
+//kage:unit pixels
+
+package main
+
+var TileScale float
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    var uv = fract(srcPos * TileScale)
+    color := imageSrc0At(uv)
+    return color
+}

@@ -1,0 +1,53 @@
+//kage:unit pixels
+
+package main
+
+var Time float      
+var Resolution vec2 
+const PI = 3.14159265
+
+func osc(uv vec2, frequency float, sync float) float {
+    return (sin((uv.x + uv.y) * frequency + Time * sync) + 1.0) / 2.0
+}
+
+func clamp(value float, min float, max float) float {
+    if value < min {
+        return min
+    }
+    if value > max {
+        return max
+    }
+    return value
+}
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    uvX := srcPos.x / Resolution.x
+    uvY := srcPos.y / Resolution.y
+
+    borderOut := float(2)
+    border := float(5) // pixels
+    borderIn := float(2)
+
+    borderOutColor := vec4(0, 0, 0, 1)
+    borderInColor := vec4(0, 0, 0, 1)
+
+    if srcPos.x <= borderOut || srcPos.y <= borderOut || srcPos.x >= Resolution.x - borderOut || srcPos.y >= Resolution.y - borderOut {
+        return borderOutColor
+    }
+
+    if srcPos.x <= border + borderOut || srcPos.y <= border + borderOut || srcPos.x >= Resolution.x - border - borderOut || srcPos.y >= Resolution.y - border - borderOut {
+        r := 0.5 + 0.7 * sin(uvX * 5.0 + Time)
+        g := 0.2 + 0.5 * cos(uvY * 5.0 - Time)
+        b := 0.1 + 0.3 * sin((uvX + uvY) * 5.0 + Time * 0.5)
+        r = clamp(r, 0.2, 1.0)
+        return vec4(r, g, b, 1)
+    }
+
+    if srcPos.x <= borderIn + borderOut + border || srcPos.y <= borderIn + borderOut + border || srcPos.x >= Resolution.x - borderIn - borderOut - border || srcPos.y >= Resolution.y - borderIn - borderOut - border {
+        return borderInColor
+    }
+
+    oscValue := osc(vec2(uvX, uvY), 70.0, 1.31)
+    oscValue = oscValue * 0.33
+    return vec4(oscValue * 0.8 , oscValue, oscValue, 1)
+}

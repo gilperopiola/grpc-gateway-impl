@@ -68,6 +68,7 @@ var Routes = map[string]Route{
 	// 🤖 GPT Service
 	"NewGPTChat":     {"NewGPTChat", RouteAuthPublic},
 	"ReplyToGPTChat": {"ReplyToGPTChat", RouteAuthPublic},
+	"NewGPTImage":    {"NewGPTImage", RouteAuthPublic},
 }
 
 /* ———————————————————————————————— — — — GET REQUEST'S ROUTE — — — ———————————————————————————————— */

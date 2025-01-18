@@ -1,0 +1,80 @@
+//kage:unit pixels
+
+package main
+
+var Time float       // Current time
+var Resolution vec2  // Screen dimensions
+
+const PI = 3.14159265
+
+// Rotate UV coordinates by a given angle
+func rotate(uv vec2, angle float) vec2 {
+    c := cos(angle)
+    s := sin(angle)
+    return vec2(
+        uv.x * c - uv.y * s,
+        uv.x * s + uv.y * c,
+    )
+}
+
+// Oscillator function similar to Hydra's osc()
+func osc(uv vec2, frequency float, sync float, offset float) float {
+    phase := uv.x * frequency + Time * sync + offset
+    return (sin(phase * 2.0 * PI) + 1.0) / 2.0
+}
+
+func Fragment(dstPos vec4) vec4 {
+    // Normalize coordinates to range [0, 1]
+    uv := dstPos.xy / Resolution
+
+    // Center the UV coordinates
+    uv = uv - vec2(0.5, 0.5)
+
+    // Constants for angles
+    angle45 := PI / 4.0
+    angle90 := angle45 * 2.0
+    angle135 := angle90 + angle45
+    angle180 := angle90 * 2.0
+    angle225 := angle180 + angle45
+
+    // Oscillator parameters
+    freq := 25.0
+    fast := 0.2
+    colorShift := sin(Time / 10.0) / 2.0
+
+    // Generate osc1
+    osc1UV := uv
+
+    // Rotate osc1 by angle225
+    osc1UV = rotate(osc1UV, angle225)
+
+    // Apply wobble rotation to osc1
+    wobbleAttenuator := 4.0
+    wobbleAngle := sin(Time) / wobbleAttenuator
+    osc1UV = rotate(osc1UV, wobbleAngle)
+
+    // Compute osc1 value
+    osc1Val := osc(osc1UV, freq, fast, colorShift)
+
+    // Since osc1 is multiplied by osc2, we can simulate osc2 here
+    // Generate osc2
+    osc2UV := uv
+
+    // Rotate osc2 by angle135
+    osc2UV = rotate(osc2UV, angle135)
+
+    // Apply wobble rotation to osc2 (opposite direction)
+    wobbleAngle2 := -sin(Time) / wobbleAttenuator
+    osc2UV = rotate(osc2UV, wobbleAngle2)
+
+    // Compute osc2 value
+    osc2Val := osc(osc2UV, freq, fast, colorShift)
+
+    // Multiply osc1 and osc2
+    combinedVal := osc1Val * osc2Val
+
+    // Output as grayscale color
+    color := vec3(combinedVal)
+
+    return vec4(color, 1.0)
+}

@@ -1,0 +1,107 @@
+//kage:unit pixels
+
+package main
+
+var Time float
+var Resolution vec2
+
+var OscSpeed float
+var OscThin float
+var OscRedFactor float
+var OscGreenFactor float
+var OscBlueFactor float
+var OscAlpha float
+
+var BorderOutPx float
+var BorderInPx float
+var BorderOutColor vec4
+var BorderInColor vec4
+
+var ConnectedSides vec4
+var XPlusYIsEven float
+
+const PI = 3.14159265
+
+func osc(uv vec2, frequency float, sync float, invert bool, invert2 bool) float {
+    uvVal    := float(uv.x)
+    offset   := 0.0
+    if invert {
+        uvVal = 1 - uvVal
+        offset = 0.25
+    }
+    sinVal := sin(uvVal * frequency + Time * sync - offset * uv.x * 1.2)
+    return sinVal
+}
+
+func clamp(value float, min float, max float) float {
+    if value < min {
+        return min
+    }
+    if value > max {
+        return max
+    }
+    return value
+}
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    uvX := srcPos.x / Resolution.x
+    uvY := srcPos.y / Resolution.y
+
+    invert := XPlusYIsEven >= 0.1
+    invert2 := XPlusYIsEven >= 0.1
+
+    if invert {
+        uvX = 1.0 - uvX
+        uvY = 1.0 - uvY
+    }
+
+    if ConnectedSides.x == 0.0 {
+        if srcPos.y <= BorderOutPx {
+            return BorderOutColor
+        }
+    }
+    if ConnectedSides.y == 0.0 {
+        if srcPos.x >= Resolution.x - BorderOutPx {
+            return BorderOutColor
+        }
+    }
+    if ConnectedSides.z == 0.0 {
+        if srcPos.y >= Resolution.y - BorderOutPx {
+            return BorderOutColor
+        }
+    }
+    if ConnectedSides.a == 0.0 {
+        if srcPos.x <= BorderOutPx {
+            return BorderOutColor
+        }
+    }
+    if ConnectedSides.x == 0.0 {
+        if srcPos.y <= BorderInPx + BorderOutPx {
+            return BorderInColor
+        }
+    }
+    if ConnectedSides.y == 0.0 {
+        if srcPos.x >= Resolution.x - BorderInPx - BorderOutPx {
+            return BorderInColor
+        }
+    }
+    if ConnectedSides.z == 0.0 {
+        if srcPos.y >= Resolution.y - BorderInPx - BorderOutPx {
+            return BorderInColor
+        }
+    }
+    if ConnectedSides.a == 0.0 {
+        if srcPos.x <= BorderInPx + BorderOutPx {
+            return BorderInColor
+        }
+    }
+
+    oscValue := osc(vec2(uvX, uvY), OscThin, OscSpeed, invert, invert2)
+    color := vec4(oscValue * OscRedFactor , oscValue * OscGreenFactor, oscValue * OscBlueFactor, OscAlpha)
+
+
+    // if !invert {
+    //     color.rgb = color.rgb + vec3(0.06, 0.06, 0.06)
+    // }
+    return color
+}

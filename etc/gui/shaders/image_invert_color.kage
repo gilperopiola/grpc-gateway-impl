@@ -1,0 +1,10 @@
+//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    color := imageSrc0At(srcPos)
+    invertedColor := vec4(1.0, 1.0, 1.0, 1.0) - color
+    invertedColor.a = color.a
+    return invertedColor
+}

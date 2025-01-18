@@ -77,7 +77,7 @@ func setupHTTP(service *service.Service, muxOpts []runtime.ServeMuxOption, mw mi
 func (s *Servers) runGRPC() {
 	var listenGRPC = func() (any, error) { return net.Listen("tcp", core.G.GRPCPort) }
 
-	result, err := utils.RetryFunc(listenGRPC)
+	result, err := utils.TryAndRetry(listenGRPC, 4, false, nil)
 	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)
@@ -87,7 +87,7 @@ func (s *Servers) runGRPC() {
 func (s *Servers) runHTTP() {
 	var listenHTTP = func() (any, error) { return net.Listen("tcp", core.G.HTTPPort) }
 
-	result, err := utils.RetryFunc(listenHTTP)
+	result, err := utils.TryAndRetry(listenHTTP, 4, false, nil)
 	logs.LogFatalIfErr(err)
 
 	listener := result.(net.Listener)

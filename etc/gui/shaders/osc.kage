@@ -1,0 +1,32 @@
+//kage:unit pixels
+
+package main
+
+// Uniform variables for customization
+var Time float        // Current time
+var Resolution vec2   // Screen dimensions
+
+var Frequency float   // Controls the frequency (wave thickness)
+var Speed float       // Controls the speed of the oscillation
+var Amplitude float   // Controls the amplitude (wave height)
+var Phase float       // Controls the phase shift
+var Color vec3        // Controls the color of the oscillator
+var Direction vec2    // Controls the direction of the oscillator's movement
+
+const PI = 3.14159265
+
+func Fragment(dstPos vec4) vec4 {
+    // Normalize coordinates to range [0, 1]
+    uv := dstPos.xy / Resolution
+
+    // Apply direction and speed to UV coordinates
+    uv += Direction * Time * Speed
+
+    // Compute the oscillator value
+    osc := (sin(uv.x * Frequency + Time * Speed + Phase) * Amplitude + 1.0) / 2.0
+
+    // Apply the oscillator value to the color
+    color := vec3(osc * Color.r, osc * Color.g, osc * Color.b)
+
+    return vec4(color, 1.0)
+}

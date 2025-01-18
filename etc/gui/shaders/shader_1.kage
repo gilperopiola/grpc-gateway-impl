@@ -1,0 +1,21 @@
+//kage:unit pixels
+
+package main
+
+var Time float      
+var Resolution vec2 
+
+const PI = 3.14159265
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    uvX := srcPos.x / Resolution.x
+    uvY := srcPos.y / Resolution.y
+
+    border := float(3) // pixels
+
+    if srcPos.x <= border || srcPos.y <= border || srcPos.x >= Resolution.x - border || srcPos.y >= Resolution.y - border {
+        return vec4(uvX, uvY, uvX * uvY, 1.0)
+    }
+
+    discard()
+}

@@ -1,0 +1,19 @@
+//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    targetColor := imageSrc0At(vec2(20, 20)) // Sample the color of the pixel at [20, 20]
+    color := imageSrc0At(srcPos)             // Fetch the current pixel's color
+
+    // Define a threshold for similarity (e.g., 0.1 for small differences)
+    threshold := 0.5
+    difference := length(color.rgb - targetColor.rgb) // Calculate the color difference
+
+    // If the color difference is below the threshold, make the pixel fully transparent
+    if difference < threshold {
+        discard()
+    }
+
+    return color
+}

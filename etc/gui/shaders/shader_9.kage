@@ -1,0 +1,15 @@
+//kage:unit pixels
+
+package main
+
+var Time float
+
+const PI float = 3.141592
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    dstSize := imageDstSize()
+    dstOrigin := imageDstOrigin()
+    uv := (dstPos.xy - dstOrigin) * 2 - dstSize
+    uv = uv / min(dstSize.x, dstSize.y)
+    return vec4(uv, 0, 1)
+}

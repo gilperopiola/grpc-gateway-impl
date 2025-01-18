@@ -1,0 +1,18 @@
+//kage:unit pixels
+
+package main
+
+var Time float      
+var Resolution vec2 
+
+const PI = 3.14159265
+
+func Fragment(dstPos vec4) vec4 {
+    uv := getUV(dstPos)
+    finalOsc := (sin((uv.x) * 45.0 + Time * 1 + 0.3) + 1.0) / 2.0
+    return vec4(finalOsc, 0, 0, 1.0)
+}
+
+func getUV(dstPos vec4) vec2 {
+    return dstPos.xy / Resolution
+}

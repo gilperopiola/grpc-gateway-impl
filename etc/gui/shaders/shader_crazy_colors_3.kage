@@ -1,0 +1,48 @@
+//kage:unit pixels
+package main
+
+var Time float
+
+func getColorAt(uv vec2, val float) vec3 {
+    baseColor := vec3(0.5, 0.5, 0.5)
+    altColor := vec3(0.5, 0.5, 0.5)
+    c := vec3(1, 1, 1)
+    d := vec3(0, 0.1, 0.2)
+    return baseColor + altColor * cos(6.28318 * (c * val + d))
+}
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+    dstSize := imageDstSize()
+    dstOrigin := imageDstOrigin()
+
+    uv := (dstPos.xy - dstOrigin) * 2 - dstSize //  Normalize uv to [-Size, Size]
+    uv = uv / min(dstSize.x, dstSize.y) 		//  Normalize uv to [-1, 1]
+
+    originalUV := uv
+    originalUVLen := length(originalUV)
+
+    const complexityLevel int = 4           // Controls how many figures are drawn
+    var complexityLevel2 float = 0.55      	// From 0.01 to 2~3~4, also adds complexity
+	var complexityLevel3 float = 1.3		// 1.5 is nice
+  
+    dreamlikeMult := 0.6
+    timeMult := 0.23                        // Controls the speed of color changes
+
+    outRGB := vec3(0)
+    for i := 0; i < complexityLevel; i++ {
+        index := float(i)
+
+        // Make uv only take its decimal part each time
+        uv = fract(uv * complexityLevel3) - 0.5
+
+        col := getColorAt(uv, originalUVLen + index + Time * timeMult)
+
+        colorMult := length(uv) * exp(-originalUVLen/complexityLevel2)
+        colorMult = sin(colorMult * 8 + Time) / 8
+        colorMult = abs(colorMult)
+        colorMult = pow(0.01 / colorMult, 1.2)
+        
+      	outRGB += col * (colorMult * dreamlikeMult)
+    }
+    return vec4(outRGB, 1)
+}

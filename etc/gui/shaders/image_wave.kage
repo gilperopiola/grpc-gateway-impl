@@ -1,0 +1,12 @@
+//kage:unit pixels
+
+package main
+
+var Time float 
+
+func Fragment(dstPos vec4, srcPos vec2) vec4 {
+    waveX := sin(srcPos.y * 10.0 + Time)
+    waveY := cos(srcPos.x * 10.0 + Time)
+    uv := vec2(waveX, waveY) 
+    return imageSrc0At(uv)
+}

@@ -40,6 +40,11 @@ generate:
 	protoc -I=$(PROTOS_DIR) --grpc-gateway_out=$(PBS_OUT_DIR) --grpc-gateway_opt=paths=source_relative $(PROTO_FILES)
 	protoc -I=$(PROTOS_DIR) --openapiv2_out=$(DOCS_OUT_DIR) $(PROTO_FILES)
 
+### ——> make build
+build:
+	@echo "——> Building $(NAME) $(VERSION)..."
+	go build -ldflags="-s -w" -trimpath -o $(NAME).exe main.go
+
 ### ——> make graph
 graph:
 	@echo "——> Graphing dependencies for $(NAME) $(VERSION)..."

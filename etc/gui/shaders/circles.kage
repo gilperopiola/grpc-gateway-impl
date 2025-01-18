@@ -1,0 +1,96 @@
+//kage:unit pixels
+
+package main
+
+var Time float              // Current time
+var Resolution vec2         // Screen dimensions
+var KaleidSides float       // Number of sides for kaleidoscope
+var Osc1Freq float          // Frequency for the first oscillator
+var Osc2FreqBase float      // Base frequency for the second oscillator
+var Osc2FreqMod float       // Modulation factor for the second oscillator
+var RotationSpeed float     // Speed of rotation
+var VoronoiScale float      // Scaling factor for Voronoi pattern
+var VoronoiSpeed float      // Speed of Voronoi movement
+
+const PI = 3.14159265
+
+// Like Hydra's osc()
+func osc(uv vec2, frequency float, sync float, offset float) float {
+    return (sin((uv.x + uv.y) * frequency + Time * sync + offset) + 1.0) / 2.0
+}
+
+// Rotate UV coords by a given angle
+func rotate(uv vec2, angle float) vec2 {
+    c := cos(angle)
+    s := sin(angle)
+    return vec2(
+        uv.x * c - uv.y * s,
+        uv.x * s + uv.y * c,
+    )
+}
+
+// Kaleidoscope
+func kaleid(uv vec2, sides float) vec2 {
+    p := uv - vec2(0.5, 0.5)
+    angle := atan2(p.y, p.x)
+    radius := length(p)
+    angle = mod(angle, 2.0 * PI / sides)
+    p = vec2(cos(angle), sin(angle)) * radius
+    return p + vec2(0.5, 0.5)
+}
+
+// Random number generator
+func random(st vec2) float {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123)
+}
+
+// Voronoi
+func voronoi(st vec2) float {
+    id := floor(st)
+    f := fract(st)
+
+    md := 8.0
+    for y := -1; y <= 1; y++ {
+        for x := -1; x <= 1; x++ {
+            neighbor := vec2(float(x), float(y))
+            point := random(id + neighbor)
+            diff := neighbor + point - f
+            dist := length(diff)
+            if dist < md {
+                md = dist
+            }
+        }
+    }
+    return md
+}
+
+func Fragment(dstPos vec4) vec4 {
+    
+    // Normalize and flip Y-axis
+    uv := dstPos.xy / Resolution
+    uv.y = 1.0 - uv.y
+
+    // Rotate UV coordinates over time
+    angle := Time * RotationSpeed
+    uv_rotated := rotate(uv - vec2(0.5, 0.5), angle) + vec2(0.5, 0.5)
+
+    // First pattern: combine oscillator and Voronoi
+    uv_kaleid := kaleid(uv_rotated, KaleidSides)
+    uv_voronoi := uv_kaleid * VoronoiScale + vec2(Time * VoronoiSpeed)
+    voronoi_value := voronoi(uv_voronoi)
+    osc1 := osc(uv_kaleid, Osc1Freq, 0.4, 0.0)
+    first_pattern := (osc1 + voronoi_value) / 2.0
+
+    // Second pattern: stripes with kaleidoscope effect
+    osc2_freq := (sin(Time) / Osc2FreqMod) + Osc2FreqBase
+    uv_kaleid2 := kaleid(uv_rotated, KaleidSides)
+    osc2 := osc(uv_kaleid2, osc2_freq, 0.04, 0.0)
+
+    // Combine patterns
+    final_pattern := first_pattern * osc2
+    final_pattern = clamp(final_pattern, 0.0, 1.0)
+
+    // Output the final color
+    return vec4(vec3(final_pattern), 1.0)
+}
+

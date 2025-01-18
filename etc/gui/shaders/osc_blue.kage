@@ -1,0 +1,46 @@
+
+//kage:unit pixels
+
+package main
+
+var Time float       // The current time
+var Resolution vec2  // The screen dimensions
+
+const PI = 3.14159265
+
+// Rotate a coordinate by a given angle
+func rotate(uv vec2, angle float) vec2 {
+    c := cos(angle)
+    s := sin(angle)
+    return vec2(
+        uv.x * c - uv.y * s,
+        uv.x * s + uv.y * c,
+    )
+}
+
+func Fragment(dstPos vec4) vec4 {
+    // Normalize coordinates to range [0, 1]
+    uv := dstPos.xy / Resolution
+
+    // Apply kaleidoscope effect
+    kaleidSides := 1.5 + sin(Time) / 10.0
+    kaleidAngle := 2.0 * PI / kaleidSides
+
+    centeredUV := uv - vec2(0.5, 0.5)
+    radius := length(centeredUV)
+    angle := atan2(centeredUV.y, centeredUV.x)
+    angle = mod(angle, kaleidAngle)
+    kaleidUV := vec2(cos(angle), sin(angle)) * radius + vec2(0.5, 0.5)
+
+    // Apply final rotation over time
+    rotationAngle := Time * 0.15
+    finalUV := rotate(kaleidUV, rotationAngle)
+
+    // Compute final oscillator value at the transformed UV
+    finalOsc := (sin((finalUV.x + finalUV.y) * 15.0 + Time * 0.1 + 0.3) + 1.0) / 2.0
+
+    // Set the color to blue channel using the final oscillator value
+    color := vec4(0.0, 0.0, finalOsc, 1.0)
+
+    return color
+}

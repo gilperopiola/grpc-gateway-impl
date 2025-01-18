@@ -49,8 +49,7 @@ func NewSQLDBConn(cfg *core.DBCfg, hashPwdFn func(string) string) core.DB {
 	// We try to connect to the DB directly.
 	// If it fails, we try to connect without specifying the DB and then creating it.
 	// If it fails, we retry this process a number of times.
-	retryCfg := utils.RetryCfg{Times: cfg.Retries, OnFailure: createDB}
-	dbConn, err := utils.RetryFunc(connectToDB, retryCfg)
+	dbConn, err := utils.TryAndRetry(connectToDB, cfg.Retries, false, createDB)
 	logs.LogFatalIfErr(err, errs.FailedDBConn)
 	logs.LogResult("DB Connection for "+cfg.Database, nil)
 

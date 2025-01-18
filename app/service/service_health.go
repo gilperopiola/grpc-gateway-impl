@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
@@ -26,20 +27,19 @@ func (h *HealthSvc) CheckHealth(ctx context.Context, _ *pbs.CheckHealthRequest) 
 	msg := core.G.AppName + " " + core.G.Version
 
 	// Get the DB or return unhealthy.
-	if _, err := utils.RetryFuncNoErr(h.Clients.GetDB); err != nil {
+	if _, err := utils.TryAndRetryNoErr(h.Clients.GetDB, 3, false, nil); err != nil {
 		return nil, status.Error(codes.Unavailable, msg+" unhealthy: database connection not working")
 	}
 
 	// Make HTTP call or return unhealthy.
-	if _, err := h.Clients.GetCurrentWeather(ctx, 50, 50); err != nil {
-		gptResponse, err := h.Clients.SendRequestToGPT(ctx, "give a really short response, which includes the word 'healthy'.")
-		if err != nil {
-			return nil, status.Error(codes.Unavailable, msg+" unhealthy: http calls not working")
-		}
+	word := "healthy"
+	gptResponse, err := h.Clients.SendRequestToGPT(ctx, fmt.Sprintf("Give a really short response, which includes the word '%s'.", word))
+	if err != nil {
+		return nil, status.Error(codes.Unavailable, msg+" unhealthy: http calls not working")
+	}
 
-		if !strings.Contains(strings.ToLower(gptResponse), "healthy") {
-			zap.S().Warnf("GPT response does not contain 'healthy': %s", gptResponse)
-		}
+	if !strings.Contains(strings.ToLower(gptResponse), "healthy") {
+		zap.S().Warnf("GPT response does not contain 'healthy': %s", gptResponse)
 	}
 
 	return &pbs.CheckHealthResponse{Info: msg + " healthy"}, nil
