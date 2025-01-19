@@ -78,7 +78,7 @@ func (api *gptAPI) SendRequestToDallE(ctx context.Context, prompt string, size p
 		Size:   api.imageSizeToActualPixels(size),
 		N:      1,
 	}
-	if size == pbs.GPTImageSize_GPT_IMAGE_SIZE_TINY || size == pbs.GPTImageSize_GPT_IMAGE_SIZE_SMALL {
+	if size == pbs.GPTImageSize_TINY || size == pbs.GPTImageSize_SMALL {
 		req.Model = apimodels.DALL_E2
 		req.N = 4
 	}
@@ -111,15 +111,15 @@ func (api *gptAPI) SendRequestToDallE(ctx context.Context, prompt string, size p
 
 func (api *gptAPI) imageSizeToActualPixels(size pbs.GPTImageSize) string {
 	switch size {
-	case pbs.GPTImageSize_GPT_IMAGE_SIZE_DEFAULT:
+	case pbs.GPTImageSize_DEFAULT:
 		return "1024x1024"
-	case pbs.GPTImageSize_GPT_IMAGE_SIZE_WIDE:
+	case pbs.GPTImageSize_WIDE:
 		return "1792x1024"
-	case pbs.GPTImageSize_GPT_IMAGE_SIZE_TALL:
+	case pbs.GPTImageSize_TALL:
 		return "1024x1792"
-	case pbs.GPTImageSize_GPT_IMAGE_SIZE_SMALL:
+	case pbs.GPTImageSize_SMALL:
 		return "512x512"
-	case pbs.GPTImageSize_GPT_IMAGE_SIZE_TINY:
+	case pbs.GPTImageSize_TINY:
 		return "256x256"
 	default:
 		logs.LogUnexpected(fmt.Errorf("invalid dall-eimage size: %v", size))

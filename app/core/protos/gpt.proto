@@ -60,8 +60,8 @@ message NewGPTChatResponse {
 }
 
 message ReplyToGPTChatRequest {
-  int32 chat_id = 1 [ (google.api.field_behavior) = REQUIRED ];
-  string message = 2 [ (google.api.field_behavior) = REQUIRED ];
+  int32 chat_id  = 1  [ (google.api.field_behavior) = REQUIRED ];
+  string message = 2  [ (google.api.field_behavior) = REQUIRED ];
 }
 
 message ReplyToGPTChatResponse {
@@ -75,15 +75,15 @@ message ReplyToGPTChatResponse {
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 enum GPTImageSize {
-  GPT_IMAGE_SIZE_DEFAULT  = 0;
-  GPT_IMAGE_SIZE_WIDE     = 1;
-  GPT_IMAGE_SIZE_TALL     = 2;
-  GPT_IMAGE_SIZE_TINY     = 3;
-  GPT_IMAGE_SIZE_SMALL    = 4;
+  DEFAULT  = 0;
+  WIDE     = 1;
+  TALL     = 2;
+  TINY     = 3;
+  SMALL    = 4;
 }
 
 message NewGPTImageRequest {
-  string message = 1 [ (google.api.field_behavior) = REQUIRED ];
+  string message    = 1 [ (google.api.field_behavior) = REQUIRED ];
   GPTImageSize size = 2;
 }
 

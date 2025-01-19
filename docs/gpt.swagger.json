@@ -157,13 +157,13 @@
     "pbsGPTImageSize": {
       "type": "string",
       "enum": [
-        "GPT_IMAGE_SIZE_DEFAULT",
-        "GPT_IMAGE_SIZE_WIDE",
-        "GPT_IMAGE_SIZE_TALL",
-        "GPT_IMAGE_SIZE_TINY",
-        "GPT_IMAGE_SIZE_SMALL"
+        "DEFAULT",
+        "WIDE",
+        "TALL",
+        "TINY",
+        "SMALL"
       ],
-      "default": "GPT_IMAGE_SIZE_DEFAULT"
+      "default": "DEFAULT"
     },
     "pbsNewGPTChatRequest": {
       "type": "object",

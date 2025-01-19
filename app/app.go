@@ -60,12 +60,18 @@ func Setup() (runAppFunc, cleanUpFunc) {
 		app.Tools.AddCleanupFuncWithErr(logs.SyncLogger)
 	}()
 
-	go runGPTWorker(&app)
-
-	//go gui.Start(app.Service)
-
 	logs.InitStep(3)
-	return app.Servers.Run, app.Tools.Cleanup
+	return app.Run, app.Cleanup
+}
+
+func (app *App) Run() {
+	go runGPTWorker(app)
+	//go gui.Start(app.Service)
+	app.Servers.Run()
+}
+
+func (app *App) Cleanup() {
+	app.Tools.Cleanup()
 }
 
 // Returning these instead of just func() for clarity's sake.

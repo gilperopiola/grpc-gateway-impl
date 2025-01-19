@@ -1,11 +1,13 @@
-# GGWI —— GRPC Gateway Implementation
+# ⭐ —— GRPC Gateway Implementation
 
 NAME 			:= grpc-gateway-impl
-VERSION 		:= v1.1.1
-DOCS_OUT_DIR 	:= ./docs # Where the auto-generated swagger files will go
-PBS_OUT_DIR 	:= ./app/core/pbs # Where the auto-generated .pb.go files will go
-PROTOS_DIR 		:= ./app/core/protos # Where the .proto files are
-PROTO_FILES 	:= $(shell find $(PROTOS_DIR) -maxdepth 1 -name "*.proto") # Top-level only
+VERSION 		:= v1.1.2
+
+DOCS_OUT_DIR 	:= ./docs 				# Where the auto-generated swagger files will go
+PBS_OUT_DIR 	:= ./app/core/pbs 		# Where the auto-generated .pb.go files will go
+PROTOS_DIR 		:= ./app/core/protos 	# Where the .proto files are
+
+PROTO_FILES 	:= $(shell find $(PROTOS_DIR) -maxdepth 1 -name "*.proto")
 
 ### ——> make
 all:
@@ -14,7 +16,7 @@ all:
 
 ### ——> make run
 run:
-	@echo "——> Running $(NAME) $(VERSION)..."
+	@echo ">>> Running $(NAME) $(VERSION)..."
 	go run main.go
 
 ### ——> make walk
@@ -32,29 +34,28 @@ test:
 # Runs go generate for some stuff
 # Also auto-generates the .pb.go files and swagger based on the .protos
 generate:
-	@echo "——> Generating code for $(NAME) $(VERSION)..."
+	@echo ">>> Generating code for $(NAME) $(VERSION)..."
 	go generate ./...
 
-	@echo "——> And now based on the .protos..."
+	@echo ">>> And now based on the .protos..."
 	protoc -I=$(PROTOS_DIR) --go_out=$(PBS_OUT_DIR) --go-grpc_out=$(PBS_OUT_DIR) --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative $(PROTO_FILES)
 	protoc -I=$(PROTOS_DIR) --grpc-gateway_out=$(PBS_OUT_DIR) --grpc-gateway_opt=paths=source_relative $(PROTO_FILES)
 	protoc -I=$(PROTOS_DIR) --openapiv2_out=$(DOCS_OUT_DIR) $(PROTO_FILES)
 
 ### ——> make build
 build:
-	@echo "——> Building $(NAME) $(VERSION)..."
+	@echo ">>> Building $(NAME) $(VERSION)..."
 	go build -ldflags="-s -w" -trimpath -o $(NAME).exe main.go
 
 ### ——> make graph
 graph:
-	@echo "——> Graphing dependencies for $(NAME) $(VERSION)..."
+	@echo ">>> Graphing dependencies for $(NAME) $(VERSION)..."
 	./scripts/graph_dependencies.sh
 
 ### ——> make install
-# Besides installing protoc and adding it to the path,
-# to get the code auto-generation you'll also need to run:
+# To be able to run the code auto-generation
 install:
-	@echo "——> Installing dependencies for $(NAME) $(VERSION)..."
+	@echo ">>> Installing dependencies for $(NAME) $(VERSION)..."
 	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
 	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
@@ -63,7 +64,7 @@ install:
 ### ——> make push (optional msg='msg')
 push:
 	git add .
-	git commit -m "[$(VERSION)] $(msg)"
+	git commit -m "[$(VERSION)] <3 $(msg)"
 	git push origin master
 
 ### ——> make clean
