@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/bufbuild/protovalidate-go v0.6.3
-	github.com/gilperopiola/god v0.1.8
+	github.com/gilperopiola/god v0.1.9
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0
 	github.com/hajimehoshi/ebiten/v2 v2.8.6

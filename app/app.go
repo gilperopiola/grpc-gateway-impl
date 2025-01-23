@@ -7,6 +7,8 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/servers"
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
+	"github.com/gilperopiola/grpc-gateway-impl/app/workers"
+	"github.com/gilperopiola/grpc-gateway-impl/etc/gui"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -65,8 +67,8 @@ func Setup() (runAppFunc, cleanUpFunc) {
 }
 
 func (app *App) Run() {
-	go runGPTWorker(app)
-	//go gui.Start(app.Service)
+	workers.RunAll(app.Service)
+	gui.Start(app.Service)
 	app.Servers.Run()
 }
 

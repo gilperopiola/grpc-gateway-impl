@@ -78,9 +78,9 @@ func (api *gptAPI) SendRequestToDallE(ctx context.Context, prompt string, size p
 		Size:   api.imageSizeToActualPixels(size),
 		N:      1,
 	}
-	if size == pbs.GPTImageSize_TINY || size == pbs.GPTImageSize_SMALL {
+	if size == pbs.GPTImageSize_TINY {
 		req.Model = apimodels.DALL_E2
-		req.N = 4
+		req.N = 1
 	}
 
 	status, body, err := utils.POST(ctx, url, &req, api.key, api.httpClient)

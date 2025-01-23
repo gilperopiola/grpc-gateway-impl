@@ -19,6 +19,8 @@ github.com/envoyproxy/protoc-gen-validate v1.0.4 h1:gVPz/FMfvh57HdSJQyvBtF00j8JU
 github.com/envoyproxy/protoc-gen-validate v1.0.4/go.mod h1:qys6tmnRsYrQqIhm2bvKZH4Blx/1gTIZ2UKVY1M+Yew=
 github.com/gilperopiola/god v0.1.8 h1:xPzinVXjlYbtpEaa27c6r/SniKm14xUM98I1vjpOsyM=
 github.com/gilperopiola/god v0.1.8/go.mod h1:nepWZTnNjewuMeQNtym51tlv6ppXHVgK+HdIqtlNjHo=
+github.com/gilperopiola/god v0.1.9 h1:iFtf/gbDGkLOrHE1F+lFeTEZxnNoPRIpCjEMDK34Vfw=
+github.com/gilperopiola/god v0.1.9/go.mod h1:nepWZTnNjewuMeQNtym51tlv6ppXHVgK+HdIqtlNjHo=
 github.com/go-sql-driver/mysql v1.7.0/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
 github.com/go-sql-driver/mysql v1.8.1/go.mod h1:wEBSXgmK//2ZFJyE+qWnIsVGmvmEKlqwuVSjsCm7DZg=
