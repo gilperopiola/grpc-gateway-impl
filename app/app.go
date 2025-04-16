@@ -50,14 +50,22 @@ func Setup() (runAppFunc, cleanUpFunc) {
 	logs.InitStep(1)
 	func() {
 		app.Tools = tools.Setup(app.Config)
-		app.Clients = clients.Setup(app.Config, app.Tools)
+
+		// Handle potential error from clients.Setup
+		var err error
+		app.Clients, err = clients.Setup(app.Config, app.Tools)
+		if err != nil {
+			logs.LogFatal(err)
+		}
+
 		app.Service = service.Setup(app.Clients, app.Tools)
 		app.Servers = servers.Setup(app.Service, app.Tools)
 	}()
 
 	logs.InitStep(2)
 	func() {
-		app.Tools.AddCleanupFunc(app.Clients.CloseDB)
+		// Wrap the CloseDB method to match the expected signature
+		app.Tools.AddCleanupFunc(func() { app.Clients.CloseDB() })
 		app.Tools.AddCleanupFunc(app.Servers.Shutdown)
 		app.Tools.AddCleanupFuncWithErr(logs.SyncLogger)
 	}()

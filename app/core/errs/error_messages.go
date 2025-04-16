@@ -29,6 +29,24 @@ const (
 	FailedToInsertDBAdmin = "Failed to insert admin to DB: %v"
 	FailedToGetSQLDB      = "Failed to get SQL DB connection: %v"
 	FailedToCloseSQLDB    = "Failed to close SQL DB connection: %v"
+
+	/* -~-~-~-~-~ Repository error messages ~-~-~-~-~- */
+
+	// Group repository errors
+	FailedToCreateGroup    = "Failed to create group: %v"
+	GroupNotFound          = "Group not found: %v"
+	FailedToFetchGroups    = "Failed to fetch groups: %v"
+	FailedToAddUserToGroup = "Failed to add user to group: %v"
+
+	// User repository errors
+	FailedToCreateUser = "Failed to create user: %v"
+	UserNotFound       = "User not found: %v"
+	FailedToFetchUsers = "Failed to fetch users: %v"
+
+	// GPT Chat repository errors
+	FailedToCreateChat    = "Failed to create chat: %v"
+	ChatNotFound          = "Chat not found: %v"
+	FailedToCreateMessage = "Failed to create message: %v"
 )
 
 const (

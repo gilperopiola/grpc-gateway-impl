@@ -36,7 +36,16 @@ type ServiceLayer interface {
 
 type (
 	Clients interface {
-		DB
+		// Database access
+		GetDB() any
+		CloseDB() error
+
+		// Repositories
+		UserRepository() UserRepository
+		GroupRepository() GroupRepository
+		GPTChatRepository() GPTChatRepository
+
+		// API clients
 		APIClients
 	}
 

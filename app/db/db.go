@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -15,13 +16,53 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ core.DB = &DB{}
-
-type DB struct {
+// LegacyDB is the old DB implementation, kept for backward compatibility
+// It should be gradually phased out in favor of GormDB
+type LegacyDB struct {
 	core.InnerDB
 }
 
-func NewSQLDBConn(cfg *core.DBCfg, hashPwdFn func(string) string) core.DB {
+// Verify that LegacyDB implements the core.DBOperations interface
+var _ core.DBOperations = (*LegacyDB)(nil)
+
+// These methods implement the DBOperations interface for backward compatibility
+func (d *LegacyDB) Find(out any, where ...any) error {
+	return d.InnerDB.Find(out, where...).Error()
+}
+
+func (d *LegacyDB) First(out any, where ...any) error {
+	return d.InnerDB.First(out, where...).Error()
+}
+
+func (d *LegacyDB) Create(value any) error {
+	return d.InnerDB.Create(value).Error()
+}
+
+func (d *LegacyDB) Save(value any) error {
+	return d.InnerDB.Save(value).Error()
+}
+
+func (d *LegacyDB) Delete(value any, where ...any) error {
+	return d.InnerDB.Delete(value, where...).Error()
+}
+
+func (d *LegacyDB) WithContext(ctx context.Context) core.DBOperations {
+	return &LegacyDB{d.InnerDB.WithContext(ctx).(core.InnerDB)}
+}
+
+func (d *LegacyDB) Transaction(fn func(tx core.DBOperations) error) error {
+	return fmt.Errorf("Transaction not implemented in legacy DB")
+}
+
+func (d *LegacyDB) Close() error {
+	d.InnerDB.Close()
+	return nil
+}
+
+// NewSQLDBConn creates a legacy DB connection
+// This function is kept for backward compatibility but should be deprecated
+// in favor of NewGormDB
+func NewSQLDBConn(cfg *core.DBCfg, hashPwdFn func(string) string) core.DBOperations {
 
 	// We use our Logger wrapped inside of a gorm adapter
 	dbLogger := newDBLogger(zap.L(), cfg.LogLevel)
@@ -54,11 +95,13 @@ func NewSQLDBConn(cfg *core.DBCfg, hashPwdFn func(string) string) core.DB {
 	logs.LogResult("DB Connection for "+cfg.Database, nil)
 
 	innerDB := dbConn.(*innerDB)
-	postDBConnActions(innerDB, cfg, hashPwdFn)
-	return &DB{innerDB}
+	legacyPostDBConnActions(innerDB, cfg, hashPwdFn)
+	return &LegacyDB{innerDB}
 }
 
-func postDBConnActions(db *innerDB, cfg *core.DBCfg, hashPwdFn func(string) string) {
+// legacyPostDBConnActions is a renamed version of the original function
+// to avoid conflict with the new setupDBPostConnection function
+func legacyPostDBConnActions(db *innerDB, cfg *core.DBCfg, hashPwdFn func(string) string) {
 	for _, model := range models.AllModels {
 		if cfg.EraseAllData {
 			logs.LogResult("Erasing DB table   "+model.(models.Model).TableName(), db.Unscoped().Delete(model, nil).Error())
@@ -80,5 +123,10 @@ func postDBConnActions(db *innerDB, cfg *core.DBCfg, hashPwdFn func(string) stri
 	sqlDB.SetMaxOpenConns(50)
 }
 
-func (this *DB) GetDB() any { return this.InnerDB }
-func (this *DB) CloseDB()   { this.InnerDB.Close() }
+// Deprecated: Use methods directly on DBOperations interface instead
+func (d *LegacyDB) GetDB() any { return d.InnerDB }
+
+// Deprecated: Use Close() instead
+func (d *LegacyDB) CloseDB() {
+	d.Close()
+}

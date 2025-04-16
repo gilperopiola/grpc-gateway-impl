@@ -20,21 +20,22 @@ var (
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 // DBCreateUser creates a new user in the database.
-func (this *DB) DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
+// Deprecated: Use repositories.UserRepository instead
+func (this *LegacyDB) DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error) {
 	user := models.User{Username: username, Password: hashedPwd}
 
 	if err := this.InnerDB.WithContext(ctx).Create(&user).Error(); err != nil {
-		return nil, &errs.DBErr{err, CreateUserErr}
+		return nil, &errs.DBErr{Err: err, Context: CreateUserErr}
 	}
 
 	return &user, nil
 }
 
-// DBGetUser returns a user from the database.
-// At least one option must be provided, otherwise an error will be returned.
-func (this *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
+// DBGetUser gets a user from the database.
+// Deprecated: Use repositories.UserRepository instead
+func (this *LegacyDB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 	if len(opts) == 0 {
-		return nil, &errs.DBErr{nil, NoOptionsErr}
+		return nil, &errs.DBErr{Err: nil, Context: NoOptionsErr}
 	}
 
 	query := this.InnerDB.Model(&models.User{}).WithContext(ctx)
@@ -44,32 +45,30 @@ func (this *DB) DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error) {
 
 	var user models.User
 	if err := query.First(&user).Error(); err != nil {
-		return nil, &errs.DBErr{err, GetUserErr}
+		return nil, &errs.DBErr{Err: err, Context: GetUserErr}
 	}
 
 	return &user, nil
 }
 
-// DBGetUsers returns a list of users from the database.
-func (this *DB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error) {
+// DBGetUsers gets users from the database.
+// Deprecated: Use repositories.UserRepository instead
+func (this *LegacyDB) DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error) {
+	var users []*models.User
+	var count int64
+
 	query := this.InnerDB.Model(&models.User{}).WithContext(ctx)
 	for _, opt := range opts {
 		opt.(core.SqlDBOpt)(query)
 	}
 
-	var matchingUsers int64
-	if err := query.Count(&matchingUsers).Error(); err != nil {
-		return nil, 0, &errs.DBErr{err, CountUsersErr}
+	if err := query.Count(&count).Error(); err != nil {
+		return nil, 0, &errs.DBErr{Err: err, Context: CountUsersErr}
 	}
 
-	if matchingUsers == 0 {
-		return nil, 0, nil
+	if err := query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error(); err != nil {
+		return nil, 0, &errs.DBErr{Err: err, Context: GetUsersErr}
 	}
 
-	var users []*models.User
-	if err := query.Offset(page * pageSize).Limit(pageSize).Find(&users).Error(); err != nil {
-		return nil, 0, &errs.DBErr{err, GetUsersErr}
-	}
-
-	return users, int(matchingUsers), nil
+	return users, int(count), nil
 }

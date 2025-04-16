@@ -25,7 +25,9 @@ func (s *GroupSvc) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.C
 	}
 
 	invitedUserIDs := utils.Int32Slice(req.InvitedUserIds).ToIntSlice()
-	group, err := s.Clients.DBCreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
+
+	// Updated to use GroupRepository instead of direct DB call
+	group, err := s.Clients.GroupRepository().CreateGroup(ctx, req.Name, groupOwnerID, invitedUserIDs)
 	if err != nil {
 		return nil, errs.GRPCFromDB(err, core.GetRouteFromCtx(ctx).Name)
 	}
@@ -34,7 +36,8 @@ func (s *GroupSvc) CreateGroup(ctx god.Ctx, req *pbs.CreateGroupRequest) (*pbs.C
 }
 
 func (s *GroupSvc) GetGroup(ctx god.Ctx, req *pbs.GetGroupRequest) (*pbs.GetGroupResponse, error) {
-	group, err := s.Clients.DBGetGroup(ctx, core.WithID(req.GroupId))
+	// Updated to use GroupRepository instead of direct DB call
+	group, err := s.Clients.GroupRepository().GetGroupByID(ctx, int(req.GroupId))
 	if err != nil {
 		if errs.IsDBNotFound(err) {
 			return nil, errs.GRPCNotFound("group", int(req.GroupId))

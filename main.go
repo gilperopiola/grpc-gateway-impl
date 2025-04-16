@@ -19,11 +19,9 @@ func main() {
 	runApp()
 
 	waitForSignal := make(chan os.Signal, 1)
-	signal.Notify(waitForSignal, stopSignals...)
+	signal.Notify(waitForSignal, []os.Signal{os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM}...)
 	<-waitForSignal
 }
-
-var stopSignals = []os.Signal{os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM}
 
 // —               ╭───────────────╮                         ╭───────────╮
 // GRPC Request —> │  GRPC Server  │ —> Interceptor Chain —> │  Service  │ —> DB/API Calls ~ Tools ~ Etc ╮

@@ -24,7 +24,8 @@ type AuthSvc struct {
 //     a. If we don't get any error, that means the user already exists.
 //     b. If we get an error but it's not a DBNotFound, we return an unknown error.
 func (s *AuthSvc) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupResponse, error) {
-	user, err := s.Clients.DBGetUser(ctx, core.WithUsername(req.Username))
+	// Use repository instead of direct DB call
+	user, err := s.Clients.UserRepository().GetUserByUsername(ctx, req.Username)
 	if err == nil || user != nil {
 		return nil, errUserAlreadyExists()
 	}
@@ -34,7 +35,8 @@ func (s *AuthSvc) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupRespon
 	}
 
 	// If we're here, we should have gotten a not found in the function above.
-	if user, err = s.Clients.DBCreateUser(ctx, req.Username, s.Tools.HashPassword(req.Password)); err != nil {
+	// Use repository instead of direct DB call
+	if user, err = s.Clients.UserRepository().CreateUser(ctx, req.Username, s.Tools.HashPassword(req.Password)); err != nil {
 		return nil, errCallingUsersDB(ctx, err)
 	}
 
@@ -47,7 +49,8 @@ func (s *AuthSvc) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupRespon
 
 func (s *AuthSvc) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Tools.CreateFolder("users/user_" + strconv.Itoa(user.ID))
-	s.Clients.DBCreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
+	// Use repository instead of direct DB call
+	s.Clients.GroupRepository().CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 }
 
 // Login first tries to get the user with the given username.
@@ -56,7 +59,8 @@ func (s *AuthSvc) doAfterSignup(ctx god.Ctx, user *models.User) {
 // Then we PasswordsMatch both passwords. If they don't match, we return an unauthenticated error.
 // If everything is OK, we generate a token and return it.
 func (s *AuthSvc) Login(ctx god.Ctx, req *pbs.LoginRequest) (*pbs.LoginResponse, error) {
-	user, err := s.Clients.DBGetUser(ctx, core.WithUsername(req.Username))
+	// Use repository instead of direct DB call
+	user, err := s.Clients.UserRepository().GetUserByUsername(ctx, req.Username)
 	if errs.IsDBNotFound(err) {
 		return nil, errs.GRPCNotFound("user", req.Username)
 	}

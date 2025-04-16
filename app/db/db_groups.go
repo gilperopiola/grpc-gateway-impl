@@ -11,25 +11,27 @@ import (
 /*       - SQL DB Tool: Groups -       */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-func (this *DB) DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
+// Deprecated: Use repositories.GroupRepository instead
+func (this *LegacyDB) DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error) {
 	group := models.Group{Name: name, OwnerID: ownerID}
 
 	if err := this.InnerDB.WithContext(ctx).Create(&group).Error(); err != nil {
-		return nil, &errs.DBErr{err, "T0D0"}
+		return nil, &errs.DBErr{Err: err, Context: "Failed to create group"}
 	}
 
 	for _, invitedUserID := range invitedUserIDs {
 		if err := this.InnerDB.WithContext(ctx).Model(&group).Association("Invited").Append(&models.User{ID: invitedUserID}); err != nil {
-			return nil, &errs.DBErr{err, "T0D0"}
+			return nil, &errs.DBErr{Err: err, Context: "Failed to add invited user to group"}
 		}
 	}
 
 	return &group, nil
 }
 
-func (this *DB) DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
+// Deprecated: Use repositories.GroupRepository instead
+func (this *LegacyDB) DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
 	if len(opts) == 0 {
-		return nil, &errs.DBErr{nil, NoOptionsErr}
+		return nil, &errs.DBErr{Err: nil, Context: NoOptionsErr}
 	}
 
 	query := this.InnerDB.Model(&models.Group{}).WithContext(ctx)
@@ -39,7 +41,7 @@ func (this *DB) DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error) {
 
 	var group models.Group
 	if err := query.First(&group).Error(); err != nil {
-		return nil, &errs.DBErr{err, "T0D0"}
+		return nil, &errs.DBErr{Err: err, Context: "Failed to get group"}
 	}
 
 	return &group, nil
