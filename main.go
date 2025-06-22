@@ -1,26 +1,19 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
+	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app"
 )
 
 // 🔻 - --------------------------------------- - 🔻
-// 🔻 - --- - GRPC Gateway Implementation - --- - 🔻
+// 🔻 - ─── ─ GRPC Gateway Implementation ─ ─── - 🔻
 // 🔻 - --------------------------------------- - 🔻
 
 func main() {
 	runApp, cleanUp := app.Setup()
 	defer cleanUp()
-
 	runApp()
-
-	waitForSignal := make(chan os.Signal, 1)
-	signal.Notify(waitForSignal, []os.Signal{os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM}...)
-	<-waitForSignal
+	god.WaitForSignal()
 }
 
 // —               ╭───────────────╮                         ╭───────────╮

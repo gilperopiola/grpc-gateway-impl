@@ -24,20 +24,20 @@ type Clients struct {
 // Setup initializes all clients and repositories
 func Setup(cfg *core.Config, tools core.Tools) (*Clients, error) {
 	// Initialize database
-	dbOperations, err := db.NewGormDB(&cfg.DBCfg, tools.HashPassword)
+	dbOperator, err := db.NewGormDB(&cfg.DBCfg, tools.HashPassword)
 	if err != nil {
 		return nil, err
 	}
 
 	// Initialize repositories
-	repos := repositories.NewRepositoryRegistry(dbOperations)
+	repos := repositories.NewRepositoryRegistry(dbOperator)
 
 	// Initialize API clients
 	apiClients := apis.NewAPIs(&cfg.APIsCfg)
 
 	clients := Clients{
 		APIClients:   apiClients,
-		DB:           dbOperations,
+		DB:           dbOperator,
 		Repositories: repos,
 	}
 

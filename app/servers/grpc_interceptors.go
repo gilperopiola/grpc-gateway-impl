@@ -24,6 +24,7 @@ func getInterceptors(tools core.Tools) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
 		newRateLimitingInterceptor(tools),
 		newPanicRecovererInterceptor(),
+		newXRequestIDInterceptor(tools),
 		logRequestInterceptor(),
 		validateRouteAuthInterceptor(tools),
 		validateRequestInterceptor(tools),
@@ -71,6 +72,15 @@ func newPanicRecovererInterceptor() grpc.UnaryServerInterceptor {
 
 		handlerFinishedOK = true
 		return resp, err
+	}
+}
+
+func newXRequestIDInterceptor(tools core.Tools) grpc.UnaryServerInterceptor {
+	const CtxKeyXReqID = "CtxKeyXRequestID"
+	return func(c context.Context, req any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
+		newID := tools.GenerateID()
+		c = tools.AddToCtx(c, CtxKeyXReqID, newID)
+		return next(c, req)
 	}
 }
 

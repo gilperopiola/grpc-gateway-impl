@@ -33,7 +33,7 @@ var _ core.DBOperations = (*GormDB)(nil)
 func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*GormDB, error) {
 	// Configure the logger
 	zapLogger := zap.L() // Use default logger as fallback
-	if logs.GetZapLogger != nil {
+	if logs.GetZapLogger() != nil {
 		zapLogger = logs.GetZapLogger()
 	}
 
@@ -69,7 +69,7 @@ func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*GormDB, error) 
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.FailedDBConn}
 	}
-	logs.LogResult("DB Connection for "+cfg.Database, nil)
+	logs.LogSimple("✅ DB Connection for " + cfg.Database + " established OK")
 
 	gormDB := dbConn.(*gorm.DB)
 	gormDBInstance := &GormDB{db: gormDB}
@@ -102,7 +102,7 @@ func setupDBPostConnection(db *GormDB, cfg *core.DBCfg, hashPwdFn func(string) s
 				logs.LogResult("Error migrating model "+modelName, err)
 				return err
 			}
-			logs.LogResult("Migrated DB table "+modelName, nil)
+			logs.LogSimple("✅ DB Table " + modelName + " migrated OK")
 		}
 	}
 

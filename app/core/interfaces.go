@@ -15,14 +15,11 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"github.com/google/uuid"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
-
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
-/*            - Interfaces -           */
-/* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 /* -~-~-~-~- Main Interfaces -~-~-~-~- */
 
@@ -110,9 +107,14 @@ type Tools interface {
 	ContextManager
 	ModelConverter
 	ImageLoader
+	IDGenerator[string]
 }
 
 /* -~-~-~-~- Other -~-~-~-~- */
+
+type IDType interface {
+	string | int | int64 | uuid.UUID
+}
 
 // This isn't used like the other tools, as it's instantiated per request.
 // The implementation lives on the tools pkg.

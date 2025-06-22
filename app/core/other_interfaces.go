@@ -102,6 +102,10 @@ type (
 		LoadImgFromBase64(b64 string) (image.Image, error)
 	}
 
+	IDGenerator[T IDType] interface {
+		GenerateID() T
+	}
+
 	// Encode and decode models.
 	ModelConverter interface {
 		UserToUserInfoPB(*models.User) *pbs.UserInfo

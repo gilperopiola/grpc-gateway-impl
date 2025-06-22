@@ -6,6 +6,7 @@ import (
 	"github.com/gilperopiola/god"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
+	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
 )
@@ -50,6 +51,7 @@ func (s *AuthSvc) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupRespon
 func (s *AuthSvc) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Tools.CreateFolder("users/user_" + strconv.Itoa(user.ID))
 	// Use repository instead of direct DB call
+	logs.LogSimple("New user", user.Username)
 	s.Clients.GroupRepository().CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 }
 

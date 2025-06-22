@@ -8,7 +8,6 @@ import (
 	"github.com/gilperopiola/grpc-gateway-impl/app/service"
 	"github.com/gilperopiola/grpc-gateway-impl/app/tools"
 	"github.com/gilperopiola/grpc-gateway-impl/app/workers"
-	"github.com/gilperopiola/grpc-gateway-impl/etc/gui"
 )
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
@@ -41,42 +40,40 @@ func Setup() (runAppFunc, cleanUpFunc) {
 		Tools:   new(tools.Tools),     // The Working Class
 	}
 
-	logs.InitStep(0)
-	func() {
+	initStep(0, func() {
 		app.Config = core.LoadConfig()
 		logs.SetupLogger(&app.Config.LoggerCfg)
-	}()
+	})
 
-	logs.InitStep(1)
-	func() {
+	initStep(1, func() {
 		app.Tools = tools.Setup(app.Config)
 
-		// Handle potential error from clients.Setup
 		var err error
 		app.Clients, err = clients.Setup(app.Config, app.Tools)
-		if err != nil {
-			logs.LogFatal(err)
-		}
+		logs.LogFatalIfErr(err)
 
 		app.Service = service.Setup(app.Clients, app.Tools)
 		app.Servers = servers.Setup(app.Service, app.Tools)
-	}()
+	})
 
-	logs.InitStep(2)
-	func() {
-		// Wrap the CloseDB method to match the expected signature
+	initStep(2, func() {
 		app.Tools.AddCleanupFunc(func() { app.Clients.CloseDB() })
 		app.Tools.AddCleanupFunc(app.Servers.Shutdown)
 		app.Tools.AddCleanupFuncWithErr(logs.SyncLogger)
-	}()
+	})
 
-	logs.InitStep(3)
+	initStep(3, func() {})
 	return app.Run, app.Cleanup
+}
+
+func initStep(step int, fn func()) {
+	logs.InitStep(step)
+	fn()
 }
 
 func (app *App) Run() {
 	workers.RunAll(app.Service)
-	gui.Start(app.Service)
+	//gui.Start(app.Service)
 	app.Servers.Run()
 }
 

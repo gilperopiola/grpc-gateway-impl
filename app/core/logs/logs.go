@@ -72,6 +72,14 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 	})
 }
 
+func LogSimple(msg string, data ...any) {
+	prepareLog().Info(msg + "🔔" + fmt.Sprintf("%v", data))
+}
+
+func LogEvent(msg string, data ...any) {
+	prepareLog(withMsg(msg), withData(data...)).Info("🔔")
+}
+
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
 func (l *logger) Info(msg string, fields ...zap.Field) {
@@ -136,6 +144,10 @@ func (l *logger) LogStrange(msg string, info ...any) {
 
 func (l *logger) LogThreat(msg string) {
 	LogThreat(msg)
+}
+
+func (l *logger) LogEvent(msg string, data ...any) {
+	LogEvent(msg, data...)
 }
 
 func (l *logger) LogResult(ofWhat string, err error) {

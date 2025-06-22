@@ -18,18 +18,19 @@ var _ core.Tools = &Tools{}
 //
 // Well defined Tools make the business logic easier to read and understand.
 type Tools struct {
-	core.TLSManager       // -> Holds and retrieves data for TLS communication.
-	core.ContextManager   // -> Manages context.
-	core.FileManager      // -> Creates folders and files.
-	core.ImageLoader      // -> Loads images from different sources.
-	core.ModelConverter   // -> Converts between models and PBs.
-	core.PwdHasher        // -> Hashes and compares passwords.
-	core.RateLimiter      // -> Limits rate of requests.
-	core.RequestPaginator // -> Helps handling GRPC requests with pagination.
-	core.RequestValidator // -> Validates GRPC requests.
-	core.ShutdownJanitor  // -> Cleans up and frees resources on application shutdown.
-	core.TokenGenerator   // -> Generates JWT Tokens.
-	core.TokenValidator   // -> Validates JWT Tokens.
+	core.TLSManager          // -> Holds and retrieves data for TLS communication.
+	core.ContextManager      // -> Manages context.
+	core.FileManager         // -> Creates folders and files.
+	core.IDGenerator[string] // -> Generates unique IDs.
+	core.ImageLoader         // -> Loads images from different sources.
+	core.ModelConverter      // -> Converts between models and PBs.
+	core.PwdHasher           // -> Hashes and compares passwords.
+	core.RateLimiter         // -> Limits rate of requests.
+	core.RequestPaginator    // -> Helps handling GRPC requests with pagination.
+	core.RequestValidator    // -> Validates GRPC requests.
+	core.ShutdownJanitor     // -> Cleans up and frees resources on application shutdown.
+	core.TokenGenerator      // -> Generates JWT Tokens.
+	core.TokenValidator      // -> Validates JWT Tokens.
 }
 
 func Setup(cfg *core.Config) *Tools {
@@ -50,6 +51,7 @@ func Setup(cfg *core.Config) *Tools {
 	// Other utilities
 	tools.FileManager = NewFileManager("etc/data/")
 	tools.ImageLoader = NewImageLoader()
+	tools.IDGenerator = NewIDGenerator(GenerateUUIDShort)
 	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
 	tools.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
 	tools.ModelConverter = NewModelConverter()
