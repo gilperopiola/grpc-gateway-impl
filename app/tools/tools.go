@@ -51,7 +51,7 @@ func Setup(cfg *core.Config) *Tools {
 	// Other utilities
 	tools.FileManager = NewFileManager("etc/data/")
 	tools.ImageLoader = NewImageLoader()
-	tools.IDGenerator = NewIDGenerator(GenerateUUIDShort)
+	tools.IDGenerator = NewIDGenerator(GenerateCustomUUID)
 	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)
 	tools.RateLimiter = NewRateLimiter(&cfg.RLimiterCfg)
 	tools.ModelConverter = NewModelConverter()

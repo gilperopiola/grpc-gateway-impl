@@ -15,11 +15,11 @@ import (
 // This replaces the previous InnerDB interface
 type DBOperations interface {
 	// Core database operations
-	Find(out any, where ...any) error
-	First(out any, where ...any) error
-	Create(value any) error
-	Save(value any) error
-	Delete(value any, where ...any) error
+	FindError(out any, where ...any) error
+	FirstError(out any, where ...any) error
+	CreateError(value any) error
+	SaveError(value any) error
+	DeleteError(value any, where ...any) error
 
 	// Context handling
 	WithContext(ctx context.Context) DBOperations
@@ -27,7 +27,8 @@ type DBOperations interface {
 	// Transaction support
 	Transaction(fn func(tx DBOperations) error) error
 
-	// Cleanup
+	Count(value *int64) error
+
 	Close() error
 }
 

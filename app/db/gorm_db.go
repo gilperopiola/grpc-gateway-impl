@@ -175,20 +175,48 @@ func (g *GormDB) Close() error {
 
 // Additional helpers for repositories to use
 
-func (g *GormDB) Model(value any) *gorm.DB {
-	return g.db.Model(value)
+func (g *GormDB) FirstError(out any, where ...any) error {
+	return g.db.First(out, where...).Error
 }
 
-func (g *GormDB) Where(query any, args ...any) *gorm.DB {
-	return g.db.Where(query, args...)
+func (g *GormDB) FindError(out any, where ...any) error {
+	return g.db.Find(out, where...).Error
 }
 
-func (g *GormDB) Preload(query string, args ...any) *gorm.DB {
-	return g.db.Preload(query, args...)
+func (g *GormDB) CreateError(value any) error {
+	return g.db.Create(value).Error
+}
+
+func (g *GormDB) SaveError(value any) error {
+	return g.db.Save(value).Error
+}
+
+func (g *GormDB) DeleteError(value any, where ...any) error {
+	return g.db.Delete(value, where...).Error
+}
+
+func (g *GormDB) Model(value any) core.DBOperations {
+	return &GormDB{db: g.db.Model(value)}
+}
+
+func (g *GormDB) Where(query any, args ...any) core.DBOperations {
+	return &GormDB{db: g.db.Where(query, args...)}
+}
+
+func (g *GormDB) Preload(query string, args ...any) core.DBOperations {
+	return &GormDB{db: g.db.Preload(query, args...)}
 }
 
 func (g *GormDB) Association(column string) *gorm.Association {
 	return g.db.Association(column)
+}
+
+func (g *GormDB) Count(value *int64) error {
+	return g.db.Count(value).Error
+}
+
+func (g *GormDB) Error() error {
+	return g.db.Error
 }
 
 // GetDB returns the underlying *gorm.DB instance

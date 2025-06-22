@@ -31,7 +31,7 @@ func (r *GormUserRepository) CreateUser(ctx god.Ctx, username, hashedPwd string)
 		Password: hashedPwd,
 	}
 
-	err := r.db.WithContext(ctx).Create(&user)
+	err := r.db.WithContext(ctx).CreateError(&user)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.FailedToCreateUser}
 	}
@@ -43,7 +43,7 @@ func (r *GormUserRepository) CreateUser(ctx god.Ctx, username, hashedPwd string)
 func (r *GormUserRepository) GetUserByID(ctx god.Ctx, id int) (*models.User, error) {
 	var user models.User
 
-	err := r.db.WithContext(ctx).First(&user, id)
+	err := r.db.WithContext(ctx).FirstError(&user, id)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.UserNotFound}
 	}
@@ -55,7 +55,7 @@ func (r *GormUserRepository) GetUserByID(ctx god.Ctx, id int) (*models.User, err
 func (r *GormUserRepository) GetUserByUsername(ctx god.Ctx, username string) (*models.User, error) {
 	var user models.User
 
-	err := r.db.WithContext(ctx).First(&user, "username = ?", username)
+	err := r.db.WithContext(ctx).FirstError(&user, "username = ?", username)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.UserNotFound}
 	}
@@ -70,9 +70,8 @@ func (r *GormUserRepository) GetUsers(ctx god.Ctx, page, pageSize int) ([]*model
 
 	// First, get the total count for pagination
 	countErr := r.db.WithContext(ctx).(interface {
-		Model(value interface{}) interface {
-			Count(value *int64) error
-		}
+		Model(any) core.DBOperations
+		Count(value *int64) error
 	}).Model(&models.User{}).Count(&count)
 
 	if countErr != nil {
@@ -84,13 +83,7 @@ func (r *GormUserRepository) GetUsers(ctx god.Ctx, page, pageSize int) ([]*model
 
 	// We need to use a special type assertion because our simplified DB interface
 	// doesn't support the Offset and Limit methods directly
-	limitOffsetDB, ok := r.db.WithContext(ctx).(interface {
-		Offset(int) interface {
-			Limit(int) interface {
-				Find(out interface{}, where ...interface{}) error
-			}
-		}
-	})
+	limitOffsetDB, ok := r.db.WithContext(ctx).(core.InnerDB)
 
 	if !ok {
 		return nil, 0, &errs.DBErr{Err: nil, Context: "DB implementation doesn't support pagination"}
@@ -98,7 +91,7 @@ func (r *GormUserRepository) GetUsers(ctx god.Ctx, page, pageSize int) ([]*model
 
 	err := limitOffsetDB.Offset(offset).Limit(pageSize).Find(&users)
 	if err != nil {
-		return nil, 0, &errs.DBErr{Err: err, Context: errs.FailedToFetchUsers}
+		return nil, 0, &errs.DBErr{Err: err.Error(), Context: errs.FailedToFetchUsers}
 	}
 
 	return users, int(count), nil

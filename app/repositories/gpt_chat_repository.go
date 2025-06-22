@@ -30,11 +30,10 @@ func (r *GormGPTChatRepository) GetChatByID(ctx god.Ctx, id int) (*models.GPTCha
 
 	// Get the chat along with its messages
 	err := r.db.WithContext(ctx).(interface {
-		First(out interface{}, where ...interface{}) error
-		Preload(query string, args ...interface{}) interface {
-			First(out interface{}, where ...interface{}) error
-		}
-	}).Preload("Messages").First(&chat, id)
+		Preload(query string, args ...any) core.DBOperations
+	}).Preload("Messages").(interface {
+		First(out any, where ...any) error
+	}).First(&chat, id)
 
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.ChatNotFound}
@@ -49,7 +48,7 @@ func (r *GormGPTChatRepository) CreateChat(ctx god.Ctx, title string) (*models.G
 		Title: title,
 	}
 
-	err := r.db.WithContext(ctx).Create(&chat)
+	err := r.db.WithContext(ctx).CreateError(&chat)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.FailedToCreateChat}
 	}
@@ -59,7 +58,7 @@ func (r *GormGPTChatRepository) CreateChat(ctx god.Ctx, title string) (*models.G
 
 // CreateMessage creates a new GPT message in a chat
 func (r *GormGPTChatRepository) CreateMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error) {
-	err := r.db.WithContext(ctx).Create(message)
+	err := r.db.WithContext(ctx).CreateError(message)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.FailedToCreateMessage}
 	}

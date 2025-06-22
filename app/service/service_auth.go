@@ -50,8 +50,11 @@ func (s *AuthSvc) Signup(ctx god.Ctx, req *pbs.SignupRequest) (*pbs.SignupRespon
 
 func (s *AuthSvc) doAfterSignup(ctx god.Ctx, user *models.User) {
 	s.Tools.CreateFolder("users/user_" + strconv.Itoa(user.ID))
-	// Use repository instead of direct DB call
-	logs.LogSimple("New user", user.Username)
+	if xReqID, err := s.Tools.GetFromCtx(ctx, "CtxKeyXRequestID"); err == nil {
+		logs.LogSimple("New user", "Created user "+user.Username+" with ID "+strconv.Itoa(user.ID)+" and X-Request-ID "+xReqID)
+	} else {
+		logs.LogSimple("New user", user.Username+" created with ID "+strconv.Itoa(user.ID))
+	}
 	s.Clients.GroupRepository().CreateGroup(ctx, user.Username+"'s First Group", user.ID, []int{})
 }
 

@@ -31,7 +31,7 @@ func (r *GormGroupRepository) CreateGroup(ctx god.Ctx, name string, ownerID int,
 		OwnerID: ownerID,
 	}
 
-	err := r.db.WithContext(ctx).Create(&group)
+	err := r.db.WithContext(ctx).CreateError(&group)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.FailedToCreateGroup}
 	}
@@ -51,7 +51,7 @@ func (r *GormGroupRepository) CreateGroup(ctx god.Ctx, name string, ownerID int,
 func (r *GormGroupRepository) GetGroupByID(ctx god.Ctx, id int) (*models.Group, error) {
 	var group models.Group
 
-	err := r.db.WithContext(ctx).First(&group, id)
+	err := r.db.WithContext(ctx).FirstError(&group, id)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.GroupNotFound}
 	}
@@ -64,7 +64,7 @@ func (r *GormGroupRepository) GetGroupsByUserID(ctx god.Ctx, userID int) ([]*mod
 	var groups []*models.Group
 
 	// Find groups where the user is the owner
-	err := r.db.WithContext(ctx).Find(&groups, "owner_id = ?", userID)
+	err := r.db.WithContext(ctx).FindError(&groups, "owner_id = ?", userID)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.FailedToFetchGroups}
 	}

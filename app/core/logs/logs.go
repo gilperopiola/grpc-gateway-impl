@@ -73,7 +73,11 @@ func LogHTTPRequest(handler http.Handler) http.Handler {
 }
 
 func LogSimple(msg string, data ...any) {
-	prepareLog().Info(msg + "🔔" + fmt.Sprintf("%v", data))
+	str := ""
+	if len(data) > 0 {
+		str = fmt.Sprintf("%v", data)
+	}
+	prepareLog().Info(msg + " 🔔 " + str)
 }
 
 func LogEvent(msg string, data ...any) {

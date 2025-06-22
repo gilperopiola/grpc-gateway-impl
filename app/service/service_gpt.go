@@ -45,7 +45,6 @@ func (svc *GPTSvc) NewGPTChat(ctx context.Context, req *pbs.NewGPTChatRequest) (
 }
 
 func (svc *GPTSvc) ReplyToGPTChat(ctx context.Context, req *pbs.ReplyToGPTChatRequest) (*pbs.ReplyToGPTChatResponse, error) {
-
 	dbGPTChat, err := svc.Clients.GPTChatRepository().GetChatByID(ctx, int(req.ChatId))
 	if err != nil {
 		if errs.IsDBNotFound(err) {

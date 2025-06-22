@@ -26,28 +26,28 @@ type LegacyDB struct {
 var _ core.DBOperations = (*LegacyDB)(nil)
 
 // These methods implement the DBOperations interface for backward compatibility
-func (d *LegacyDB) Find(out any, where ...any) error {
-	return d.InnerDB.Find(out, where...).Error()
+func (d *LegacyDB) Find(out any, where ...any) core.DBOperations {
+	return &LegacyDB{d.InnerDB.Find(out, where...)}
 }
 
-func (d *LegacyDB) First(out any, where ...any) error {
-	return d.InnerDB.First(out, where...).Error()
+func (d *LegacyDB) First(out any, where ...any) core.DBOperations {
+	return &LegacyDB{d.InnerDB.First(out, where...)}
 }
 
-func (d *LegacyDB) Create(value any) error {
-	return d.InnerDB.Create(value).Error()
+func (d *LegacyDB) Create(value any) core.DBOperations {
+	return &LegacyDB{d.InnerDB.Create(value)}
 }
 
-func (d *LegacyDB) Save(value any) error {
-	return d.InnerDB.Save(value).Error()
+func (d *LegacyDB) Save(value any) core.DBOperations {
+	return &LegacyDB{d.InnerDB.Save(value)}
 }
 
-func (d *LegacyDB) Delete(value any, where ...any) error {
-	return d.InnerDB.Delete(value, where...).Error()
+func (d *LegacyDB) Delete(value any, where ...any) core.DBOperations {
+	return &LegacyDB{d.InnerDB.Delete(value, where...)}
 }
 
 func (d *LegacyDB) WithContext(ctx context.Context) core.DBOperations {
-	return &LegacyDB{d.InnerDB.WithContext(ctx).(core.InnerDB)}
+	return &LegacyDB{d.InnerDB.WithContext(ctx)}
 }
 
 func (d *LegacyDB) Transaction(fn func(tx core.DBOperations) error) error {
@@ -57,6 +57,36 @@ func (d *LegacyDB) Transaction(fn func(tx core.DBOperations) error) error {
 func (d *LegacyDB) Close() error {
 	d.InnerDB.Close()
 	return nil
+}
+
+func (d *LegacyDB) FirstError(out any, where ...any) error {
+	return d.InnerDB.First(out, where...).Error()
+}
+
+func (d *LegacyDB) FindError(out any, where ...any) error {
+	return d.InnerDB.Find(out, where...).Error()
+}
+
+func (d *LegacyDB) CreateError(value any) error {
+	return d.InnerDB.Create(value).Error()
+}
+func (d *LegacyDB) SaveError(value any) error {
+	return d.InnerDB.Save(value).Error()
+}
+func (d *LegacyDB) DeleteError(value any, where ...any) error {
+	return d.InnerDB.Delete(value, where...).Error()
+}
+
+func (d *LegacyDB) Model(value any) core.DBOperations {
+	return &LegacyDB{d.InnerDB.Model(value)}
+}
+
+func (d *LegacyDB) Where(query any, args ...any) core.DBOperations {
+	return &LegacyDB{d.InnerDB.Where(query, args...)}
+}
+
+func (d *LegacyDB) Count(value *int64) error {
+	return d.InnerDB.Count(value).Error()
 }
 
 // NewSQLDBConn creates a legacy DB connection
