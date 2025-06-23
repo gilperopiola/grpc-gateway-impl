@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var _ core.DB = &mongoDBConn{}
+var _ core.MongoDB = &mongoDBConn{}
 
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 /*     - External Layer: Storage -     */

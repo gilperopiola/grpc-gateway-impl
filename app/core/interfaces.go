@@ -46,8 +46,8 @@ type (
 		APIClients
 	}
 
-	DB interface {
-		DBActions
+	MongoDB interface {
+		MongoRepository
 		GetDB() any // *gorm.DB or *mongo.Client
 		CloseDB()
 	}
@@ -59,21 +59,21 @@ type (
 )
 
 type (
-	DBActions interface { // High-level DB operations
-		UsersDB
-		GroupsDB
-		GPTDB
+	MongoRepository interface { // High-level DB operations
+		MongoUsersRepository
+		MongoGroupsRepository
+		MongoGPTRepository
 	}
-	UsersDB interface {
+	MongoUsersRepository interface {
 		DBCreateUser(ctx god.Ctx, username, hashedPwd string) (*models.User, error)
 		DBGetUser(ctx god.Ctx, opts ...any) (*models.User, error)
 		DBGetUsers(ctx god.Ctx, page, pageSize int, opts ...any) ([]*models.User, int, error)
 	}
-	GroupsDB interface {
+	MongoGroupsRepository interface {
 		DBCreateGroup(ctx god.Ctx, name string, ownerID int, invitedUserIDs []int) (*models.Group, error)
 		DBGetGroup(ctx god.Ctx, opts ...any) (*models.Group, error)
 	}
-	GPTDB interface {
+	MongoGPTRepository interface {
 		DBGetGPTChat(ctx god.Ctx, opts ...any) (*models.GPTChat, error)
 		DBCreateGPTChat(ctx god.Ctx, title string) (*models.GPTChat, error)
 		DBCreateGPTMessage(ctx god.Ctx, message *models.GPTMessage) (*models.GPTMessage, error)

@@ -20,16 +20,11 @@ type DBOperations interface {
 	CreateError(value any) error
 	SaveError(value any) error
 	DeleteError(value any, where ...any) error
+	CountError(value *int64) error
 
-	// Context handling
 	WithContext(ctx context.Context) DBOperations
-
-	// Transaction support
 	Transaction(fn func(tx DBOperations) error) error
-
-	Count(value *int64) error
-
-	Close() error
+	CloseDB() error
 }
 
 // UserRepository handles user-related database operations

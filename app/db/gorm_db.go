@@ -31,7 +31,7 @@ var _ core.DBOperations = (*GormDB)(nil)
 
 // NewGormDB creates a new GormDB instance
 func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*GormDB, error) {
-	// Configure the logger
+
 	zapLogger := zap.L() // Use default logger as fallback
 	if logs.GetZapLogger() != nil {
 		zapLogger = logs.GetZapLogger()
@@ -165,7 +165,7 @@ func (g *GormDB) Transaction(fn func(tx core.DBOperations) error) error {
 	})
 }
 
-func (g *GormDB) Close() error {
+func (g *GormDB) CloseDB() error {
 	sqlDB, err := g.db.DB()
 	if err != nil {
 		return &errs.DBErr{Err: err, Context: errs.FailedToGetSQLDB}
@@ -210,17 +210,17 @@ func (g *GormDB) Preload(query string, args ...any) core.DBOperations {
 func (g *GormDB) Association(column string) *gorm.Association {
 	return g.db.Association(column)
 }
-
 func (g *GormDB) Count(value *int64) error {
+	if value == nil {
+		return fmt.Errorf("value pointer cannot be nil")
+	}
+	return g.db.Model(value).Count(value).Error
+}
+
+func (g *GormDB) CountError(value *int64) error {
 	return g.db.Count(value).Error
 }
 
 func (g *GormDB) Error() error {
 	return g.db.Error
-}
-
-// GetDB returns the underlying *gorm.DB instance
-// This should only be used in special cases where direct access is needed
-func (g *GormDB) GetDB() *gorm.DB {
-	return g.db
 }

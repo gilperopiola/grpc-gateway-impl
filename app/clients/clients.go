@@ -54,7 +54,7 @@ func (c *Clients) GetDB() any {
 // CloseDB closes the database connection
 // This is maintained for backward compatibility
 func (c *Clients) CloseDB() error {
-	return c.DB.Close()
+	return c.DB.CloseDB()
 }
 
 // UserRepository returns the user repository
