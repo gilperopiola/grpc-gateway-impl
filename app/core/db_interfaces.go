@@ -25,6 +25,12 @@ type DBOperations interface {
 	WithContext(ctx context.Context) DBOperations
 	Transaction(fn func(tx DBOperations) error) error
 	CloseDB() error
+
+	Count(value *int64) error
+	Model(value any) DBOperations
+	Offset(value int) DBOperations
+	Limit(value int) DBOperations
+	Preload(query string, args ...any) DBOperations
 }
 
 // UserRepository handles user-related database operations

@@ -108,6 +108,7 @@ type Tools interface {
 	ModelConverter
 	ImageLoader
 	IDGenerator[string]
+	FileDownloader
 }
 
 /* -~-~-~-~- Other -~-~-~-~- */

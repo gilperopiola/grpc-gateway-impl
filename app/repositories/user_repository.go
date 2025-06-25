@@ -69,8 +69,7 @@ func (r *GormUserRepository) GetUsers(ctx god.Ctx, page, pageSize int) ([]*model
 	var count int64
 
 	// First, get the total count for pagination
-	countErr := r.db.WithContext(ctx).(core.InnerDB).Model(&models.User{}).Count(&count).Error()
-
+	countErr := r.db.WithContext(ctx).Model(&models.User{}).Count(&count)
 	if countErr != nil {
 		return nil, 0, &errs.DBErr{Err: countErr, Context: errs.FailedToFetchUsers}
 	}
@@ -78,16 +77,9 @@ func (r *GormUserRepository) GetUsers(ctx god.Ctx, page, pageSize int) ([]*model
 	// Then, get the paginated users
 	offset := (page - 1) * pageSize
 
-	// We need to use a special type assertion because our simplified DB interface
-	// doesn't support the Offset and Limit methods directly
-	limitOffsetDB, ok := r.db.WithContext(ctx).(core.InnerDB)
-	if !ok {
-		return nil, 0, &errs.DBErr{Err: nil, Context: "DB implementation doesn't support pagination"}
-	}
-
-	err := limitOffsetDB.Offset(offset).Limit(pageSize).Find(&users)
+	err := r.db.WithContext(ctx).Offset(offset).Limit(pageSize).FindError(&users)
 	if err != nil {
-		return nil, 0, &errs.DBErr{Err: err.Error(), Context: errs.FailedToFetchUsers}
+		return nil, 0, &errs.DBErr{Err: err, Context: errs.FailedToFetchUsers}
 	}
 
 	return users, int(count), nil

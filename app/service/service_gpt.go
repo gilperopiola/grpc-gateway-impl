@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/apimodels"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/errs"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/models"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/pbs"
+	"go.uber.org/zap"
 )
 
 type GPTSvc struct {
@@ -84,6 +86,21 @@ func (svc *GPTSvc) NewGPTImage(ctx context.Context, req *pbs.NewGPTImageRequest)
 		return nil, fmt.Errorf("error calling DALL-E API: %w", err)
 	}
 
+	// example URL: https://oaidalleapiprodscus.blob.core.windows.net/private/org-QSC7lV...
+	generatedImageURL := dallEResponse.URL
+	if len(strings.Trim(generatedImageURL, " ")) == 0 {
+		return nil, fmt.Errorf("error: empty image URL returned from DALL-E")
+	}
+
+	// Download image async
+	go func() {
+		if filePath, fileSize, err := svc.Tools.DownloadFileToDisk(generatedImageURL, "png", nil); err != nil {
+			zap.S().Errorf("error downloading image from URL: %v", err)
+		} else {
+			zap.S().Infof("image downloaded successfully: %s (%d bytes)", filePath, fileSize)
+		}
+	}()
+
 	dbGPTChat, err := svc.Clients.GPTChatRepository().CreateChat(ctx, req.Message)
 	if err != nil {
 		return nil, errs.GRPCFromDB(err, core.GetRouteFromCtx(ctx).Name)
@@ -92,7 +109,7 @@ func (svc *GPTSvc) NewGPTImage(ctx context.Context, req *pbs.NewGPTImageRequest)
 	dbMessages := []*models.GPTMessage{
 		{Title: "Instructions", From: "user", Content: "You are a highly accurate image generator AI...", ChatID: dbGPTChat.ID},
 		{Title: "User prompt", From: "user", Content: req.Message, ChatID: dbGPTChat.ID},
-		{Title: "DALL-E response", From: "assistant", Content: dallEResponse.URL, ChatID: dbGPTChat.ID},
+		{Title: "DALL-E response", From: "assistant", Content: generatedImageURL, ChatID: dbGPTChat.ID},
 	}
 
 	for _, msg := range dbMessages {
@@ -101,5 +118,5 @@ func (svc *GPTSvc) NewGPTImage(ctx context.Context, req *pbs.NewGPTImageRequest)
 		}
 	}
 
-	return &pbs.NewGPTImageResponse{ImageUrl: dallEResponse.URL, Chat: &pbs.GPTChatInfo{Id: int32(dbGPTChat.ID), Title: dbGPTChat.Title}}, nil
+	return &pbs.NewGPTImageResponse{ImageUrl: generatedImageURL, Chat: &pbs.GPTChatInfo{Id: int32(dbGPTChat.ID), Title: dbGPTChat.Title}}, nil
 }

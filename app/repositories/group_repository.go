@@ -69,37 +69,30 @@ func (r *GormGroupRepository) GetGroupsByUserID(ctx god.Ctx, userID int) ([]*mod
 		return nil, &errs.DBErr{Err: err, Context: errs.FailedToFetchGroups}
 	}
 
-	// TODO: Find groups where the user is a member (using the many-to-many relationship)
-	// This would require a direct GORM query with joins, which is outside our simplified DB interface
-	// We'll need to enhance the DB interface or use the helper methods
+	// Find groups where the user is an invited member
+	var invitedGroups []*models.Group
+	err = r.db.WithContext(ctx).FindError(&invitedGroups, "EXISTS (SELECT 1 FROM group_users WHERE group_users.group_id = groups.id AND group_users.user_id = ?)", userID)
+	if err != nil {
+		return nil, &errs.DBErr{Err: err, Context: errs.FailedToFetchGroups}
+	}
+
+	// Combine both sets of groups
+	groups = append(groups, invitedGroups...)
 
 	return groups, nil
 }
 
 // addInvitedUsersToGroup is a helper method to add invited users to a group
 func (r *GormGroupRepository) addInvitedUsersToGroup(ctx god.Ctx, group *models.Group, invitedUserIDs []int) error {
-	// This would typically require direct access to GORM's Association method
-	// In a real implementation, we might need to enhance our DB interface
-	// or have a specialized method for many-to-many operations
-
-	// For now, this is a simplified demonstration using a helper method
-	// This assumes the GormDB implementation has the Association method exposed
-	gormDB, ok := r.db.(interface {
-		Association(column string) interface {
-			Append(...interface{}) error
+	for _, userID := range invitedUserIDs {
+		invitedUser := models.UsersInGroup{
+			UserID:  userID,
+			GroupID: group.ID,
 		}
-	})
-
-	if !ok {
-		return &errs.DBErr{Err: nil, Context: "DB implementation doesn't support associations"}
-	}
-
-	for _, invitedUserID := range invitedUserIDs {
-		err := gormDB.Association("Invited").Append(&models.User{ID: invitedUserID})
+		err := r.db.WithContext(ctx).CreateError(&invitedUser)
 		if err != nil {
 			return &errs.DBErr{Err: err, Context: errs.FailedToAddUserToGroup}
 		}
 	}
-
 	return nil
 }

@@ -1,6 +1,8 @@
 package tools
 
 import (
+	"net/http"
+
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/logs"
 )
@@ -21,6 +23,7 @@ type Tools struct {
 	core.TLSManager          // -> Holds and retrieves data for TLS communication.
 	core.ContextManager      // -> Manages context.
 	core.FileManager         // -> Creates folders and files.
+	core.FileDownloader      // -> Downloads files.
 	core.IDGenerator[string] // -> Generates unique IDs.
 	core.ImageLoader         // -> Loads images from different sources.
 	core.ModelConverter      // -> Converts between models and PBs.
@@ -50,6 +53,7 @@ func Setup(cfg *core.Config) *Tools {
 
 	// Other utilities
 	tools.FileManager = NewFileManager("etc/data/")
+	tools.FileDownloader = NewFileDownloader(&http.Client{Timeout: 0})
 	tools.ImageLoader = NewImageLoader()
 	tools.IDGenerator = NewIDGenerator(GenerateCustomUUID)
 	tools.PwdHasher = NewPwdHasher(cfg.PwdHasherCfg.Salt)

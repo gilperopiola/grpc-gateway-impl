@@ -14,6 +14,7 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -21,16 +22,16 @@ import (
 /*       - GORM DB Implementation -     */
 /* -~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~- */
 
-// GormDB is a wrapper around gorm.DB implementing the core.DBOperations interface
-type GormDB struct {
+// DB is a wrapper around gorm.DB implementing the core.DBOperations interface
+type DB struct {
 	db *gorm.DB
 }
 
 // Verify that GormDB implements the core.DBOperations interface
-var _ core.DBOperations = (*GormDB)(nil)
+var _ core.DBOperations = (*DB)(nil)
 
 // NewGormDB creates a new GormDB instance
-func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*GormDB, error) {
+func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*DB, error) {
 
 	zapLogger := zap.L() // Use default logger as fallback
 	if logs.GetZapLogger() != nil {
@@ -45,6 +46,21 @@ func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*GormDB, error) 
 
 	// Wrap connection function to match the signature of utils.RetryFunc
 	connectToDB := func() (any, error) {
+
+		if cfg.IsPostgres() {
+			dsnFormat := "host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=%s"
+			dsn := fmt.Sprintf(dsnFormat,
+				cfg.Hostname,
+				cfg.Username,
+				cfg.Password,
+				cfg.Database,
+				cfg.Port,
+				"America/Buenos_Aires",
+			)
+			gormDB, err := gorm.Open(postgres.Open(dsn), gormCfg)
+			return gormDB, err
+		}
+
 		gormDB, err := gorm.Open(mysql.Open(cfg.GetSQLConnString()), gormCfg)
 		return gormDB, err
 	}
@@ -72,7 +88,7 @@ func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*GormDB, error) 
 	logs.LogSimple("✅ DB Connection for " + cfg.Database + " established OK")
 
 	gormDB := dbConn.(*gorm.DB)
-	gormDBInstance := &GormDB{db: gormDB}
+	gormDBInstance := &DB{db: gormDB}
 
 	// Perform post-connection setup
 	if err := setupDBPostConnection(gormDBInstance, cfg, hashPwdFn); err != nil {
@@ -83,7 +99,7 @@ func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*GormDB, error) 
 }
 
 // setupDBPostConnection handles post-connection setup like migrations and admin creation
-func setupDBPostConnection(db *GormDB, cfg *core.DBCfg, hashPwdFn func(string) string) error {
+func setupDBPostConnection(db *DB, cfg *core.DBCfg, hashPwdFn func(string) string) error {
 	for _, model := range models.AllModels {
 		if cfg.EraseAllData {
 			tableName := ""
@@ -135,37 +151,37 @@ func setupDBPostConnection(db *GormDB, cfg *core.DBCfg, hashPwdFn func(string) s
 
 // Implementation of core.DBOperations interface methods
 
-func (g *GormDB) Find(out any, where ...any) error {
+func (g *DB) Find(out any, where ...any) error {
 	return g.db.Find(out, where...).Error
 }
 
-func (g *GormDB) First(out any, where ...any) error {
+func (g *DB) First(out any, where ...any) error {
 	return g.db.First(out, where...).Error
 }
 
-func (g *GormDB) Create(value any) error {
+func (g *DB) Create(value any) error {
 	return g.db.Create(value).Error
 }
 
-func (g *GormDB) Save(value any) error {
+func (g *DB) Save(value any) error {
 	return g.db.Save(value).Error
 }
 
-func (g *GormDB) Delete(value any, where ...any) error {
+func (g *DB) Delete(value any, where ...any) error {
 	return g.db.Delete(value, where...).Error
 }
 
-func (g *GormDB) WithContext(ctx context.Context) core.DBOperations {
-	return &GormDB{db: g.db.WithContext(ctx)}
+func (g *DB) WithContext(ctx context.Context) core.DBOperations {
+	return &DB{db: g.db.WithContext(ctx)}
 }
 
-func (g *GormDB) Transaction(fn func(tx core.DBOperations) error) error {
+func (g *DB) Transaction(fn func(tx core.DBOperations) error) error {
 	return g.db.Transaction(func(tx *gorm.DB) error {
-		return fn(&GormDB{db: tx})
+		return fn(&DB{db: tx})
 	})
 }
 
-func (g *GormDB) CloseDB() error {
+func (g *DB) CloseDB() error {
 	sqlDB, err := g.db.DB()
 	if err != nil {
 		return &errs.DBErr{Err: err, Context: errs.FailedToGetSQLDB}
@@ -175,52 +191,60 @@ func (g *GormDB) CloseDB() error {
 
 // Additional helpers for repositories to use
 
-func (g *GormDB) FirstError(out any, where ...any) error {
+func (g *DB) FirstError(out any, where ...any) error {
 	return g.db.First(out, where...).Error
 }
 
-func (g *GormDB) FindError(out any, where ...any) error {
+func (g *DB) FindError(out any, where ...any) error {
 	return g.db.Find(out, where...).Error
 }
 
-func (g *GormDB) CreateError(value any) error {
+func (g *DB) CreateError(value any) error {
 	return g.db.Create(value).Error
 }
 
-func (g *GormDB) SaveError(value any) error {
+func (g *DB) SaveError(value any) error {
 	return g.db.Save(value).Error
 }
 
-func (g *GormDB) DeleteError(value any, where ...any) error {
+func (g *DB) DeleteError(value any, where ...any) error {
 	return g.db.Delete(value, where...).Error
 }
 
-func (g *GormDB) Model(value any) core.DBOperations {
-	return &GormDB{db: g.db.Model(value)}
+func (g *DB) Model(value any) core.DBOperations {
+	return &DB{db: g.db.Model(value)}
 }
 
-func (g *GormDB) Where(query any, args ...any) core.DBOperations {
-	return &GormDB{db: g.db.Where(query, args...)}
+func (g *DB) Where(query any, args ...any) core.DBOperations {
+	return &DB{db: g.db.Where(query, args...)}
 }
 
-func (g *GormDB) Preload(query string, args ...any) core.DBOperations {
-	return &GormDB{db: g.db.Preload(query, args...)}
+func (g *DB) Preload(query string, args ...any) core.DBOperations {
+	return &DB{db: g.db.Preload(query, args...)}
 }
 
-func (g *GormDB) Association(column string) *gorm.Association {
+func (g *DB) Association(column string) *gorm.Association {
 	return g.db.Association(column)
 }
-func (g *GormDB) Count(value *int64) error {
+func (g *DB) Count(value *int64) error {
 	if value == nil {
 		return fmt.Errorf("value pointer cannot be nil")
 	}
 	return g.db.Model(value).Count(value).Error
 }
 
-func (g *GormDB) CountError(value *int64) error {
+func (g *DB) CountError(value *int64) error {
 	return g.db.Count(value).Error
 }
 
-func (g *GormDB) Error() error {
+func (g *DB) Error() error {
 	return g.db.Error
+}
+
+func (g *DB) Offset(value int) core.DBOperations {
+	return &DB{db: g.db.Offset(value)}
+}
+
+func (g *DB) Limit(value int) core.DBOperations {
+	return &DB{db: g.db.Limit(value)}
 }

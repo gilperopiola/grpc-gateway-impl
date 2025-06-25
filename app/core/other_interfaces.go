@@ -89,6 +89,10 @@ type (
 		GetUsernameFromCtx(ctx god.Ctx) string
 	}
 
+	FileDownloader interface {
+		DownloadFileToDisk(url, fileExt string, extraHeaders map[string]string) (string, int, error)
+	}
+
 	// File system operations.
 	FileManager interface {
 		CreateFolder(path string) error

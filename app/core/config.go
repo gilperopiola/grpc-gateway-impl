@@ -144,6 +144,10 @@ type DBCfg struct {
 	LogLevel       int
 }
 
+func (c *DBCfg) IsPostgres() bool {
+	return true
+}
+
 func loadDBConfig() DBCfg {
 	return DBCfg{
 		Username:       envVar("DB_USERNAME", "root"),

@@ -29,12 +29,7 @@ func (r *GormGPTChatRepository) GetChatByID(ctx god.Ctx, id int) (*models.GPTCha
 	var chat models.GPTChat
 
 	// Get the chat along with its messages
-	err := r.db.WithContext(ctx).(interface {
-		Preload(query string, args ...any) core.DBOperations
-	}).Preload("Messages").(interface {
-		First(out any, where ...any) error
-	}).First(&chat, id)
-
+	err := r.db.WithContext(ctx).Preload("Messages").FirstError(&chat, id)
 	if err != nil {
 		return nil, &errs.DBErr{Err: err, Context: errs.ChatNotFound}
 	}
