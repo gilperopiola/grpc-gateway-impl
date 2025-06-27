@@ -46,7 +46,6 @@ func NewGormDB(cfg *core.DBCfg, hashPwdFn func(string) string) (*DB, error) {
 
 	// Wrap connection function to match the signature of utils.RetryFunc
 	connectToDB := func() (any, error) {
-
 		if cfg.IsPostgres() {
 			dsnFormat := "host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=%s"
 			dsn := fmt.Sprintf(dsnFormat,
@@ -128,12 +127,7 @@ func setupDBPostConnection(db *DB, cfg *core.DBCfg, hashPwdFn func(string) strin
 			Password: hashPwdFn(cfg.InsertAdminPwd),
 			Role:     models.AdminRole,
 		}
-
-		if err := db.db.FirstOrCreate(&admin).Error; err != nil {
-			logs.LogResult("Error inserting admin user", err)
-			return err
-		}
-		logs.LogResult("Inserting DB admin", nil)
+		logs.LogResult("Inserting DB admin", db.db.Create(&admin).Error)
 	}
 
 	sqlDB, err := db.db.DB()
