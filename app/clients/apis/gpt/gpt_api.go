@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gilperopiola/grpc-gateway-impl/app/core"
 	"github.com/gilperopiola/grpc-gateway-impl/app/core/apimodels"
@@ -21,11 +22,15 @@ type gptAPI struct {
 	httpClient *http.Client
 	baseURL    string
 	key        string
+
+	mockCalls bool
+	mockData  map[string]string
 }
 
-func NewAPI(httpClient *http.Client, apiKey string) core.GPTAPI {
+func NewAPI(httpClient *http.Client, apiKey string, mockCalls bool, mockData map[string]string) core.GPTAPI {
 	return &gptAPI{
 		httpClient: httpClient, baseURL: "https://api.openai.com/v1", key: apiKey,
+		mockCalls: mockCalls, mockData: mockData,
 	}
 }
 
@@ -53,11 +58,32 @@ func (api *gptAPI) SendRequestToGPT(ctx context.Context, prompt string, prevMsgs
 		Messages: append(prevMsgs, apimodels.GPTChatMsg{Role: "user", Content: prompt}),
 	}
 
-	status, body, err := utils.POST(ctx, url, &req, api.key, api.httpClient)
-	if err != nil {
-		return "", logs.LogUnexpected(err)
+	// These are from the response we will get from the API, they can be mocked.
+	var status int
+	var body []byte
+	var err error
+
+	mockMatch := false
+	if api.mockCalls {
+		for key, data := range api.mockData {
+			if strings.Contains(url, key) {
+				mockMatch = true
+				body = []byte(data)
+				status = http.StatusOK
+				logs.LogStrange("Mocked API call", "url", url, "responseBody", data)
+				break
+			}
+		}
 	}
-	logs.LogAPICall(url, status, body)
+
+	// If there's no matching mock data, we make the actual API call.
+	if !mockMatch {
+		status, body, err = utils.POST(ctx, url, &req, api.key, api.httpClient)
+		logs.LogAPICall(url, status, body)
+		if err != nil {
+			return "", logs.LogUnexpected(err)
+		}
+	}
 
 	var response apimodels.GPTChatEndpointResponse
 	if err := json.Unmarshal(body, &response); err != nil {
@@ -83,11 +109,32 @@ func (api *gptAPI) SendRequestToDallE(ctx context.Context, prompt string, size p
 		req.N = 1
 	}
 
-	status, body, err := utils.POST(ctx, url, &req, api.key, api.httpClient)
-	if err != nil {
-		return apimodels.GPTImageMsg{}, logs.LogUnexpected(err)
+	// These are from the response we will get from the API, they can be mocked.
+	var status int
+	var body []byte
+	var err error
+
+	mockMatch := false
+	if api.mockCalls {
+		for key, data := range api.mockData {
+			if strings.Contains(url, key) {
+				mockMatch = true
+				body = []byte(data)
+				status = http.StatusOK
+				logs.LogStrange("Mocked API call", "url", url, "responseBody", data)
+				break
+			}
+		}
 	}
-	logs.LogAPICall(url, status, body)
+
+	// If there's no matching mock data, we make the actual API call.
+	if !mockMatch {
+		status, body, err = utils.POST(ctx, url, &req, api.key, api.httpClient)
+		logs.LogAPICall(url, status, body)
+		if err != nil {
+			return apimodels.GPTImageMsg{}, logs.LogUnexpected(err)
+		}
+	}
 
 	var response apimodels.GPTImageEndpointResponse
 	if err := json.Unmarshal(body, &response); err != nil {

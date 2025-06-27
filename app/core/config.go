@@ -103,6 +103,9 @@ type (
 	APIsCfg struct {
 		Weather OpenWeatherMapAPICfg
 		GPT     ChatGptAPICfg
+
+		MockCalls bool
+		MockData  map[string]string
 	}
 	OpenWeatherMapAPICfg struct {
 		BaseURL string
@@ -115,15 +118,57 @@ type (
 )
 
 func loadAPIsConfig() APIsCfg {
+	mockAPICalls := envVar("API_MOCK_CALLS", false)
+
 	return APIsCfg{
-		OpenWeatherMapAPICfg{
+		Weather: OpenWeatherMapAPICfg{
 			BaseURL: envVar("API_OPENWEATHERMAP_BASE_URL", "https://api.weathermap.org/data/2.5/weather"),
 			AppID:   envVar("API_OPENWEATHERMAP_APP_ID", ""),
 		},
-		ChatGptAPICfg{
+		GPT: ChatGptAPICfg{
 			BaseURL: envVar("API_CHATGPT_BASE_URL", "https://api.openai.com/v1"),
 			APIKey:  envVar("API_CHATGPT_API_KEY", ""),
 		},
+		MockCalls: mockAPICalls,
+		MockData: func() map[string]string {
+			if !mockAPICalls {
+				return nil
+			}
+
+			// Keys must match a substring of the actual API URL to trigger the mock response.
+			mockData := make(map[string]string)
+			mockData["https://api.openai.com/v1/chat/completions"] = `
+{
+    "id": "chatcmpl-...",
+    "object": "chat.completion",
+    "created": 1250814434,
+    "model": "gpt-4o-2024-08-06",
+    "choices": [
+		{"index": 0, "message": {"role": "assistant","content": "Mock response gotten","refusal": null, "annotations": []}, "logprobs": null, "finish_reason": "stop"}
+    ],
+    "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 604,
+        "total_tokens": 635,
+        "prompt_tokens_details": {"cached_tokens": 0,"audio_tokens": 0},
+        "completion_tokens_details": {"reasoning_tokens": 0,"audio_tokens": 0,"accepted_prediction_tokens": 0,"rejected_prediction_tokens": 0}
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_0..."
+}`
+
+			mockData["https://api.openai.com/v1/images/generations"] = `
+{
+    "created": 175033,
+    "data": [
+        {
+            "revised_prompt": "Create a widescreen, photorealistic image in ultra HD quality with rich colors, mimicking the style of the kitsch era. The image should depict a dark starry sky that stretches across the entire breadth of the image. The sky should be teeming with fiery meteorites, each leaving behind a trail of sparkling dust, accentuated with flamboyant lens flares. The colors should be vibrant and intense to capture the essence of the kitsch aesthetic.",
+            "url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-QSC7lVI62AyfPgP7NyIh4OTS/user-T2w0qXeRmFDqwUgIrWWRSiZv/img-VeoC7pt5ZGHUgVQsCxg3daD8.png?st=2025-06-25T00%3A27%3A50Z&se=2025-06-25T02%3A27%3A50Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=cc612491-d948-4d2e-9821-2683df3719f5&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-06-24T18%3A52%3A08Z&ske=2025-06-25T18%3A52%3A08Z&sks=b&skv=2024-08-04&sig=9X6F7IJgLO%2BghFPa/0kZ4FiE55y0j0/mXTNU%2BHxUbak%3D"
+        }
+    ]
+}`
+			return mockData
+		}(),
 	}
 }
 

@@ -22,7 +22,7 @@ func NewAPIs(cfg *core.APIsCfg) *APIClients {
 	weatherAPIHTTPClient := newAPIHTTPClient()
 
 	return &APIClients{
-		gpt.NewAPI(gptAPIHTTPClient, cfg.GPT.APIKey),
+		gpt.NewAPI(gptAPIHTTPClient, cfg.GPT.APIKey, cfg.MockCalls, cfg.MockData),
 		weather.NewAPI(weatherAPIHTTPClient),
 	}
 }
